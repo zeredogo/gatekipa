@@ -1,26 +1,122 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --font-geist: "Geist", "Inter", sans-serif;
+  --font-geist-mono: "Geist Mono", "Space Mono", monospace;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-background: #052e16;
+  --color-foreground: #dcfce7;
+  --color-primary: #4ade80;
+  --color-primary-foreground: #052e16;
+  --color-secondary: #166534;
+  --color-secondary-foreground: #dcfce7;
+  --color-muted: #166534;
+  --color-muted-foreground: #86efac;
+  --color-accent: #166534;
+  --color-accent-foreground: #dcfce7;
+  --color-destructive: #ff6568;
+  --color-border: #15803d;
+  --color-input: #15803d;
+  --color-ring: #4ade80;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --radius-lg: 0.625rem;
+  --radius-md: calc(0.625rem - 2px);
+  --radius-sm: calc(0.625rem - 4px);
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: float-slow 8s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 3s ease-in-out infinite;
+  --animate-shimmer: shimmer 3s infinite linear;
+  --animate-sparkle: sparkle 2s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    50% { transform: translateY(-12px) rotate(3deg); }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(74, 222, 128, 0.6); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200%; }
+    100% { background-position: 200%; }
+  }
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground;
+    font-family: var(--font-geist);
+    overflow-x: hidden;
+    background-color: #052e16 !important;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .noise-overlay {
+    position: relative;
+  }
+  .noise-overlay::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background: url("https://grainy-gradients.vercel.app/noise.svg");
+    opacity: 0.05;
+    z-index: 9999;
+    mix-blend-mode: overlay;
+  }
+
+  .glass-card {
+    @apply bg-secondary/30 backdrop-blur-lg border border-border/50 rounded-lg transition-all duration-300;
+  }
+  
+  .anime-card {
+    @apply transition-all duration-300 relative overflow-hidden bg-secondary border border-border/50 rounded-lg hover:border-primary/50 hover:-translate-y-1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .anime-card:hover {
+    box-shadow: 0 20px 40px rgba(21, 128, 61, 0.2);
+  }
+
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600;
+  }
+
+  .text-gradient-green {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-green-300 via-green-500 to-green-700;
+  }
+
+  .bg-anime-pattern {
+    background-image: 
+      radial-gradient(circle at 20%, rgba(34, 139, 34, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(234, 179, 8, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 40% 80%, rgba(34, 139, 34, 0.05) 0%, transparent 50%);
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-md hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-primary/20 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary/50 text-foreground font-semibold px-6 py-3 rounded-md border border-border/50 hover:bg-secondary transition-all duration-300 active:scale-95 backdrop-blur-sm;
+  }
 }

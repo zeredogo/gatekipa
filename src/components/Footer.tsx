@@ -1,0 +1,88 @@
+"use client";
+
+import React from "react";
+
+const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
+  const sections = [
+    {
+      title: "Product",
+      links: [
+        { name: "How It Works", href: "#how-it-works" },
+        { name: "Features", href: "#features" },
+        { name: "Security", href: "#security" },
+      ],
+    },
+    {
+      title: "Company",
+      links: [
+        { name: "FAQs", href: "#faqs" },
+        { name: "Contact", href: "#contact" },
+        { name: "Privacy Policy", href: "#" },
+      ],
+    },
+    {
+      title: "Social",
+      links: [
+        { name: "Twitter", href: "#" },
+        { name: "LinkedIn", href: "#" },
+        { name: "Instagram", href: "#" },
+      ],
+    },
+  ];
+
+  return (
+    <footer className="py-20 bg-background border-t border-primary/10 relative overflow-hidden">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="flex items-center gap-2">
+            <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="text-background font-bold text-xl">G</span>
+            </div>
+            <span className="text-foreground font-bold text-2xl tracking-tighter">
+              Gatekipa
+            </span>
+          </div>
+          <p className="text-lg text-foreground/50 max-w-sm font-medium italic">
+            Taking back control of your subscriptions, one card at a time. Built for Nigeria, for individuals and businesses.
+          </p>
+          <div className="text-sm font-bold text-primary/60 uppercase tracking-widest">
+            © {currentYear} Gatekipa Technology. All rights reserved.
+          </div>
+        </div>
+
+        {sections.map((section) => (
+          <div key={section.title} className="space-y-6">
+            <h4 className="text-sm font-bold text-foreground/40 uppercase tracking-[0.2em]">
+              {section.title}
+            </h4>
+            <ul className="space-y-4">
+              {section.links.map((link) => (
+                <li key={link.name}>
+                  <a
+                    href={link.href}
+                    className="text-lg font-bold text-foreground/70 hover:text-primary transition-colors italic hover:underline decoration-primary/30 decoration-2 underline-offset-4"
+                  >
+                    {link.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      
+      {/* Footer Design Element */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-12 mt-20 pt-8 border-t border-primary/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-bold text-foreground/20 uppercase tracking-[0.3em]">
+         <div>SECURED BY BANK-GRADE ENCRYPTION</div>
+         <div className="flex gap-8">
+            <span>Powered by Paystack</span>
+            <span>Made in Lagos</span>
+         </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
