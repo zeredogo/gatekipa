@@ -11,8 +11,16 @@ const HeroSection = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const stats = await getWaitlistStats();
-      setTotalCount(stats.count);
+      try {
+        const stats = await getWaitlistStats();
+        if (stats && stats.count > 0) {
+          setTotalCount(stats.count);
+        } else {
+          setTotalCount(2500); // Marketing fallback
+        }
+      } catch {
+        setTotalCount(2500); // Fallback on error
+      }
     };
     fetchStats();
 
@@ -91,7 +99,7 @@ const HeroSection = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full size-2 bg-primary"></span>
             </span>
-            Join {totalCount.toLocaleString()} others
+            Join {totalCount.toLocaleString()}+ others
           </div>
 
           <h1 className="text-5xl sm:text-7xl lg:text-8xl font-extrabold text-foreground leading-[0.95] tracking-tighter">
@@ -148,8 +156,8 @@ const HeroSection = () => {
         </div>
 
         {/* Right Visual */}
-        <div className="relative group perspective-1000 hidden lg:block">
-          <div className="anime-card p-1 aspect-[4/3] bg-gradient-to-br from-primary/20 to-transparent flex items-center justify-center animate-float overflow-visible">
+          <div className="relative group perspective-1000 hidden lg:block mt-8 lg:mt-0">
+          <div className="anime-card p-1 aspect-[4/3] bg-gradient-to-br from-primary/20 to-transparent flex items-center justify-center overflow-visible">
              {/* Virtual Card Mockup */}
              <div className="w-[85%] aspect-[1.6/1] bg-secondary border border-primary/30 rounded-2xl p-8 flex flex-col justify-between shadow-2xl relative z-10 overflow-hidden transform-gpu group-hover:rotate-y-12 transition-transform duration-700">
                 <div className="absolute top-0 right-0 p-8">
@@ -180,8 +188,8 @@ const HeroSection = () => {
                 </div>
              </div>
 
-             {/* Floating Badges */}
-             <div className="absolute -top-6 -right-6 animate-float-slow delay-150 z-20">
+             {/* Floating Badges (Static) */}
+             <div className="absolute -top-6 -right-6 z-20 hover:-translate-y-2 transition-transform duration-300">
                <div className="bg-secondary/80 backdrop-blur-md border border-border/50 p-4 rounded-2xl shadow-xl">
                  <div className="flex items-center gap-3">
                    <div className="size-10 bg-red-500/20 rounded-full flex items-center justify-center border border-red-500/30">
@@ -195,7 +203,7 @@ const HeroSection = () => {
                </div>
              </div>
 
-             <div className="absolute -bottom-10 -left-10 animate-float-slow delay-500 z-20">
+             <div className="absolute -bottom-10 -left-10 z-20 hover:-translate-y-2 transition-transform duration-300">
                <div className="bg-secondary/80 backdrop-blur-md border border-border/50 p-4 rounded-2xl shadow-xl">
                  <div className="flex items-center gap-3">
                    <div className="size-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary/30">

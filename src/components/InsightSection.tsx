@@ -155,17 +155,38 @@ const InsightSection = () => {
                  </div>
               </div>
           </div>
-          <div className="flex-1 relative">
-             <div className="anime-card p-1 aspect-video flex items-center justify-center bg-secondary/80 animate-float-slow">
-               <div className="w-full h-full p-6 flex flex-col gap-4">
-                  <div className="h-12 w-full bg-primary/10 rounded-lg flex items-center px-4 justify-between font-mono text-sm">
+          <div className="flex-1 w-full max-w-2xl mx-auto mt-12 lg:mt-0 relative">
+             <div className="anime-card p-1 lg:aspect-video flex items-center justify-center bg-secondary/80 shadow-2xl">
+               <div className="w-full h-full p-4 sm:p-6 flex flex-col gap-4">
+                  <div className="h-12 w-full bg-primary/10 rounded-lg flex items-center px-4 justify-between font-mono text-xs sm:text-sm">
                     <span className="text-primary font-bold">INVITE TEAM</span>
-                    <span className="text-foreground/40">admin@gatekipa.com</span>
+                    <span className="text-foreground/40 truncate ml-2">admin@gatekipa.com</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 h-full">
-                     <div className="bg-primary/5 rounded-lg border border-primary/10" />
-                     <div className="bg-primary/5 rounded-lg border border-primary/10" />
-                     <div className="bg-primary/5 rounded-lg border border-primary/10" />
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 h-full">
+                     <div className="bg-primary/5 rounded-lg border border-primary/10 p-3 sm:p-4 flex flex-col justify-between">
+                        <div>
+                           <div className="size-8 rounded-full bg-primary/20 mb-2 flex items-center justify-center text-xs font-bold">JD</div>
+                           <div className="text-sm font-bold text-foreground truncate">John Doe</div>
+                           <div className="text-xs text-foreground/50 truncate">Finance</div>
+                        </div>
+                        <div className="text-[10px] sm:text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded w-fit mt-2">Admin</div>
+                     </div>
+                     <div className="bg-primary/5 rounded-lg border border-primary/10 p-3 sm:p-4 flex flex-col justify-between">
+                        <div>
+                           <div className="size-8 rounded-full bg-secondary mb-2 flex items-center justify-center text-xs font-bold text-background">SA</div>
+                           <div className="text-sm font-bold text-foreground truncate">Sarah A.</div>
+                           <div className="text-xs text-foreground/50 truncate">Marketing</div>
+                        </div>
+                        <div className="text-[10px] sm:text-xs font-mono text-foreground/60 bg-foreground/5 px-2 py-1 rounded w-fit mt-2">Viewer</div>
+                     </div>
+                     <div className="bg-primary/5 rounded-lg border border-primary/10 p-3 sm:p-4 flex-col justify-between hidden sm:flex">
+                        <div>
+                           <div className="size-8 rounded-full bg-primary/20 mb-2 flex items-center justify-center text-xs font-bold">MO</div>
+                           <div className="text-sm font-bold text-foreground truncate">Mike O.</div>
+                           <div className="text-xs text-foreground/50 truncate">Operations</div>
+                        </div>
+                        <div className="text-[10px] sm:text-xs font-mono text-foreground/60 bg-foreground/5 px-2 py-1 rounded w-fit mt-2">Editor</div>
+                     </div>
                   </div>
                </div>
              </div>
