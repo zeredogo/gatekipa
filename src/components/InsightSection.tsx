@@ -14,7 +14,7 @@ const InsightSection = () => {
             </div>
             <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground leading-[1.1] tracking-tighter">
               The problem isn&apos;t <br />
-              <span className="text-secondary-foreground underline decoration-primary decoration-4 underline-offset-8">subscriptions.</span> It&apos;s control.
+              <span className="text-secondary-foreground underline decoration-primary decoration-4 underline-offset-8">subscriptions.</span>{" "}It&apos;s control.
             </h2>
             <p className="text-xl text-foreground/60 max-w-2xl font-medium">
               Right now, companies decide when to charge you. <br />
