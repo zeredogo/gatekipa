@@ -157,8 +157,8 @@ const HeroSection = () => {
                 </div>
                 
                 <div className="flex justify-between items-start">
-                  <div className="size-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20">
-                    <span className="text-primary font-bold">G</span>
+                  <div className="size-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 overflow-hidden p-1">
+                    <img src="/logo.jpg" alt="Gatekipa Logo" className="w-full h-full object-contain rounded-sm mix-blend-multiply" />
                   </div>
                   <div className="text-foreground/40 font-mono text-sm tracking-widest uppercase">Virtual Active</div>
                 </div>

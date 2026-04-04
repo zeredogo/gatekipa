@@ -37,8 +37,8 @@ const Footer = () => {
       <div className="max-w-[1600px] mx-auto px-4 sm:px-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
         <div className="lg:col-span-2 space-y-8">
           <div className="flex items-center gap-2">
-            <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="text-background font-bold text-xl">G</span>
+            <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden p-1">
+              <img src="/logo.jpg" alt="Gatekipa Logo" className="w-full h-full object-contain rounded-lg" />
             </div>
             <span className="text-foreground font-bold text-2xl tracking-tighter">
               Gatekipa

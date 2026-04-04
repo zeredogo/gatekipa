@@ -71,8 +71,8 @@ const Navbar = () => {
           onClick={() => handleNav("#home")}
           className="flex items-center gap-2 group"
         >
-          <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300">
-            <span className="text-background font-bold text-xl">G</span>
+          <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300 overflow-hidden p-1">
+            <img src="/logo.jpg" alt="Gatekipa Logo" className="w-full h-full object-contain rounded-lg" />
           </div>
           <span className="text-foreground font-bold text-2xl tracking-tight">
             Gatekipa
