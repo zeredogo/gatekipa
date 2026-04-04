@@ -62,9 +62,14 @@ const SecuritySection = () => {
               <div className="text-sm font-bold text-primary/60 uppercase tracking-widest mb-2">Proudly Powered By</div>
               <div className="text-4xl font-extrabold text-foreground tracking-tighter">WESTGATE STRATAGEM LTD</div>
            </div>
-           <p className="max-w-2xl text-center text-lg text-foreground/70 font-medium italic leading-relaxed">
-             Gatekipa leverages Westgate Stratagem LTD&apos;s world-class innovative technology to secure and power the platform. <strong>Gatekipa never stores your sensitive card details directly.</strong>
-           </p>
+           <div className="max-w-3xl text-center text-lg text-foreground/70 font-medium italic leading-relaxed space-y-4">
+             <p>
+               Gatekipa is developed and operated by Westgate Stratagem Ltd, built to give users control over subscription payments.
+             </p>
+             <p>
+               We work with licensed financial partners and use industry-standard security practices. <strong>Sensitive card details are never stored on our servers.</strong>
+             </p>
+           </div>
            <button
             onClick={() => {
               const el = document.getElementById("waitlist");
