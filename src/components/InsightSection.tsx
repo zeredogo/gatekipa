@@ -64,7 +64,7 @@ const InsightSection = () => {
              <div className="size-80 sm:size-96 bg-primary/20 blur-[100px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full" />
              <div className="anime-card p-1 relative z-10 aspect-square max-w-md mx-auto flex items-center justify-center bg-gradient-to-tr from-secondary to-background border-primary/30">
                <div className="text-center p-8">
-                 <div className="text-sm font-bold text-primary mb-4 tracking-widest uppercase">Example Logic</div>
+                 <div className="text-sm font-bold text-primary mb-4 tracking-widest uppercase">Block Rule Settings</div>
                  <div className="text-3xl font-bold text-foreground mb-6 font-mono">IF Merchant == &quot;Netflix&quot; <br/> && Amount == 5000 <br/> THEN BLOCK</div>
                  <div className="inline-flex items-center gap-2 text-primary font-bold text-lg animate-bounce">
                     <svg className="size-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" /></svg>

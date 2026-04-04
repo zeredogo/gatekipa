@@ -91,7 +91,7 @@ const HeroSection = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full size-2 bg-primary"></span>
             </span>
-            Waitlist Join {totalCount.toLocaleString()} others
+            Join {totalCount.toLocaleString()} others
           </div>
 
           <h1 className="text-5xl sm:text-7xl lg:text-8xl font-extrabold text-foreground leading-[0.95] tracking-tighter">

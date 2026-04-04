@@ -19,15 +19,15 @@ const Footer = () => {
       links: [
         { name: "FAQs", href: "#faqs" },
         { name: "Contact", href: "#contact" },
-        { name: "Privacy Policy", href: "#" },
+        { name: "Privacy Policy", href: "/privacy" },
       ],
     },
     {
       title: "Social",
       links: [
-        { name: "Twitter", href: "#" },
-        { name: "LinkedIn", href: "#" },
-        { name: "Instagram", href: "#" },
+        { name: "Twitter", href: "https://x.com/gatekipa" },
+        { name: "LinkedIn", href: "https://linkedin.com/company/gatekipa" },
+        { name: "Instagram", href: "https://instagram.com/gatekipa" },
       ],
     },
   ];
