@@ -7,28 +7,24 @@ const FAQSection = () => {
 
   const faqs = [
     {
-      question: "Is Gatekipa a bank?",
-      answer: "No, Gatekipa is a technology platform. We partner with licensed financial institutions to provide secure virtual cards and payment controls.",
+      question: "Do I need to move all my subscriptions?",
+      answer: "No. You can start with one and expand gradually.",
     },
     {
-      question: "How do virtual cards work?",
-      answer: "We generate unique card details for each of your subscriptions. You can set rules, limits, and kill switches for each card independently.",
+      question: "What happens if a charge is blocked?",
+      answer: "The payment fails and the subscription cannot renew.",
     },
     {
-      question: "Will I lose my current subscriptions?",
-      answer: "You simply replace your existing payment method with a Gatekipa virtual card. This gives you the control to block them at any time without calling your bank.",
+      question: "Can I organize subscriptions by client or purpose?",
+      answer: "Yes. You can create separate accounts for personal use, clients, or business operations.",
     },
     {
-      question: "What happens if a merchant tries to overcharge me?",
-      answer: "Gatekipa will instantly decline any transaction that exceeds your set limit or violates your custom rules.",
+      question: "Can my team manage subscriptions with me?",
+      answer: "Yes. You can invite team members and assign roles.",
     },
     {
-      question: "Can I use it for business?",
-      answer: "Absolutely. Gatekipa has dedicated features for teams, departments, and multiple business accounts.",
-    },
-    {
-      question: "Is my data safe?",
-      answer: "Yes. We use bank-grade encryption and never store your sensitive card details directly. We partner with leaders like Paystack for secure processing.",
+      question: "Is this a bank?",
+      answer: "No. We work with licensed financial partners.",
     },
   ];
 
@@ -45,9 +41,18 @@ const FAQSection = () => {
             Common <br/>
             <span className="text-gradient-green uppercase italic">questions.</span>
           </h2>
-          <p className="text-xl text-foreground/60 font-medium">
+          <p className="text-xl text-foreground/60 font-medium italic mb-12">
             Everything you need to know about the gate.
           </p>
+          <button
+            onClick={() => {
+              const el = document.getElementById("waitlist");
+              el?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="btn-primary py-4 px-10 text-lg mb-8"
+          >
+            Get Early Access
+          </button>
         </div>
 
         <div className="max-w-4xl mx-auto space-y-4">

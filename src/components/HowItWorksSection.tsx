@@ -6,41 +6,41 @@ const HowItWorksSection = () => {
   const steps = [
     {
       number: "01",
-      title: "Join",
-      description: "Secure your spot on the waitlist to get early access.",
+      title: "Create a card",
+      description: "Generate a virtual card for any subscription or free trial.",
       icon: (
         <svg className="size-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
       ),
     },
     {
       number: "02",
-      title: "Invite",
-      description: "Move up the queue by inviting friends with your referral link.",
+      title: "Set your rules",
+      description: "Decide how much can be charged, how often, and for how long.",
       icon: (
         <svg className="size-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
         </svg>
       ),
     },
     {
       number: "03",
-      title: "Verify",
-      description: "Get early access to our private beta and set up your cards.",
+      title: "Assign it",
+      description: "Use it for personal subscriptions or client accounts.",
       icon: (
         <svg className="size-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       ),
     },
     {
       number: "04",
-      title: "Control",
-      description: "Take back 100% control of every subscription payment.",
+      title: "We enforce your rules",
+      description: "If a charge violates your settings, it is automatically blocked.",
       icon: (
         <svg className="size-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
       ),
     },
@@ -51,11 +51,20 @@ const HowItWorksSection = () => {
       <div className="max-w-[1600px] mx-auto px-4 sm:px-12">
         <div className="text-center max-w-3xl mx-auto mb-20 flex flex-col items-center">
           <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground mb-6 tracking-tighter leading-none">
-            How it <span className="text-gradient-green uppercase italic">works.</span>
+            How do I <span className="text-gradient-green uppercase italic">get started?</span>
           </h2>
           <p className="text-xl text-foreground/60 font-medium">
-            Don&apos;t just track. Control. Gatekipa puts you in the driver&apos;s seat of your recurring expenses.
+            No reminders. No manual cancellations. Just control.
           </p>
+          <button
+            onClick={() => {
+              const el = document.getElementById("waitlist");
+              el?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="btn-primary py-4 px-10 text-lg !mt-8"
+          >
+            Join the Waitlist
+          </button>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 px-4 sm:px-0 relative">

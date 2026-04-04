@@ -76,12 +76,12 @@ const WaitlistSection = () => {
             </div>
             
             <h2 className="text-5xl sm:text-8xl font-extrabold text-foreground mb-12 tracking-tighter leading-none">
-              The <span className="text-gradient-green uppercase italic">Gate</span> is <br/>
-              Closing Soon.
+              Get <br/>
+              <span className="text-gradient-green uppercase italic">Early Access</span>
             </h2>
             
             <p className="text-2xl text-foreground/60 max-w-2xl font-medium mb-16 italic">
-              Join the {totalCount.toLocaleString()}+ individuals and businesses already taking back control of their cash flow.
+              Be among the first to stop unwanted subscription charges before they happen.
             </p>
 
             <form
@@ -128,8 +128,12 @@ const WaitlistSection = () => {
             </div>
             
             <h2 className="text-5xl sm:text-7xl font-extrabold text-foreground mb-8 tracking-tighter">
-              YOU&apos;RE IN THE <span className="text-gradient-green">GATE.</span>
+              YOU&apos;RE ON THE <span className="text-gradient-green uppercase italic">LIST.</span>
             </h2>
+
+            <p className="text-xl text-foreground/60 font-medium italic mb-12">
+               Move up faster by inviting friends.
+            </p>
             
             <div className="anime-card p-12 bg-secondary/20 mb-12 flex flex-col items-center gap-8 border-primary/30">
                <div>
@@ -152,6 +156,17 @@ const WaitlistSection = () => {
                         Copy Link
                      </button>
                   </div>
+               </div>
+
+               <div className="w-full h-px bg-primary/10" />
+
+               <div className="text-left w-full space-y-4">
+                  <div className="text-sm font-bold text-primary/60 uppercase tracking-widest">Your Incentives:</div>
+                  <ul className="grid sm:grid-cols-3 gap-4 text-sm font-bold text-foreground/80 italic">
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Early access</li>
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Priority onboarding</li>
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Early premium access</li>
+                  </ul>
                </div>
             </div>
 

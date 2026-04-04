@@ -7,6 +7,7 @@ const HeroSection = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const [totalCount, setTotalCount] = useState(1204);
+  const [timeLeft, setTimeLeft] = useState({ days: 30, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -14,6 +15,26 @@ const HeroSection = () => {
       setTotalCount(stats.count);
     };
     fetchStats();
+
+    // Countdown Logic
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30); // 30 days from now
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = targetDate.getTime() - now;
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000),
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -46,7 +67,26 @@ const HeroSection = () => {
       <div className="max-w-[1600px] mx-auto w-full grid lg:grid-cols-2 gap-16 items-center relative z-10 px-4 sm:px-12">
         {/* Left Content */}
         <div className="flex flex-col items-start gap-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold tracking-wider uppercase animate-fade-in">
+          <div className="flex flex-wrap gap-4 mb-2">
+             <div className="flex flex-col items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-5 min-w-[80px]">
+                <span className="text-3xl font-extrabold text-primary font-mono">{timeLeft.days}</span>
+                <span className="text-xs text-foreground/60 uppercase font-bold tracking-widest mt-1">Days</span>
+             </div>
+             <div className="flex flex-col items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-5 min-w-[80px]">
+                <span className="text-3xl font-extrabold text-primary font-mono">{timeLeft.hours}</span>
+                <span className="text-xs text-foreground/60 uppercase font-bold tracking-widest mt-1">Hours</span>
+             </div>
+             <div className="flex flex-col items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-5 min-w-[80px]">
+                <span className="text-3xl font-extrabold text-primary font-mono">{timeLeft.minutes}</span>
+                <span className="text-xs text-foreground/60 uppercase font-bold tracking-widest mt-1">Mins</span>
+             </div>
+             <div className="flex flex-col items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-5 min-w-[80px]">
+                <span className="text-3xl font-extrabold text-primary font-mono">{timeLeft.seconds}</span>
+                <span className="text-xs text-foreground/60 uppercase font-bold tracking-widest mt-1">Secs</span>
+             </div>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold tracking-wider uppercase animate-fade-in -mt-4">
             <span className="relative flex size-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full size-2 bg-primary"></span>
@@ -61,6 +101,10 @@ const HeroSection = () => {
 
           <p className="text-xl sm:text-2xl text-foreground/70 max-w-xl leading-relaxed font-medium">
             Gatekipa blocks forgotten and unwanted subscription charges automatically, for you and your business.
+          </p>
+
+          <p className="text-base text-foreground/60 font-semibold tracking-wide uppercase">
+            Control every subscription across personal use, teams, and clients before the next charge hits.
           </p>
 
           <div className="flex flex-wrap gap-4 w-full sm:w-auto">
@@ -97,8 +141,9 @@ const HeroSection = () => {
             </button>
           </div>
 
-          <p className="text-sm text-foreground/50 font-semibold tracking-wide uppercase mt-4">
-            Control every subscription across personal use, teams, and clients.
+          <p className="text-sm text-foreground/50 font-bold tracking-wide uppercase mt-4 flex items-center gap-2">
+            <span className="size-1.5 bg-primary rounded-full animate-pulse" />
+            Move up the waitlist when you invite friends.
           </p>
         </div>
 

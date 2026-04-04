@@ -25,7 +25,7 @@ const FinalCTASection = () => {
            </div>
            
            <h2 className="text-5xl sm:text-7xl font-extrabold text-foreground tracking-tighter leading-none max-w-4xl">
-             Stop the next <span className="text-gradient-green uppercase italic leading-tight">unexpected charge</span> before it hits.
+             Stop the next <span className="text-gradient-green uppercase italic leading-tight">charge</span> before it happens.
            </h2>
            
            <p className="text-2xl text-foreground/60 max-w-2xl font-medium italic animate-fade-in">

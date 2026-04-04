@@ -45,7 +45,7 @@ const Footer = () => {
             </span>
           </div>
           <p className="text-lg text-foreground/50 max-w-sm font-medium italic">
-            Taking back control of your subscriptions, one card at a time. Built for Nigeria, for individuals and businesses.
+            Taking back control of your subscriptions, one card at a time. Built for Nigeria, for individuals and businesses. Block the next charge before it happens.
           </p>
           <div className="text-sm font-bold text-primary/60 uppercase tracking-widest">
             © {currentYear} Gatekipa Technology. All rights reserved.
@@ -77,8 +77,7 @@ const Footer = () => {
       <div className="max-w-[1600px] mx-auto px-4 sm:px-12 mt-20 pt-8 border-t border-primary/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-bold text-foreground/20 uppercase tracking-[0.3em]">
          <div>SECURED BY BANK-GRADE ENCRYPTION</div>
          <div className="flex gap-8">
-            <span>Powered by Paystack</span>
-            <span>Made in Lagos</span>
+            <span>Made in Jos</span>
          </div>
       </div>
     </footer>

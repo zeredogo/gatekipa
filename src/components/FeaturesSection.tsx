@@ -6,52 +6,53 @@ const FeaturesSection = () => {
   const features = [
     {
       title: "Subscription Cards",
-      description: "Generate dedicated virtual cards for each service you use.",
+      description: "Create dedicated cards for each subscription.",
       icon: "💳",
     },
     {
-      title: "Rule-Based Controls",
-      description: "Set custom limits and merchant-specific rules.",
-      icon: "⚙️",
-    },
-    {
+      number: "HERO FEATURE",
       title: "Trial Protection",
-      description: "Auto-block cards after free trials expire.",
+      description: "Use one-time cards for free trials. Auto-expires, no surprise renewals.",
       icon: "🛡️",
     },
     {
+      title: "Rule-Based Controls",
+      description: "Set limits, expiry dates, and usage rules.",
+      icon: "⚙️",
+    },
+    {
       title: "Automatic Blocking",
-      description: "Any charge outside your rules is instantly denied.",
+      description: "Charges outside your rules are declined instantly.",
       icon: "🚫",
     },
     {
       title: "Multi-Account Manager",
-      description: "Organize by personal, clients, and business.",
+      description: "Organize subscriptions by personal use, client, or business.",
       icon: "📂",
     },
     {
-      title: "Search & Organize",
-      description: "Find any subscription across cards instantly.",
+      title: "Search & Organization",
+      description: "Find cards, subscriptions, and accounts instantly.",
       icon: "🔍",
     },
     {
       title: "Team Collaboration",
-      description: "Invite your team and set departmental limits.",
+      description: "Invite team members and manage subscriptions together.",
       icon: "👥",
     },
     {
       title: "Kill Switch",
-      description: "One-click to disable any card or account instantly.",
+      description: "Disable any card instantly.",
       icon: "⏹️",
     },
     {
       title: "Smart Alerts",
-      description: "Get notified before any charge is processed.",
+      description: "Get notified before and after important events.",
       icon: "🔔",
     },
     {
-      title: "Insights (Premium)",
-      description: "See exactly where your money is going every month.",
+      title: "Insights & Analytics",
+      description: "See how much you’ve saved and identify wasted subscriptions.",
       icon: "📈",
     },
   ];
@@ -66,12 +67,20 @@ const FeaturesSection = () => {
             </svg>
           </div>
           <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground mb-6 tracking-tighter leading-none">
-            Everything you <br/>
-            <span className="text-gradient-green uppercase italic">need.</span>
+            Built to <span className="text-gradient-green uppercase italic">control.</span>
           </h2>
           <p className="text-xl text-foreground/60 font-medium">
-            Powerful features built to give you total control over your cash flow.
+            Powerful tools built specifically to control subscription payments.
           </p>
+          <button
+            onClick={() => {
+              const el = document.getElementById("waitlist");
+              el?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="btn-primary py-4 px-10 text-lg !mt-8"
+          >
+            Get Early Access
+          </button>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">

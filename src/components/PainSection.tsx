@@ -8,9 +8,9 @@ const PainSection = () => {
       title: "For Individuals",
       description: "Stop watching money bleed away to services you no longer use.",
       features: [
-        "One-click trial cancellation",
-        "Auto-block unknown charges",
-        "Centralized expense dashboard",
+        "Free trials don’t remind you",
+        "Subscriptions renew quietly",
+        "Your card gets charged anyway",
       ],
       icon: (
         <svg className="size-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,9 +22,9 @@ const PainSection = () => {
       title: "For Businesses",
       description: "Scale your operations without losing control of service overheads.",
       features: [
-        "Departmental budget limits",
-        "Employee spending controls",
-        "Unified compliance reporting",
+        "Multiple tools across clients",
+        "No central control",
+        "Costs become invisible",
       ],
       icon: (
         <svg className="size-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,9 +42,19 @@ const PainSection = () => {
             Stop the <br />
             <span className="text-gradient-green uppercase">Invisible Leak.</span>
           </h2>
-          <p className="text-xl text-foreground/60 font-medium">
-            Over ₦50,000 is lost annually per person to forgotten &quot;free trials&quot; and zombie subscriptions. We block them at the gate.
+          <p className="text-xl text-foreground/60 font-medium italic mb-12">
+            Over ₦250,000+ is lost annually to unused subscriptions.<br/>
+            The more you grow, the harder it is to keep track.
           </p>
+          <button
+            onClick={() => {
+              const el = document.getElementById("waitlist");
+              el?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="btn-primary py-4 px-10 text-lg mb-8"
+          >
+            Join the Waitlist
+          </button>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">

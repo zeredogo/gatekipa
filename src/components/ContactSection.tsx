@@ -26,17 +26,18 @@ const ContactSection = () => {
             <div className="text-4xl mb-6 group-hover:scale-110 transition-transform">📧</div>
             <h3 className="text-2xl font-bold text-foreground mb-4">Email Us</h3>
             <a
-              href="mailto:support@gatekipa.com"
+              href="mailto:hello@gatekipa.com"
               className="text-xl font-bold text-primary hover:text-primary/80 transition-colors underline underline-offset-4"
             >
-              support@gatekipa.com
+              hello@gatekipa.com
             </a>
           </div>
           <div className="anime-card p-12 text-center group bg-secondary/10 hover:border-primary">
             <div className="text-4xl mb-6 group-hover:scale-110 transition-transform">📍</div>
             <h3 className="text-2xl font-bold text-foreground mb-4">Visit Us</h3>
             <p className="text-xl font-bold text-foreground/60 italic leading-relaxed">
-              Lagos, Nigeria.
+              #9B Beach Road, Jos <br/>
+              Plateau State, Nigeria
             </p>
           </div>
         </div>

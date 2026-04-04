@@ -14,20 +14,50 @@ const InsightSection = () => {
             </div>
             <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground leading-[1.1] tracking-tighter">
               The problem isn&apos;t <br />
-              <span className="text-secondary-foreground underline decoration-primary decoration-4 underline-offset-8">subscriptions.</span>
+              <span className="text-secondary-foreground underline decoration-primary decoration-4 underline-offset-8">subscriptions.</span> It&apos;s control.
             </h2>
             <p className="text-xl text-foreground/60 max-w-2xl font-medium">
-              The problem is <strong>losing control</strong> over who can reach into your wallet and when. Gatekipa puts the lock back on your side of the gate.
+              Right now, companies decide when to charge you. <br />
+              <strong>Gatekipa puts you back in control.</strong>
             </p>
-            <div className="grid sm:grid-cols-2 gap-6 pt-4">
-              <div className="anime-card p-6 border-l-4 border-l-primary">
-                <h4 className="text-xl font-bold text-foreground mb-2">Rule-Based Control</h4>
-                <p className="text-base text-foreground/60 font-medium">Set limits and block specific merchants automatically.</p>
-              </div>
-              <div className="anime-card p-6 border-l-4 border-l-primary">
-                <h4 className="text-xl font-bold text-foreground mb-2">Decide Who Gets Paid</h4>
-                <p className="text-base text-foreground/60 font-medium">Change permissions instantly for any subscription.</p>
-              </div>
+            <p className="text-2xl font-bold text-primary italic">
+              Nothing gets paid unless you allow it.
+            </p>
+            <div className="pt-4">
+              <button
+                onClick={() => {
+                  const el = document.getElementById("waitlist");
+                  el?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="btn-primary py-4 px-10 text-lg"
+              >
+                Get Early Access
+              </button>
+            </div>
+
+            <div className="pt-16 space-y-8">
+              <h2 className="text-4xl sm:text-6xl font-extrabold text-foreground leading-[1.1] tracking-tighter">
+                Decide who gets paid. <br/>
+                <span className="text-gradient-green">And when.</span>
+              </h2>
+              <ul className="grid sm:grid-cols-2 gap-4 text-lg font-bold text-foreground/80 italic">
+                <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Create cards for subscriptions</li>
+                <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Set limits, expiry dates, and rules</li>
+                <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Organize everything by account or client</li>
+                <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Block charges automatically</li>
+              </ul>
+              <p className="text-xl text-foreground/60 font-medium italic">
+                If it breaks your rules, it doesn’t go through.
+              </p>
+              <button
+                onClick={() => {
+                  const el = document.getElementById("waitlist");
+                  el?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="btn-primary py-4 px-10 text-lg"
+              >
+                Join the Waitlist
+              </button>
             </div>
           </div>
           <div className="flex-1 relative">
@@ -53,23 +83,77 @@ const InsightSection = () => {
              <div className="inline-block px-4 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold uppercase tracking-widest">
                Built for Teams
              </div>
-             <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground leading-[1.1] tracking-tighter">
-               Everything in <br/>
-               <span className="text-gradient-green">one place.</span>
-             </h2>
-             <p className="text-xl text-foreground/60 font-medium">
-               Create sub-accounts for personal use, different clients, or entire business operations. Manage everything under one roof.
-             </p>
-             <ul className="grid sm:grid-cols-2 gap-4 text-lg font-bold text-foreground/80 italic">
-                <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Personal Accounts</li>
-                <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Multiple Clients</li>
-                <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Enterprise Teams</li>
-                <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Agency Controls</li>
-             </ul>
-             <div className="anime-card p-8 bg-background/50 border-primary/20 border-dashed">
-                <div className="text-4xl font-extrabold text-primary mb-2">₦25,400+</div>
-                <div className="text-lg font-bold text-foreground">Average monthly savings per business</div>
-             </div>
+              <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground leading-[1.1] tracking-tighter">
+                Everything in <br/>
+                <span className="text-gradient-green">one place.</span>
+              </h2>
+              <p className="text-xl text-foreground/60 font-medium">
+                Create accounts for:
+              </p>
+              <ul className="grid sm:grid-cols-2 gap-4 text-lg font-bold text-foreground/80 italic">
+                 <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Personal use</li>
+                 <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Clients</li>
+                 <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Business operations</li>
+                 <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Manage all subscriptions under each account</li>
+                 <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Search instantly across cards</li>
+              </ul>
+              <button
+                onClick={() => {
+                  const el = document.getElementById("waitlist");
+                  el?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="btn-primary py-4 px-10 text-lg !mt-8"
+              >
+                Join the Waitlist
+              </button>
+
+              <div className="pt-16 space-y-8">
+                 <div className="inline-block px-4 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-bold uppercase tracking-widest">
+                   Built for Teams
+                 </div>
+                 <h2 className="text-4xl sm:text-6xl font-extrabold text-foreground leading-[1.1] tracking-tighter">
+                   Collaborate <br/>
+                   <span className="text-gradient-green">at Scale.</span>
+                 </h2>
+                 <ul className="grid sm:grid-cols-2 gap-4 text-lg font-bold text-foreground/80 italic">
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Invite team members</li>
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Assign roles</li>
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Manage subscriptions together</li>
+                 </ul>
+                 <button
+                    onClick={() => {
+                      const el = document.getElementById("waitlist");
+                      el?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="btn-primary py-4 px-10 text-lg"
+                  >
+                    Get Early Access
+                  </button>
+              </div>
+
+              <div className="pt-16 space-y-8">
+                 <h2 className="text-4xl sm:text-6xl font-extrabold text-foreground leading-[1.1] tracking-tighter">
+                   Know what <br/>
+                   <span className="text-gradient-green">you&apos;re saving.</span>
+                 </h2>
+                 <ul className="grid sm:grid-cols-2 gap-4 text-lg font-bold text-foreground/80 italic">
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Track subscription spend</li>
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> See prevented charges</li>
+                    <li className="flex items-center gap-2"><div className="size-2 bg-primary rounded-full animate-pulse"/> Identify waste</li>
+                 </ul>
+                 <div className="anime-card p-8 bg-background/50 border-primary/20 border-dashed">
+                    <div className="text-lg font-bold text-foreground mb-2 italic">&ldquo;You prevented ₦25,000 in charges this month&rdquo;</div>
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById("waitlist");
+                        el?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="btn-primary py-3 px-8 text-base mt-4"
+                    >
+                      Join the Waitlist
+                    </button>
+                 </div>
+              </div>
           </div>
           <div className="flex-1 relative">
              <div className="anime-card p-1 aspect-video flex items-center justify-center bg-secondary/80 animate-float-slow">
