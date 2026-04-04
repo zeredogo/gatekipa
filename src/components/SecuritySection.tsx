@@ -63,7 +63,7 @@ const SecuritySection = () => {
               <div className="text-4xl font-extrabold text-foreground tracking-tighter">WESTGATE STRATAGEM LTD</div>
            </div>
            <p className="max-w-2xl text-center text-lg text-foreground/70 font-medium italic leading-relaxed">
-             Gatekipa leverages Westgate Stratagem LTD&apos;s world-class payment infrastructure to process transactions securely. <strong>Gatekipa never stores your sensitive card details directly.</strong>
+             Gatekipa leverages Westgate Stratagem LTD&apos;s world-class innovative technology to secure and power the platform. <strong>Gatekipa never stores your sensitive card details directly.</strong>
            </p>
            <button
             onClick={() => {
