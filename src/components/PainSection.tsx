@@ -43,7 +43,7 @@ const PainSection = () => {
             <span className="text-gradient-green uppercase">Invisible Leak.</span>
           </h2>
           <p className="text-xl text-foreground/60 font-medium italic mb-12">
-            Over ₦250,000+ is lost annually to unused subscriptions.<br/>
+            Over ₦250,000+ is lost annually to unused and forgotten subscriptions.<br/>
             The more you grow, the harder it is to keep track.
           </p>
           <button
