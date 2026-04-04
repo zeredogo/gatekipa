@@ -56,14 +56,14 @@ const SecuritySection = () => {
           ))}
         </div>
 
-        {/* Paystack Badge */}
+        {/* Partner Badge */}
         <div className="anime-card p-12 bg-secondary/10 flex flex-col items-center gap-8 border-dashed border-primary/40">
            <div className="text-center">
               <div className="text-sm font-bold text-primary/60 uppercase tracking-widest mb-2">Proudly Powered By</div>
-              <div className="text-4xl font-extrabold text-foreground tracking-tighter">PAYSTACK</div>
+              <div className="text-4xl font-extrabold text-foreground tracking-tighter">WESTGATE STRATAGEM LTD</div>
            </div>
            <p className="max-w-2xl text-center text-lg text-foreground/70 font-medium italic leading-relaxed">
-             Gatekipa leverages Paystack&apos;s world-class payment infrastructure to process transactions securely. <strong>Gatekipa never stores your sensitive card details directly.</strong>
+             Gatekipa leverages Westgate Stratagem LTD&apos;s world-class payment infrastructure to process transactions securely. <strong>Gatekipa never stores your sensitive card details directly.</strong>
            </p>
            <button
             onClick={() => {
