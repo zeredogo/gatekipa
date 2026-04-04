@@ -128,7 +128,7 @@ const WaitlistSection = () => {
             </div>
             
             <h2 className="text-5xl sm:text-7xl font-extrabold text-foreground mb-8 tracking-tighter">
-              YOU'RE IN THE <span className="text-gradient-green">GATE.</span>
+              YOU&apos;RE IN THE <span className="text-gradient-green">GATE.</span>
             </h2>
             
             <div className="anime-card p-12 bg-secondary/20 mb-12 flex flex-col items-center gap-8 border-primary/30">

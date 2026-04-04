@@ -54,7 +54,7 @@ const HowItWorksSection = () => {
             How it <span className="text-gradient-green uppercase italic">works.</span>
           </h2>
           <p className="text-xl text-foreground/60 font-medium">
-            Gatekipa puts you back in the driver's seat. No more automated leaks.
+            Don&apos;t just track. Control. Gatekipa puts you in the driver&apos;s seat of your recurring expenses.
           </p>
         </div>
 

@@ -29,7 +29,7 @@ const FinalCTASection = () => {
            </h2>
            
            <p className="text-2xl text-foreground/60 max-w-2xl font-medium italic animate-fade-in">
-             Over {totalCount.toLocaleString()} people are already taking back control. Don't be the last one to secure your gate.
+             Over {totalCount.toLocaleString()} people are already taking back control. Don&apos;t be the last one to secure your gate.
            </p>
            
            <button

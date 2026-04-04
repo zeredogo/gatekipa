@@ -43,7 +43,7 @@ const PainSection = () => {
             <span className="text-gradient-green uppercase">Invisible Leak.</span>
           </h2>
           <p className="text-xl text-foreground/60 font-medium">
-            Over ₦50,000 is lost annually per person to forgotten "free trials" and zombie subscriptions. We block them at the gate.
+            Over ₦50,000 is lost annually per person to forgotten &quot;free trials&quot; and zombie subscriptions. We block them at the gate.
           </p>
         </div>
 

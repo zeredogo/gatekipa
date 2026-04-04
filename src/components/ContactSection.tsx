@@ -17,7 +17,7 @@ const ContactSection = () => {
             <span className="text-gradient-green uppercase italic">touch.</span>
           </h2>
           <p className="text-xl text-foreground/60 font-medium">
-            Have questions? We're here to help you take back control.
+            Don&apos;t keep this a secret. We reward early adopters who spread the word.
           </p>
         </div>
 

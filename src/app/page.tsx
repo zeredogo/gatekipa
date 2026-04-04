@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import PainSection from "@/components/PainSection";
@@ -23,7 +24,9 @@ export default function Home() {
       <SecuritySection />
       <FAQSection />
       <ContactSection />
-      <WaitlistSection />
+      <Suspense fallback={null}>
+        <WaitlistSection />
+      </Suspense>
       <FinalCTASection />
       <Footer />
     </main>

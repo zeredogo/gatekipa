@@ -14,6 +14,7 @@ const WaitlistSchema = z.object({
  * Ensures the waitlist table exists before any database operations.
  * This is a "Zero-Config" setup helper.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function ensureTableExists(sql: any) {
   try {
     await sql`
@@ -53,7 +54,7 @@ export async function joinWaitlist(formData: FormData) {
   // 1. Validate Input
   const validation = WaitlistSchema.safeParse({ email, referredBy });
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    return { error: validation.error.issues[0].message };
   }
 
   try {
@@ -90,7 +91,8 @@ export async function joinWaitlist(formData: FormData) {
       referralCode,
       position: totalCount,
     };
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error & { code?: string };
     console.error("Waitlist Error:", error);
     if (error.code === "23505") { // Duplicate email handling
       return { error: "You are already on the waitlist!" };
