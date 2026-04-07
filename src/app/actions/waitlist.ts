@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 // Schema for email validation
 const WaitlistSchema = z.object({
   email: z.string().email("Invalid email address"),
-  referredBy: z.string().optional(),
+  referredBy: z.string().nullable().optional(),
 });
 
 /**
@@ -48,13 +48,17 @@ export async function joinWaitlist(formData: FormData) {
   // Zero-Config Auto Migration
   await ensureTableExists(sql);
 
-  const email = formData.get("email") as string;
-  const referredBy = formData.get("referredBy") as string | null;
+  const rawEmail = formData.get("email");
+  const email = typeof rawEmail === "string" ? rawEmail.trim() : "";
+
+  const rawReferredBy = formData.get("referredBy");
+  const referredBy = typeof rawReferredBy === "string" && rawReferredBy.trim() !== "" ? rawReferredBy.trim() : null;
 
   // 1. Validate Input
   const validation = WaitlistSchema.safeParse({ email, referredBy });
   if (!validation.success) {
-    return { error: validation.error.issues[0].message };
+    const errorMsg = validation.error.issues[0]?.message || "Invalid input";
+    return { error: `Invalid form submission: ${errorMsg}` };
   }
 
   try {
