@@ -3,6 +3,9 @@
 import { neon } from "@neondatabase/serverless";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
+import { Resend } from "resend";
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Schema for email validation
 const WaitlistSchema = z.object({
@@ -89,6 +92,39 @@ export async function joinWaitlist(formData: FormData) {
     // 5. Get total count for position
     const stats = await sql`SELECT count(*) FROM waitlist`;
     const totalCount = parseInt(stats[0].count);
+
+    // 6. Send Confirmation Email (Non-blocking)
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: "Gatekipa <onboarding@resend.dev>",
+          to: email,
+          subject: "You're on the list! Welcome to Gatekipa 🎉",
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #333;">
+              <h1 style="color: #1a1a1a;">You're on the list! 🚀</h1>
+              <p>Hi there,</p>
+              <p>Thank you for joining the <strong>Gatekipa</strong> waitlist! We are excited to have you on board to help you stop unwanted subscription charges before they happen.</p>
+              <p>Your current waitlist position is: <strong style="font-size: 24px;">#${totalCount}</strong></p>
+              
+              <div style="background: #f4f4f5; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Move up the list!</h3>
+                <p>Want to get early access faster? Refer your friends using your unique link:</p>
+                <code style="display: block; background: #e4e4e7; padding: 12px; border-radius: 8px; font-size: 16px;">
+                  https://gatekipa.com/?ref=${referralCode}
+                </code>
+              </div>
+              
+              <p>We'll notify you as soon as your spot opens up.</p>
+              <p>Best regards,<br/><strong>The Gatekipa Team</strong></p>
+            </div>
+          `,
+        });
+      } catch (emailErr) {
+        console.error("Resend Email Error:", emailErr);
+        // We don't fail the complete waitlist signup if the email fails.
+      }
+    }
 
     return {
       success: true,
