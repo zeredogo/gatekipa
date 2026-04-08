@@ -66,18 +66,14 @@ const Navbar = () => {
       }`}
     >
       <nav className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 flex items-center justify-between">
-        {/* Logo */}
-        <button
-          onClick={() => handleNav("#home")}
-          className="flex items-center gap-2 group"
+        <a
+          href="/"
+          className="flex items-center group"
         >
-          <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300 overflow-hidden p-1">
-            <img src="/logo.jpg" alt="Gatekipa Logo" className="w-full h-full object-contain rounded-lg" />
+          <div className="w-40 lg:w-48 overflow-hidden group-hover:scale-105 transition-transform duration-300">
+            <img src="/logo2.png" alt="Gatekipa Logo" className="w-full h-auto object-contain" />
           </div>
-          <span className="text-foreground font-bold text-2xl tracking-tight">
-            Gatekipa
-          </span>
-        </button>
+        </a>
 
         {/* Desktop Links */}
         <div className="hidden lg:flex items-center gap-8">

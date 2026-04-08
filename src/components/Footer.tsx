@@ -22,33 +22,22 @@ const Footer = () => {
         { name: "Privacy Policy", href: "/privacy" },
       ],
     },
-    {
-      title: "Social",
-      links: [
-        { name: "Twitter", href: "https://x.com/gatekipa" },
-        { name: "LinkedIn", href: "https://linkedin.com/company/gatekipa" },
-        { name: "Instagram", href: "https://instagram.com/gatekipa" },
-      ],
-    },
   ];
 
   return (
     <footer className="py-20 bg-background border-t border-primary/10 relative overflow-hidden">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <div className="flex items-center gap-2">
-            <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden p-1">
-              <img src="/logo.jpg" alt="Gatekipa Logo" className="w-full h-full object-contain rounded-lg" />
+          <a href="/" className="flex items-center group">
+            <div className="w-40 lg:w-48 overflow-hidden group-hover:scale-105 transition-transform duration-300">
+              <img src="/logo2.png" alt="Gatekipa Logo" className="w-full h-auto object-contain" />
             </div>
-            <span className="text-foreground font-bold text-2xl tracking-tighter">
-              Gatekipa
-            </span>
-          </div>
+          </a>
           <p className="text-lg text-foreground/50 max-w-sm font-medium italic">
             Taking back control of your subscriptions, one card at a time. Built for Nigeria, for individuals and businesses. Block the next charge before it happens.
           </p>
           <div className="text-sm font-bold text-primary/60 uppercase tracking-widest">
-            © {currentYear} Gatekipa Technology. All rights reserved.
+            © {currentYear} Westgate Stratagem. All rights reserved.
           </div>
         </div>
 

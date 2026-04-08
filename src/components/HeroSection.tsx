@@ -102,17 +102,13 @@ const HeroSection = () => {
             Join {totalCount.toLocaleString()}+ others
           </div>
 
-          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-extrabold text-foreground leading-[0.95] tracking-tighter">
-            Bad memory? <br />
-            <span className="text-gradient-green">Keep your money</span> anyway.
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-foreground leading-[1] tracking-tighter">
+            The intelligent layer <br />
+            <span className="text-primary">over your payments</span>
           </h1>
 
-          <p className="text-xl sm:text-2xl text-foreground/70 max-w-xl leading-relaxed font-medium">
-            Gatekipa blocks forgotten and unwanted subscription charges automatically, for you and your business.
-          </p>
-
-          <p className="text-base text-foreground/60 font-semibold tracking-wide uppercase">
-            Control every subscription across personal use, teams, and clients before the next charge hits.
+          <p className="text-xl sm:text-2xl text-foreground/70 max-w-xl leading-relaxed font-medium mt-4">
+            Cancel unwanted subscriptions, track your spending, and never pay for a forgotten free trial again.
           </p>
 
           <div className="flex flex-wrap gap-4 w-full sm:w-auto">
@@ -158,31 +154,53 @@ const HeroSection = () => {
         {/* Right Visual */}
           <div className="relative group perspective-1000 hidden lg:block mt-8 lg:mt-0">
           <div className="anime-card p-1 aspect-[4/3] bg-gradient-to-br from-primary/20 to-transparent flex items-center justify-center overflow-visible">
-             {/* Virtual Card Mockup */}
-             <div className="w-[85%] aspect-[1.6/1] bg-secondary border border-primary/30 rounded-2xl p-8 flex flex-col justify-between shadow-2xl relative z-10 overflow-hidden transform-gpu group-hover:rotate-y-12 transition-transform duration-700">
-                <div className="absolute top-0 right-0 p-8">
-                  <div className="size-16 bg-primary/20 rounded-full blur-2xl animate-pulse" />
-                </div>
+             {/* Hyper-Realistic Virtual Card Mockup */}
+             <div className="w-[90%] aspect-[1.586/1] bg-gradient-to-tr from-[#064e3b] via-[#15803d] to-[#4ade80] border border-white/20 rounded-xl p-6 sm:p-8 flex flex-col justify-between shadow-[0_25px_50px_-12px_rgba(22,163,74,0.4)] relative z-10 overflow-hidden transform-gpu group-hover:rotate-y-12 group-hover:rotate-x-6 transition-transform duration-700 text-white backdrop-blur-xl">
+                {/* Metallic shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50" />
+                <div className="absolute -top-32 -right-32 w-64 h-64 bg-white/20 rounded-full blur-3xl animate-pulse" />
                 
-                <div className="flex justify-between items-start">
-                  <div className="size-12 bg-primary/10 rounded-lg flex items-center justify-center border border-primary/20 overflow-hidden p-1">
-                    <img src="/logo.jpg" alt="Gatekipa Logo" className="w-full h-full object-contain rounded-sm mix-blend-multiply" />
+                <div className="flex justify-between items-start relative z-10">
+                  <div className="w-32 sm:w-40 bg-white/90 backdrop-blur-md rounded-lg p-3 sm:p-4 shadow-inner ring-1 ring-white">
+                    <img src="/logo2.png" alt="Gatekipa Logo" className="w-full h-auto object-contain" />
                   </div>
-                  <div className="text-foreground/40 font-mono text-sm tracking-widest uppercase">Virtual Active</div>
+                  <div className="text-white/80 font-mono text-xs tracking-widest uppercase font-bold">Virtual</div>
                 </div>
 
-                <div>
-                  <div className="text-2xl font-mono text-foreground tracking-[0.3em] font-medium mb-1">
-                    4567 •••• •••• 8892
+                <div className="relative z-10 flex items-center justify-between my-2 sm:my-0">
+                  {/* EMV Chip */}
+                  <svg width="45" height="35" viewBox="0 0 40 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="40" height="30" rx="4" fill="url(#chip-grad)" />
+                    <path d="M0 10H12 M0 20H12 M28 10H40 M28 20H40 M12 0V30 M28 0V30 M12 15H28" stroke="#AA7B18" strokeWidth="1" opacity="0.5"/>
+                    <defs>
+                      <linearGradient id="chip-grad" x1="0" y1="0" x2="40" y2="30" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#FDE08B" />
+                        <stop offset="0.5" stopColor="#D4AF37" />
+                        <stop offset="1" stopColor="#AA7B18" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+
+                  {/* NFC Contactless Icon */}
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80 rotate-90 ml-4 hidden sm:block">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                  </svg>
+                </div>
+
+                <div className="relative z-10 mt-auto">
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-mono tracking-[0.2em] font-medium mb-4 drop-shadow-md text-white/90">
+                    4567 8901 2345 8892
                   </div>
-                  <div className="flex gap-8">
+                  <div className="flex gap-6 sm:gap-10">
                     <div>
-                      <div className="text-[10px] text-foreground/40 uppercase mb-1">Holder</div>
-                      <div className="text-sm font-semibold uppercase tracking-wider">Waitlist Priority</div>
+                      <div className="text-[9px] sm:text-[10px] text-white/60 uppercase mb-1 font-bold tracking-wider">Cardholder</div>
+                      <div className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-white drop-shadow-sm">Waitlist Priority</div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-foreground/40 uppercase mb-1">Expires</div>
-                      <div className="text-sm font-semibold">12 / 28</div>
+                      <div className="text-[9px] sm:text-[10px] text-white/60 uppercase mb-1 font-bold tracking-wider">Valid Thru</div>
+                      <div className="text-xs sm:text-sm font-semibold text-white drop-shadow-sm">12/28</div>
                     </div>
                   </div>
                 </div>

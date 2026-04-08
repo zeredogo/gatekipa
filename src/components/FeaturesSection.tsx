@@ -66,11 +66,11 @@ const FeaturesSection = () => {
               <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
             </svg>
           </div>
-          <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground mb-6 tracking-tighter leading-none">
-            Built to <span className="text-gradient-green uppercase italic">control.</span>
+          <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground mb-4 tracking-tighter leading-none">
+            Built to <span className="text-primary italic">control.</span>
           </h2>
           <p className="text-xl text-foreground/60 font-medium">
-            Powerful tools built specifically to control subscription payments.
+            Powerful tools to manage your subscriptions.
           </p>
           <button
             onClick={() => {

@@ -4,20 +4,20 @@
   --font-geist: "Geist", "Inter", sans-serif;
   --font-geist-mono: "Geist Mono", "Space Mono", monospace;
 
-  --color-background: #052e16;
-  --color-foreground: #dcfce7;
-  --color-primary: #4ade80;
-  --color-primary-foreground: #052e16;
-  --color-secondary: #166534;
-  --color-secondary-foreground: #dcfce7;
-  --color-muted: #166534;
-  --color-muted-foreground: #86efac;
-  --color-accent: #166534;
-  --color-accent-foreground: #dcfce7;
-  --color-destructive: #ff6568;
-  --color-border: #15803d;
-  --color-input: #15803d;
-  --color-ring: #4ade80;
+  --color-background: #ffffff;
+  --color-foreground: #052e16;
+  --color-primary: #16a34a;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f0fdf4;
+  --color-secondary-foreground: #052e16;
+  --color-muted: #e2e8f0;
+  --color-muted-foreground: #475569;
+  --color-accent: #bbf7d0;
+  --color-accent-foreground: #052e16;
+  --color-destructive: #ef4444;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #16a34a;
 
   --radius-lg: 0.625rem;
   --radius-md: calc(0.625rem - 2px);
@@ -59,7 +59,7 @@
     @apply bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground;
     font-family: var(--font-geist);
     overflow-x: hidden;
-    background-color: #052e16 !important;
+    background-color: var(--color-background);
   }
   html {
     scroll-behavior: smooth;

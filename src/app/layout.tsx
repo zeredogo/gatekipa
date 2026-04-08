@@ -39,7 +39,7 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/npm/geist@1/dist/font/css/all.min.css"
         />
       </head>
-      <body className="noise-overlay">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

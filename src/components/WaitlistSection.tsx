@@ -13,6 +13,12 @@ const WaitlistSection = () => {
   const [totalCount, setTotalCount] = useState(1204);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [toast, setToast] = useState<{title: string, desc?: string, type: "success" | "error"} | null>(null);
+
+  const showToast = (title: string, desc?: string, type: "success" | "error" = "success") => {
+    setToast({title, desc, type});
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const searchParams = useSearchParams();
   const referredBy = searchParams.get("ref");
@@ -45,11 +51,14 @@ const WaitlistSection = () => {
         setReferralLink(`${window.location.origin}?ref=${result.referralCode}`);
         setPosition(result.position);
         setSubmitted(true);
+        showToast("Success!", "You're successfully on the waitlist.", "success");
       } else if (result.error) {
         setErrorMessage(result.error);
+        showToast("Error", result.error, "error");
       }
     } catch (err) {
       setErrorMessage("Something went wrong. Please try again.");
+      showToast("Error", "Something went wrong. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -58,7 +67,7 @@ const WaitlistSection = () => {
   const copyToClipboard = () => {
      if (typeof window !== "undefined") {
         navigator.clipboard.writeText(referralLink);
-        alert("Referral link copied!");
+        showToast("Link Copied!", "Share it to move up the waitlist.", "success");
      }
   };
 
@@ -75,13 +84,13 @@ const WaitlistSection = () => {
               Secure your spot
             </div>
             
-            <h2 className="text-5xl sm:text-8xl font-extrabold text-foreground mb-12 tracking-tighter leading-none">
+            <h2 className="text-5xl sm:text-8xl font-extrabold text-foreground mb-6 tracking-tighter leading-none">
               Get <br/>
-              <span className="text-gradient-green uppercase italic">Early Access</span>
+              <span className="text-primary uppercase italic">Early Access</span>
             </h2>
             
-            <p className="text-2xl text-foreground/60 max-w-2xl font-medium mb-16 italic">
-              Be among the first to stop unwanted subscription charges before they happen.
+            <p className="text-2xl text-foreground/60 max-w-2xl font-medium mb-12">
+              Join the waitlist to get early access.
             </p>
 
             <form
@@ -128,7 +137,7 @@ const WaitlistSection = () => {
             </div>
             
             <h2 className="text-5xl sm:text-7xl font-extrabold text-foreground mb-8 tracking-tighter">
-              YOU&apos;RE ON THE <span className="text-gradient-green uppercase italic">LIST.</span>
+              YOU&apos;RE ON THE <span className="text-primary uppercase italic">LIST.</span>
             </h2>
 
             <p className="text-xl text-foreground/60 font-medium italic mb-12">
@@ -175,6 +184,25 @@ const WaitlistSection = () => {
             </p>
           </div>
         )}
+      </div>
+
+      {/* Professional Floating Toast Element */}
+      <div 
+        className={`fixed bottom-8 right-8 lg:bottom-12 lg:right-12 z-[100] transform transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center gap-4 bg-background border ${toast?.type === "error" ? "border-red-500/30" : "border-primary/30"} px-6 py-4 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] min-w-[300px] ${
+          toast ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-12 opacity-0 scale-95 pointer-events-none'
+        }`}
+      >
+        <div className={`size-10 rounded-full flex items-stretch shrink-0 justify-center ${toast?.type === "error" ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary"}`}>
+          {toast?.type === "error" ? (
+             <svg className="m-auto size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          ) : (
+             <svg className="m-auto size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          )}
+        </div>
+        <div className="flex flex-col">
+          <span className="font-bold text-foreground tracking-wide">{toast?.title}</span>
+          {toast?.desc && <span className="text-sm text-foreground/60 font-medium">{toast.desc}</span>}
+        </div>
       </div>
     </section>
   );
