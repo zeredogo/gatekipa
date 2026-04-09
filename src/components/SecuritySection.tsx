@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 const SecuritySection = () => {
   const pillars = [
@@ -56,33 +57,44 @@ const SecuritySection = () => {
           ))}
         </div>
 
-        {/* Partner Badge */}
-        <div className="anime-card p-12 bg-secondary/10 flex flex-col items-center gap-8 border-dashed border-primary/40">
-           <div className="text-center">
-              <div className="text-sm font-bold text-primary/60 uppercase tracking-widest mb-2">Proudly Powered By</div>
-              <div className="text-4xl font-extrabold text-foreground tracking-tighter">WESTGATE STRATAGEM LTD</div>
-           </div>
-           <div className="max-w-3xl text-center text-lg text-foreground/70 font-medium italic leading-relaxed space-y-4">
-             <p>
-               Gatekipa is developed and operated by Westgate Stratagem Ltd, built to give users control over subscription payments.
-             </p>
-             <p>
-               We work with licensed financial partners and use industry-standard security practices. <strong>Sensitive card details are never stored on our servers.</strong>
-             </p>
-           </div>
-           <button
-            onClick={() => {
-              const el = document.getElementById("waitlist");
-              el?.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="btn-primary py-4 px-10 text-lg !mt-4"
-          >
-            Join the Waitlist
-          </button>
-           <div className="flex items-center gap-4 text-primary font-bold text-sm tracking-widest uppercase animate-pulse mt-4">
-              <svg className="size-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" /></svg>
-              Verified Infrastructure
-           </div>
+        {/* Partner Badge & App Mockup */}
+        <div className="grid lg:grid-cols-2 gap-8 items-center">
+          <div className="relative w-full h-[600px] flex justify-center items-center rounded-3xl bg-secondary/5 overflow-hidden">
+             <Image 
+               src="/protected-money.png"
+               alt="Gatekipa Protected Money Vault"
+               fill
+               className="object-contain p-8 drop-shadow-2xl hover:scale-105 transition-transform duration-700"
+             />
+          </div>
+
+          <div className="anime-card p-12 bg-secondary/10 flex flex-col items-center justify-center h-full gap-8 border-dashed border-primary/40 rounded-3xl">
+             <div className="text-center">
+                <div className="text-sm font-bold text-primary/60 uppercase tracking-widest mb-2">Proudly Powered By</div>
+                <div className="text-4xl font-extrabold text-foreground tracking-tighter">WESTGATE STRATAGEM LTD</div>
+             </div>
+             <div className="max-w-3xl text-center text-lg text-foreground/70 font-medium italic leading-relaxed space-y-4">
+               <p>
+                 Gatekipa is developed and operated by Westgate Stratagem Ltd, built to give users control over subscription payments.
+               </p>
+               <p>
+                 We work with licensed financial partners and use industry-standard security practices. <strong>Sensitive card details are never stored on our servers.</strong>
+               </p>
+             </div>
+             <button
+              onClick={() => {
+                const el = document.getElementById("waitlist");
+                el?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="btn-primary py-4 px-10 text-lg !mt-4"
+            >
+              Join the Waitlist
+            </button>
+             <div className="flex items-center gap-4 text-primary font-bold text-sm tracking-widest uppercase animate-pulse mt-4">
+                <svg className="size-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" /></svg>
+                Verified Infrastructure
+             </div>
+          </div>
         </div>
       </div>
     </section>

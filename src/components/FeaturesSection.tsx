@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 const FeaturesSection = () => {
   const features = [
@@ -83,24 +84,35 @@ const FeaturesSection = () => {
           </button>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {features.map((feature, idx) => (
-            <div
-              key={feature.title}
-              className="anime-card p-8 flex flex-col gap-6 group hover:border-primary border-primary/10 transition-colors bg-secondary/10"
-              style={{ animationDelay: `${idx * 100}ms` }}
-            >
-              <div className="text-4xl group-hover:scale-125 transition-transform duration-500">
-                {feature.icon}
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-sm text-foreground/60 font-medium italic leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            </div>
-          ))}
+        <div className="grid lg:grid-cols-12 gap-12 items-center">
+          <div className="lg:col-span-8 grid sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {features.map((feature, idx) => (
+               <div
+                  key={feature.title}
+                  className="anime-card p-8 flex flex-col gap-6 group hover:border-primary border-primary/10 transition-colors bg-secondary/10"
+                  style={{ animationDelay: `${idx * 100}ms` }}
+               >
+                  <div className="text-4xl group-hover:scale-125 transition-transform duration-500">
+                     {feature.icon}
+                  </div>
+                  <div>
+                     <h3 className="text-xl font-bold text-foreground mb-2">{feature.title}</h3>
+                     <p className="text-sm text-foreground/60 font-medium italic leading-relaxed">
+                        {feature.description}
+                     </p>
+                  </div>
+               </div>
+            ))}
+          </div>
+          
+          <div className="lg:col-span-4 relative w-full h-[800px] flex justify-center items-center rounded-3xl bg-gradient-to-t from-primary/5 to-transparent overflow-hidden">
+             <Image 
+               src="/built-to-control.png"
+               alt="Gatekipa Built to Control"
+               fill
+               className="object-contain py-8 drop-shadow-2xl hover:scale-105 transition-transform duration-700"
+             />
+          </div>
         </div>
       </div>
     </section>

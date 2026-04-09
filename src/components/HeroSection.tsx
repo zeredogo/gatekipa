@@ -25,7 +25,8 @@ const HeroSection = () => {
     fetchStats();
 
     // Countdown Logic: Fixed target date
-    const targetDate = new Date("2026-06-01T00:00:00"); 
+    // Target: 25 days from 2026-04-09 = 2026-05-04
+    const targetDate = new Date("2026-05-04T00:00:00");
 
     const interval = setInterval(() => {
       const now = new Date().getTime();
@@ -101,13 +102,12 @@ const HeroSection = () => {
             Join {totalCount.toLocaleString()}+ others
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-foreground leading-[1] tracking-tighter">
-            The intelligent layer <br />
-            <span className="text-primary">over your payments</span>
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-foreground leading-[1.05] tracking-tighter">
+            Stop Paying for Things{" "}
+            <span className="text-gradient-green">You Didn&rsquo;t Approve.</span>
           </h1>
 
           <div className="text-xl sm:text-2xl text-foreground/70 max-w-xl leading-relaxed font-medium mt-4 space-y-6">
-            <p>Stop paying for things you didn't approve.</p>
             <p>One programmable card layer for every subscription, team, and client you manage.</p>
             <p className="text-primary/90 font-bold">Gatekipa is the control layer your card was always missing.</p>
           </div>

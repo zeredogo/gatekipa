@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 const HowItWorksSection = () => {
   const steps = [
@@ -67,28 +68,36 @@ const HowItWorksSection = () => {
           </button>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 px-4 sm:px-0 relative">
-           {/* Step Connectors Desktop */}
-           <div className="hidden lg:block absolute top-[6.5rem] left-[15%] right-[15%] h-px bg-gradient-to-r from-primary/10 via-primary/40 to-primary/10 z-0" />
-
-           {steps.map((step) => (
-             <div key={step.number} className="anime-card p-8 flex flex-col gap-6 relative z-10 group bg-secondary/10 hover:bg-secondary/20">
-                <div className="flex items-center justify-between">
-                  <div className="size-16 rounded-2xl bg-background border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform group-hover:border-primary">
-                    {step.icon}
+        <div className="grid lg:grid-cols-2 gap-12 items-center mt-16 px-4 sm:px-0">
+          <div className="grid sm:grid-cols-2 gap-4 relative">
+             {steps.map((step) => (
+               <div key={step.number} className="anime-card p-8 flex flex-col gap-6 relative z-10 group bg-secondary/10 hover:bg-secondary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="size-16 rounded-2xl bg-background border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform group-hover:border-primary">
+                      {step.icon}
+                    </div>
+                    <span className="text-5xl font-extrabold text-primary/10 group-hover:text-primary transition-colors font-mono">
+                      {step.number}
+                    </span>
                   </div>
-                  <span className="text-5xl font-extrabold text-primary/10 group-hover:text-primary transition-colors font-mono">
-                    {step.number}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4">{step.title}</h3>
-                  <p className="text-base text-foreground/60 font-medium leading-relaxed italic">
-                    {step.description}
-                  </p>
-                </div>
-             </div>
-           ))}
+                  <div>
+                    <h3 className="text-2xl font-bold text-foreground mb-4">{step.title}</h3>
+                    <p className="text-base text-foreground/60 font-medium leading-relaxed italic">
+                      {step.description}
+                    </p>
+                  </div>
+               </div>
+             ))}
+          </div>
+
+          <div className="relative w-full h-[600px] flex justify-center items-center rounded-3xl bg-gradient-to-b from-primary/5 to-transparent overflow-hidden">
+             <Image 
+               src="/how-to-start.png"
+               alt="Gatekipa App - Create a card"
+               fill
+               className="object-contain p-4 drop-shadow-2xl"
+             />
+          </div>
         </div>
       </div>
     </section>
