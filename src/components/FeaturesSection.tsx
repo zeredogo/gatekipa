@@ -105,12 +105,12 @@ const FeaturesSection = () => {
             ))}
           </div>
           
-          <div className="lg:col-span-4 relative w-full h-[800px] flex justify-center items-center rounded-3xl bg-gradient-to-t from-primary/5 to-transparent overflow-hidden">
+          <div className="lg:col-span-4 relative w-full h-[600px] flex justify-center items-center rounded-3xl bg-gradient-to-t from-primary/5 to-transparent overflow-hidden">
              <Image 
                src="/built-to-control.png"
                alt="Gatekipa Built to Control"
                fill
-               className="object-contain py-8 drop-shadow-2xl hover:scale-105 transition-transform duration-700"
+               className="object-contain p-4 drop-shadow-2xl"
              />
           </div>
         </div>

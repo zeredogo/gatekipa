@@ -64,7 +64,7 @@ const SecuritySection = () => {
                src="/protected-money.png"
                alt="Gatekipa Protected Money Vault"
                fill
-               className="object-contain p-8 drop-shadow-2xl hover:scale-105 transition-transform duration-700"
+               className="object-contain p-4 drop-shadow-2xl"
              />
           </div>
 
