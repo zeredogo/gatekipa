@@ -48,7 +48,7 @@ const HowItWorksSection = () => {
   ];
 
   return (
-    <section id="how-it-works" className="py-24 bg-background relative overflow-hidden">
+    <section id="how-it-works" className="py-24 bg-background relative">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-12">
         <div className="text-center max-w-3xl mx-auto mb-20 flex flex-col items-center">
           <h2 className="text-4xl sm:text-7xl font-extrabold text-foreground mb-6 tracking-tighter leading-none">
