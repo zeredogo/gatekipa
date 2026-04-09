@@ -103,8 +103,7 @@ const HeroSection = () => {
           </div>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-foreground leading-[1.05] tracking-tighter">
-            Stop Paying for Things{" "}
-            <span className="text-gradient-green">You Didn&rsquo;t Approve.</span>
+            Stop Paying for Things You Didn&rsquo;t Approve.
           </h1>
 
           <div className="text-xl sm:text-2xl text-foreground/70 max-w-xl leading-relaxed font-medium mt-4 space-y-6">
