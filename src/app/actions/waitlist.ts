@@ -78,6 +78,39 @@ export async function joinWaitlist(formData: FormData) {
 
     if (existingUsers.length > 0) {
       const user = existingUsers[0];
+      
+      // Resend reminding email for existing users
+      if (resend) {
+        try {
+          await resend.emails.send({
+            from: "Gatekipa <onboarding@resend.dev>",
+            to: email,
+            subject: "Your Gatekipa Waitlist Status 🚀",
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #333;">
+                <h1 style="color: #1a1a1a;">You're already on the list! 🎉</h1>
+                <p>Hi there,</p>
+                <p>You recently checked your status on the <strong>Gatekipa</strong> waitlist.</p>
+                <p>Your current waitlist position is: <strong style="font-size: 24px;">#${user.position}</strong></p>
+                
+                <div style="background: #f4f4f5; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Keep moving up!</h3>
+                  <p>Remember, you can get early access faster by referring your friends using your unique link:</p>
+                  <code style="display: block; background: #e4e4e7; padding: 12px; border-radius: 8px; font-size: 16px;">
+                    https://gatekipa.com/?ref=${user.referral_code}
+                  </code>
+                </div>
+                
+                <p>We'll notify you as soon as your spot opens up.</p>
+                <p>Best regards,<br/><strong>The Gatekipa Team</strong></p>
+              </div>
+            `,
+          });
+        } catch (emailErr) {
+          console.error("Resend Reminder Email Error:", emailErr);
+        }
+      }
+
       return {
         success: true,
         alreadyJoined: true,
@@ -102,7 +135,7 @@ export async function joinWaitlist(formData: FormData) {
     // 6. Send Confirmation Email (Non-blocking)
     if (resend) {
       try {
-        await resend.emails.send({
+        const emailResponse = await resend.emails.send({
           from: "Gatekipa <onboarding@resend.dev>",
           to: email,
           subject: "You're on the list! Welcome to Gatekipa 🎉",
