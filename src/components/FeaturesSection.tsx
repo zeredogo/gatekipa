@@ -84,8 +84,8 @@ const FeaturesSection = () => {
           </button>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-8 grid sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid sm:grid-cols-2 gap-4">
             {features.map((feature, idx) => (
                <div
                   key={feature.title}
@@ -104,8 +104,8 @@ const FeaturesSection = () => {
                </div>
             ))}
           </div>
-          
-          <div className="lg:col-span-4 relative w-full h-[600px] flex justify-center items-center rounded-3xl bg-gradient-to-t from-primary/5 to-transparent overflow-hidden">
+
+          <div className="relative w-full h-[600px] flex justify-center items-center rounded-3xl bg-gradient-to-t from-primary/5 to-transparent overflow-hidden">
              <Image 
                src="/built-to-control.png"
                alt="Gatekipa Built to Control"
