@@ -5,7 +5,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { Resend } from "resend";
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Schema for email validation
 const WaitlistSchema = z.object({
@@ -80,10 +80,10 @@ export async function joinWaitlist(formData: FormData) {
       const user = existingUsers[0];
       
       // Resend reminding email for existing users
-      if (resend) {
+      if (process.env.RESEND_API_KEY) {
         try {
           await resend.emails.send({
-            from: "Gatekipa <onboarding@resend.dev>",
+            from: "Gatekipa <hello@gatekipa.com>",
             to: email,
             subject: "Your Gatekipa Waitlist Status 🚀",
             html: `
@@ -133,10 +133,10 @@ export async function joinWaitlist(formData: FormData) {
     const totalCount = parseInt(stats[0].count);
 
     // 6. Send Confirmation Email (Non-blocking)
-    if (resend) {
+    if (process.env.RESEND_API_KEY) {
       try {
-        const emailResponse = await resend.emails.send({
-          from: "Gatekipa <onboarding@resend.dev>",
+        await resend.emails.send({
+          from: "Gatekipa <hello@gatekipa.com>",
           to: email,
           subject: "You're on the list! Welcome to Gatekipa 🎉",
           html: `

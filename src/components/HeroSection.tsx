@@ -24,9 +24,8 @@ const HeroSection = () => {
     };
     fetchStats();
 
-    // Countdown Logic
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + 30); // 30 days from now
+    // Countdown Logic: Fixed target date
+    const targetDate = new Date("2026-06-01T00:00:00"); 
 
     const interval = setInterval(() => {
       const now = new Date().getTime();
@@ -107,9 +106,11 @@ const HeroSection = () => {
             <span className="text-primary">over your payments</span>
           </h1>
 
-          <p className="text-xl sm:text-2xl text-foreground/70 max-w-xl leading-relaxed font-medium mt-4">
-            Cancel unwanted subscriptions, track your spending, and never pay for a forgotten free trial again.
-          </p>
+          <div className="text-xl sm:text-2xl text-foreground/70 max-w-xl leading-relaxed font-medium mt-4 space-y-6">
+            <p>Stop paying for things you didn't approve.</p>
+            <p>One programmable card layer for every subscription, team, and client you manage.</p>
+            <p className="text-primary/90 font-bold">Gatekipa is the control layer your card was always missing.</p>
+          </div>
 
           <div className="flex flex-wrap gap-4 w-full sm:w-auto">
             <button
