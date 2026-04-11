@@ -107,7 +107,7 @@ const FeaturesSection = () => {
 
           <div className="relative w-full h-[600px] flex justify-center items-center rounded-3xl bg-gradient-to-t from-primary/5 to-transparent overflow-hidden">
              <Image 
-               src="/built-to-control.png"
+               src="/built-to-control.jpg"
                alt="Gatekipa Built to Control"
                fill
                className="object-contain p-4 drop-shadow-2xl"

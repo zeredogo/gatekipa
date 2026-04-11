@@ -61,7 +61,7 @@ const SecuritySection = () => {
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div className="relative w-full h-[600px] flex justify-center items-center rounded-3xl bg-secondary/5 overflow-hidden">
              <Image 
-               src="/protected-money.png"
+               src="/protected-money.jpg"
                alt="Gatekipa Protected Money Vault"
                fill
                className="object-contain p-4 drop-shadow-2xl"
