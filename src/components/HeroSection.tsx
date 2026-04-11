@@ -7,6 +7,7 @@ const HeroSection = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const [totalCount, setTotalCount] = useState(1204);
+  const [timeLeft, setTimeLeft] = useState({ days: 13, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -22,6 +23,25 @@ const HeroSection = () => {
       }
     };
     fetchStats();
+
+    // Target: Ensures exactly 13 days remain from April 11
+    const targetDate = new Date("2026-04-25T00:00:00");
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = targetDate.getTime() - now;
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000),
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -55,9 +75,21 @@ const HeroSection = () => {
         {/* Left Content */}
         <div className="flex flex-col items-start gap-8">
           <div className="flex flex-wrap gap-4 mb-2">
-             <div className="flex flex-row items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-6 gap-3">
-                <span className="text-3xl font-extrabold text-primary font-mono">13</span>
-                <span className="text-sm text-foreground/80 uppercase font-bold tracking-widest">Days Remaining</span>
+             <div className="flex flex-col items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-5 min-w-[80px]">
+                <span className="text-3xl font-extrabold text-primary font-mono">{timeLeft.days}</span>
+                <span className="text-xs text-foreground/60 uppercase font-bold tracking-widest mt-1">Days</span>
+             </div>
+             <div className="flex flex-col items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-5 min-w-[80px]">
+                <span className="text-3xl font-extrabold text-primary font-mono">{timeLeft.hours}</span>
+                <span className="text-xs text-foreground/60 uppercase font-bold tracking-widest mt-1">Hours</span>
+             </div>
+             <div className="flex flex-col items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-5 min-w-[80px]">
+                <span className="text-3xl font-extrabold text-primary font-mono">{timeLeft.minutes}</span>
+                <span className="text-xs text-foreground/60 uppercase font-bold tracking-widest mt-1">Mins</span>
+             </div>
+             <div className="flex flex-col items-center justify-center bg-primary/10 border border-primary/20 rounded-2xl py-3 px-5 min-w-[80px]">
+                <span className="text-3xl font-extrabold text-primary font-mono">{timeLeft.seconds}</span>
+                <span className="text-xs text-foreground/60 uppercase font-bold tracking-widest mt-1">Secs</span>
              </div>
           </div>
 
