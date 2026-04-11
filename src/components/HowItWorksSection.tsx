@@ -92,7 +92,7 @@ const HowItWorksSection = () => {
 
           <div className="relative w-full h-[600px] flex justify-center items-center rounded-3xl bg-gradient-to-b from-primary/5 to-transparent overflow-hidden">
              <Image 
-               src="/how-to-start.jpg"
+               src="/protected-money.jpg"
                alt="Gatekipa App - Create a card"
                fill
                className="object-contain p-4 drop-shadow-2xl"
