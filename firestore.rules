@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ─────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function uid() {
+      return request.auth.uid;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && uid() == userId;
+    }
+    function isAccountOwner(accountId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/accounts/$(accountId)).data.owner_user_id == uid();
+    }
+    function isAccountMember(accountId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/team_members/$(accountId + '_' + uid()));
+    }
+    function hasAccountAccess(accountId) {
+      return isAccountOwner(accountId) || isAccountMember(accountId);
+    }
+    function hasRestrictedFields() {
+      return request.resource.data.keys().hasAny(
+        [
+          'kycStatus', 'hasBvn', 'bvnVerifiedAt', 'bvnMeta', 'isPremium',
+          'bridgecard_status', 'bridgecard_cardholder_id', 'bridgecardNuban', 
+          'bridgecardBankName', 'bridgecardAccountName'
+        ]
+      );
+    }
+    function isRestrictedFieldBeingUpdated() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(
+        [
+          'kycStatus', 'hasBvn', 'bvnVerifiedAt', 'bvnMeta', 'isPremium',
+          'bridgecard_status', 'bridgecard_cardholder_id', 'bridgecardNuban', 
+          'bridgecardBankName', 'bridgecardAccountName'
+        ]
+      );
+    }
+
+    // ── USERS ──────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && !hasRestrictedFields();
+      allow update: if isOwner(userId) && !isRestrictedFieldBeingUpdated();
+
+      // Wallet balance — Cloud Functions write, users can read their own
+      match /wallet/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if false; // Cloud Functions only
+      }
+
+      // Funding history — idempotency log; read-only for the owner
+      match /funding_history/{reference} {
+        allow read: if isOwner(userId);
+        allow write: if false; // Cloud Functions only
+      }
+
+      // Detected subscriptions — written by Cloud Function, read by owner
+      match /detected_subscriptions/{subId} {
+        allow read: if isOwner(userId);
+        allow write: if false; // Cloud Functions only
+      }
+
+      // Notifications — written by Cloud Functions, read/mark-read/delete by owner
+      match /notifications/{notifId} {
+        allow read:   if isOwner(userId);
+        allow update: if isOwner(userId); // mark as read
+        allow delete: if isOwner(userId);
+        allow create: if false;           // Cloud Functions only
+      }
+    }
+
+    // ── ACCOUNTS ──────────────────────────────────────────────────────────────
+    // Only the owner or team members can read their accounts.
+    // All writes go through Cloud Functions (Admin SDK bypasses rules).
+    match /accounts/{accountId} {
+      allow read: if isSignedIn() && (
+        resource.data.owner_user_id == uid() || isAccountMember(accountId)
+      );
+      allow write: if false;
+    }
+
+    // ── CARDS ─────────────────────────────────────────────────────────────────
+    match /cards/{cardId} {
+      allow read: if isSignedIn() &&
+        hasAccountAccess(resource.data.account_id);
+      allow write: if false;
+    }
+
+    // ── RULES ─────────────────────────────────────────────────────────────────
+    // Only allow reading rules for cards the user has access to.
+    // Done at query level by the app — enforced here by account membership.
+    match /rules/{ruleId} {
+      allow read: if isSignedIn() &&
+        hasAccountAccess(
+          get(/databases/$(database)/documents/cards/$(resource.data.card_id)).data.account_id
+        );
+      allow write: if false;
+    }
+
+    // ── TRANSACTIONS ──────────────────────────────────────────────────────────
+    match /transactions/{txId} {
+      allow read: if isSignedIn() &&
+        hasAccountAccess(resource.data.account_id);
+      allow write: if false;
+    }
+
+    // ── TEAM MEMBERS ──────────────────────────────────────────────────────────
+    // Doc ID pattern:  {accountId}_{userId}
+    // A team member can always read their own membership docs.
+    // An account owner can read all members of their account.
+    match /team_members/{tmId} {
+      allow read: if isSignedIn() && (
+        resource.data.user_id == uid() ||
+        isAccountOwner(resource.data.account_id)
+      );
+      allow write: if false;
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

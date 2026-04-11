@@ -1,0 +1,125 @@
+name: Gatekipa CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Re-generate build runner code
+        run: dart run build_runner build -d
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run logic tests
+        run: flutter test
+
+  build-android:
+    name: Build Android APK
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Re-generate build runner code
+        run: dart run build_runner build -d
+
+      # Notice: Key.properties and signing config must be set up inside Android directory via secrets to correctly sign.
+      - name: Build APK via Fastlane
+        run: cd android && bundle exec fastlane build_apk
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gatekipa-android-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  # macOS instance required to build iOS apps
+  build-ios:
+    name: Build iOS App
+    needs: lint-and-test
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Re-generate build runner code
+        run: dart run build_runner build -d
+
+      # Requires Apple Certifications via fastlane match and API Key / App Store Connect credentials
+      - name: Install Pods
+        run: cd ios && pod install
+
+      - name: Build IPA via Fastlane
+        run: cd ios && bundle exec fastlane build_ipa
+
+      # Export path will match to output folder configured (usually build/ios/ipa/*.ipa default from gym)
+      - name: Upload iOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: gatekipa-ios-release
+          path: build/ios/ipa/*.ipa

@@ -1,0 +1,681 @@
+// lib/features/auth/screens/profile_screen.dart
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/routes.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/gk_button.dart';
+import '../../../core/widgets/gk_toast.dart';
+import '../providers/auth_provider.dart';
+import '../models/user_model.dart';
+import '../../profile/screens/kyc_verification_screen.dart';
+import '../../profile/screens/bvn_verification_screen.dart';
+import '../../profile/screens/biometrics_screen.dart';
+import '../../profile/screens/pin_management_screen.dart';
+import '../../profile/screens/premium_upgrade_screen.dart';
+
+class ProfileScreen extends ConsumerWidget {
+  const ProfileScreen({super.key});
+
+  /// Returns true if biometric login is enabled for the current user.
+  Future<bool> _isBiometricEnabled() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('${uid}_use_biometrics') ?? false;
+  }
+
+  /// Locks the app (keeps Firebase session for biometric re-entry) or
+  /// fully signs out if biometrics is disabled.
+  Future<void> _handleSignOut(BuildContext context, WidgetRef ref) async {
+    final biometricEnabled = await _isBiometricEnabled();
+    if (biometricEnabled) {
+      await ref.read(authNotifierProvider.notifier).lockApp();
+    } else {
+      await ref.read(authNotifierProvider.notifier).signOut();
+    }
+    if (context.mounted) context.go(Routes.phoneAuth);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userProfileProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        title: Text(
+          'Profile',
+          style: GoogleFonts.manrope(
+              fontWeight: FontWeight.w800, color: AppColors.primary),
+        ),
+        leading: const BackButton(color: AppColors.onSurface),
+        actions: [
+          TextButton(
+            onPressed: () => _handleSignOut(context, ref),
+            child: Text(
+              'Sign Out',
+              style: GoogleFonts.inter(
+                color: AppColors.error,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: userAsync.when(
+        data: (user) => SingleChildScrollView(
+          child: Column(
+            children: [
+              // ── Hero Banner ──────────────────────────────────────────
+              Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, Color(0xFF004D2C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+                child: Column(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 86,
+                      height: 86,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          user?.displayName?.isNotEmpty == true
+                              ? user!.displayName![0].toUpperCase()
+                              : 'G',
+                          style: GoogleFonts.manrope(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      user?.displayName ?? 'Gatekipa User',
+                      style: GoogleFonts.manrope(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      FirebaseAuth.instance.currentUser?.phoneNumber ??
+                          FirebaseAuth.instance.currentUser?.email ??
+                          '',
+                      style: GoogleFonts.inter(
+                        color: Colors.white.withValues(alpha: 0.75),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    // Plan badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: user?.isPremium == true
+                            ? const LinearGradient(
+                                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                              )
+                            : null,
+                        color: user?.isPremium != true
+                            ? Colors.white.withValues(alpha: 0.15)
+                            : null,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Text(
+                        user?.isPremium == true
+                            ? '✦ Sentinel Prime'
+                            : 'Free Plan',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Personal Information
+                    _SettingsSection(title: 'Personal Info', items: [
+                      _SettingsItem(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Update Profile',
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.outline),
+                        onTap: () {
+                          if (user != null) {
+                            _showUpdateProfileSheet(context, ref, user);
+                          }
+                        },
+                      ),
+                    ]),
+                    const SizedBox(height: 20),
+                    // KYC Status
+                    _SettingsSection(title: 'Identity', items: [
+                      _SettingsItem(
+                        icon: Icons.badge_rounded,
+                        label: 'KYC Status',
+                        trailing:
+                            _KycBadge(status: user?.kycStatus ?? 'pending'),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KycVerificationScreen())),
+                      ),
+                      _SettingsItem(
+                        icon: Icons.lock_rounded,
+                        label: 'BVN / NIN',
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.outline),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BvnVerificationScreen())),
+                      ),
+                    ]),
+                    const SizedBox(height: 20),
+                    // Security
+                    _SettingsSection(title: 'Security', items: [
+                      _SettingsItem(
+                        icon: Icons.fingerprint_rounded,
+                        label: 'Biometrics',
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.outline),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BiometricsScreen())),
+                      ),
+                      _SettingsItem(
+                        icon: Icons.key_rounded,
+                        label: 'PIN Management',
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.outline),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PinManagementScreen())),
+                      ),
+                    ]),
+                    const SizedBox(height: 20),
+                    // Notifications
+                    _SettingsSection(title: 'Notifications', items: [
+                      _SettingsItem(
+                        icon: Icons.notifications_rounded,
+                        label: 'Block Alerts',
+                        trailing: Switch(
+                          value: user?.blockAlerts ?? false,
+                          onChanged: (v) {
+                            if (user != null) {
+                              ref.read(authNotifierProvider.notifier).updateProfile(uid: user.uid, data: {'blockAlerts': v});
+                            }
+                          },
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onTap: () {
+                          if (user != null) {
+                            ref.read(authNotifierProvider.notifier).updateProfile(
+                              uid: user.uid,
+                              data: {'blockAlerts': !(user.blockAlerts)},
+                            );
+                          }
+                        },
+                      ),
+                      _SettingsItem(
+                        icon: Icons.schedule_rounded,
+                        label: 'Subscription Reminders',
+                        trailing: Switch(
+                          value: user?.subscriptionReminders ?? false,
+                          onChanged: (v) {
+                            if (user != null) {
+                              ref.read(authNotifierProvider.notifier).updateProfile(uid: user.uid, data: {'subscriptionReminders': v});
+                            }
+                          },
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onTap: () {
+                          if (user != null) {
+                            ref.read(authNotifierProvider.notifier).updateProfile(
+                              uid: user.uid,
+                              data: {'subscriptionReminders': !(user.subscriptionReminders)},
+                            );
+                          }
+                        },
+                      ),
+                    ]),
+                    const SizedBox(height: 20),
+                    // Premium upgrade
+                    if (user?.isPremium != true) ...[
+                      _SettingsSection(title: 'Subscription', items: [
+                        _SettingsItem(
+                          icon: Icons.workspace_premium_rounded,
+                          label: 'Upgrade to Sentinel Prime',
+                          iconColor: const Color(0xFFFFD700),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD700)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Text(
+                              AppConstants.premiumPriceLabel,
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFFFF8C00),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumUpgradeScreen())),
+                        ),
+                      ]),
+                      const SizedBox(height: 20),
+                    ],
+                    // Danger zone
+                    _SettingsSection(title: 'Danger Zone', items: [
+                      _SettingsItem(
+                        icon: Icons.delete_forever_rounded,
+                        label: 'Delete Account',
+                        iconColor: AppColors.error,
+                        textColor: AppColors.error,
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.outline),
+                        onTap: () => _showDeleteDialog(context, ref),
+                      ),
+                    ]),
+                    const SizedBox(height: 32),
+                    // Sign out
+                    GkButton(
+                      label: 'Sign Out',
+                      icon: Icons.logout_rounded,
+                      variant: GkButtonVariant.secondary,
+                      onPressed: () => _handleSignOut(context, ref),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Text(
+                        '${AppConstants.appName} v${AppConstants.appVersion} • All rights reserved',
+                        style: GoogleFonts.inter(
+                            fontSize: 11, color: AppColors.outline),
+                      ),
+                    ),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const Center(child: Text('Error loading profile')),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Delete Account?',
+            style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
+        content: Text(
+          'This action is permanent. All your cards, transactions and data will be deleted.',
+          style: GoogleFonts.inter(color: AppColors.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              GkToast.show(context,
+                  message: 'Account deletion requested.', type: ToastType.info);
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KycBadge extends StatelessWidget {
+  final String status;
+  const _KycBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, label) = switch (status) {
+      'approved' => (AppColors.tertiary, 'Verified'),
+      'pending' => (const Color(0xFFFF6B35), 'Pending'),
+      'rejected' => (AppColors.error, 'Rejected'),
+      _ => (AppColors.outline, 'Not Done'),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+            fontSize: 12, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
+  }
+}
+
+class _SettingsSection extends StatelessWidget {
+  final String title;
+  final List<_SettingsItem> items;
+
+  const _SettingsSection({required this.title, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section label with pill accent
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 3,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title.toUpperCase(),
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurfaceVariant,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+          ),
+          child: Column(
+            children: items.asMap().entries.map((e) {
+              final item = e.value;
+              final isLast = e.key == items.length - 1;
+              return Column(
+                children: [
+                  item,
+                  if (!isLast)
+                    const Divider(
+                        height: 1,
+                        indent: 72,
+                        color: AppColors.outlineVariant),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SettingsItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Widget trailing;
+  final VoidCallback onTap;
+  final Color? iconColor;
+  final Color? textColor;
+
+  const _SettingsItem({
+    required this.icon,
+    required this.label,
+    required this.trailing,
+    required this.onTap,
+    this.iconColor,
+    this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final icolor = iconColor ?? AppColors.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: icolor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: icolor, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: textColor ?? AppColors.onSurface,
+                ),
+              ),
+            ),
+            trailing,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UpdateProfileSheet extends ConsumerStatefulWidget {
+  final UserModel user;
+
+  const _UpdateProfileSheet({required this.user});
+
+  @override
+  ConsumerState<_UpdateProfileSheet> createState() => _UpdateProfileSheetState();
+}
+
+class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
+  late final TextEditingController _firstNameCtrl;
+  late final TextEditingController _lastNameCtrl;
+  late final TextEditingController _addressCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _phoneCtrl;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final parts = widget.user.displayName?.split(' ') ?? [];
+    _firstNameCtrl = TextEditingController(text: widget.user.firstName ?? (parts.isNotEmpty ? parts.first : ''));
+    _lastNameCtrl = TextEditingController(text: widget.user.lastName ?? (parts.length > 1 ? parts.sublist(1).join(' ') : ''));
+    _addressCtrl = TextEditingController(text: widget.user.address ?? '');
+    _emailCtrl = TextEditingController(text: widget.user.email ?? '');
+    _phoneCtrl = TextEditingController(text: widget.user.phoneNumber ?? '');
+  }
+
+  @override
+  void dispose() {
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _addressCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final firstName = _firstNameCtrl.text.trim();
+    final lastName = _lastNameCtrl.text.trim();
+    final address = _addressCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    
+    if (firstName.isEmpty || lastName.isEmpty) {
+      GkToast.show(context, message: 'First name and last name are required', type: ToastType.error);
+      return;
+    }
+
+    final displayName = '$firstName $lastName';
+
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authNotifierProvider.notifier).updateProfile(
+        uid: widget.user.uid,
+        data: {
+          'firstName': firstName,
+          'lastName': lastName,
+          'displayName': displayName,
+          'address': address.isNotEmpty ? address : null,
+          'email': email.isNotEmpty ? email : null,
+          'phoneNumber': phone.isNotEmpty ? phone : null,
+        },
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        GkToast.show(context, message: 'Profile updated successfully', type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) {
+        GkToast.show(context, message: 'Failed to update profile', type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Edit Profile', style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800)),
+                IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _firstNameCtrl,
+              decoration: InputDecoration(
+                labelText: 'First Name',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _lastNameCtrl,
+              decoration: InputDecoration(
+                labelText: 'Last Name',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'Email Address',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _addressCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: 'Address',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+            const SizedBox(height: 32),
+            GkButton(
+              label: 'Save Changes',
+              isLoading: _isLoading,
+              onPressed: _save,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _showUpdateProfileSheet(BuildContext context, WidgetRef ref, UserModel user) {
+  showModalBottomSheet(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => _UpdateProfileSheet(user: user),
+  );
+}

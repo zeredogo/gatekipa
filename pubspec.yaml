@@ -1,0 +1,67 @@
+name: gatekipa
+description: A rule-based virtual card system that gives users control over recurring payments.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_app_check: ^0.3.1+3
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.3
+  cloud_functions: ^5.6.2
+  firebase_messaging: ^15.1.3
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^14.3.0
+
+  # UI & Fonts
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
+  fl_chart: ^0.69.0
+
+  # Local Auth (Biometric Kill Switch)
+  local_auth: ^2.3.0
+
+  # Utilities
+  intl: ^0.19.0
+  uuid: ^4.5.0
+  shared_preferences: ^2.3.2
+
+  # Notifications
+  flutter_local_notifications: ^17.2.3
+
+  # Icons
+  cupertino_icons: ^1.0.8
+  rxdart: ^0.28.0
+  flutter_secure_storage: ^10.0.0
+
+  # Payments
+  webview_flutter: ^4.13.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

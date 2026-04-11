@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "274080186354",
+    "project_id": "gatekipa-bbd1c",
+    "storage_bucket": "gatekipa-bbd1c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:274080186354:android:01a0e225e525b5fc07756b",
+        "android_client_info": {
+          "package_name": "com.gatekeeper.gatekeeper"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_Fc8xFCutxNN0elWvGSqjozMuzKzNJBo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

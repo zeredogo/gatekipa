@@ -1,0 +1,14 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build iOS App (Production)"
+  lane :build_ipa do
+    # Note: Requires fastlane match to be setup for certs handling if run remotely.
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      clean: true,
+      export_method: "app-store"
+    )
+  end
+end

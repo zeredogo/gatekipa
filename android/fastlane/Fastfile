@@ -1,0 +1,19 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build Android App Bundle (Production)"
+  lane :build_aab do
+    gradle(
+      task: "clean bundleRelease",
+      build_type: "Release"
+    )
+  end
+
+  desc "Build Android release APK"
+  lane :build_apk do
+    gradle(
+      task: "clean assembleRelease",
+      build_type: "Release"
+    )
+  end
+end
