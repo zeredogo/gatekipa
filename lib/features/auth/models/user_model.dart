@@ -1,6 +1,5 @@
 // lib/features/auth/models/user_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 
 class UserModel {
   final String uid;
@@ -23,8 +22,6 @@ class UserModel {
   final bool hasBvn;
   final bool blockAlerts;
   final bool subscriptionReminders;
-  final int bvnVerificationAttempts;
-  final int kycVerificationAttempts;
 
   const UserModel({
     required this.uid,
@@ -47,8 +44,6 @@ class UserModel {
     this.hasBvn = false,
     this.blockAlerts = false,
     this.subscriptionReminders = false,
-    this.bvnVerificationAttempts = 0,
-    this.kycVerificationAttempts = 0,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -79,17 +74,15 @@ class UserModel {
       hasBvn: data['hasBvn'] ?? false,
       blockAlerts: data['blockAlerts'] ?? false,
       subscriptionReminders: data['subscriptionReminders'] ?? false,
-      bvnVerificationAttempts: data['bvnVerificationAttempts'] ?? 0,
-      kycVerificationAttempts: data['kycVerificationAttempts'] ?? 0,
     );
-    } catch (e) {
-      debugPrint('[DataBoundary] Failed to parse UserModel for document ${doc.id}. Error: $e');
+    } catch (e, stackTrace) {
+      print('[DataBoundary] Failed to parse UserModel for document ${doc.id}. Error: $e');
       rethrow;
     }
   }
 
   Map<String, dynamic> toFirestore() {
-    return <String, dynamic>{
+    final map = <String, dynamic>{
       'firstName': firstName,
       'lastName': lastName,
       'address': address,
@@ -101,11 +94,13 @@ class UserModel {
       'geoFence': geoFence,
       'blockAlerts': blockAlerts,
       'subscriptionReminders': subscriptionReminders,
-      'bvnVerificationAttempts': bvnVerificationAttempts,
-      'kycVerificationAttempts': kycVerificationAttempts,
-      // lastLoginAt is NEVER written here — it is set only by _handleUserLogin
-      // via a separate Firestore update to avoid overwriting on every profile sync.
     };
+    
+    if (lastLoginAt != null) {
+      map['lastLoginAt'] = FieldValue.serverTimestamp();
+    }
+    
+    return map;
   }
 
   UserModel copyWith({
@@ -127,8 +122,6 @@ class UserModel {
     bool? hasBvn,
     bool? blockAlerts,
     bool? subscriptionReminders,
-    int? bvnVerificationAttempts,
-    int? kycVerificationAttempts,
   }) {
     return UserModel(
       uid: uid,
@@ -151,8 +144,6 @@ class UserModel {
       hasBvn: hasBvn ?? this.hasBvn,
       blockAlerts: blockAlerts ?? this.blockAlerts,
       subscriptionReminders: subscriptionReminders ?? this.subscriptionReminders,
-      bvnVerificationAttempts: bvnVerificationAttempts ?? this.bvnVerificationAttempts,
-      kycVerificationAttempts: kycVerificationAttempts ?? this.kycVerificationAttempts,
     );
   }
 }

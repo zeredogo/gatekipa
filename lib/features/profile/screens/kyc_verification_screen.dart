@@ -2,13 +2,12 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_button.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/gk_button.dart';
+import '../../../core/widgets/gk_toast.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class KycVerificationScreen extends ConsumerStatefulWidget {
   const KycVerificationScreen({super.key});
@@ -61,9 +60,11 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       appBar: AppBar(
         title: Text(
           'Identity Verification',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
+          style: GoogleFonts.manrope(
+            fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,),
+            color: AppColors.onSurface,
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -79,17 +80,13 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
           if (user == null) return const SizedBox.shrink();
           final isVerified = user.kycStatus == 'verified';
 
-          if (user.kycVerificationAttempts >= 1 && !isVerified) {
-            return _buildSupportView();
-          }
-
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               24, 24, 24, MediaQuery.of(context).padding.bottom + 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: 32),
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -104,25 +101,29 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                     color: isVerified ? AppColors.primary : Colors.orange,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: 32),
                 Text(
                   isVerified ? 'Verification Complete' : 'Verification Pending',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
+                  style: GoogleFonts.manrope(
+                    fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.onSurface,),
+                    color: AppColors.onSurface,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: 12),
                 Text(
                   isVerified
                       ? 'Your identity has been fully verified. You have full access to all Gatekipa vault features.'
                       : 'Please verify your identity to unlock all features, including virtual cards.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
                     color: AppColors.onSurfaceVariant,
-                    height: 1.5,),
+                    height: 1.5,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: 32),
                 if (!isVerified) ...[
                   Form(
                     key: _formKey,
@@ -131,11 +132,13 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                       children: [
                         Text(
                           'National Identity Number (NIN)',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.onSurfaceVariant,),
+                            color: AppColors.onSurfaceVariant,
+                          ),
                         ),
-                        const SizedBox(height: AppSpacing.xs),
+                        const SizedBox(height: 8),
                         TextFormField(
                           controller: _ninCtrl,
                           keyboardType: TextInputType.number,
@@ -172,7 +175,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: 24),
                         GkButton(
                           label: 'Verify NIN',
                           isLoading: _isLoading,
@@ -199,14 +202,18 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           children: [
                             Text(
                               'Document Proof',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
-                                color: AppColors.onSurfaceVariant,),
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: AppColors.onSurfaceVariant,
+                              ),
                             ),
                             Text(
                               'Provided',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.primary,),
+                                color: AppColors.primary,
+                              ),
                             ),
                           ],
                         ),
@@ -216,14 +223,18 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           children: [
                             Text(
                               'Liveness Check',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
-                                color: AppColors.onSurfaceVariant,),
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: AppColors.onSurfaceVariant,
+                              ),
                             ),
                             Text(
                               'Approved',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.primary,),
+                                color: AppColors.primary,
+                              ),
                             ),
                           ],
                         ),
@@ -239,68 +250,6 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (e, _) => const Center(child: Text('Failed to load data. Please pull to refresh.')),
-      ),
-    );
-  }
-
-  Widget _buildSupportView() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: AppSpacing.xxxl),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.warning_rounded,
-              size: 64,
-              color: Colors.red,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            'Verification Limit Reached',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onSurface,),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'You have reached the maximum number of attempts for identity verification. Please contact admin support for assistance.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
-              color: AppColors.onSurfaceVariant,
-              height: 1.5,),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          GkButton(
-            label: 'Contact Admin Support',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => Scaffold(
-                    appBar: AppBar(
-                      title: Text('Admin Support', style: TextStyle(color: AppColors.primary)),
-                      leading: const CloseButton(),
-                    ),
-                    body: WebViewWidget(
-                      controller: WebViewController()
-                        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                        ..loadRequest(Uri.parse('https://gatekipa.com/support')),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
       ),
     );
   }

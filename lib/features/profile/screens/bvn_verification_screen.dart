@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_button.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/gk_button.dart';
+import '../../../core/widgets/gk_toast.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class BvnVerificationScreen extends ConsumerStatefulWidget {
   const BvnVerificationScreen({super.key});
@@ -75,9 +74,11 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
       appBar: AppBar(
         title: Text(
           'BVN / NIN',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
+          style: GoogleFonts.manrope(
+            fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,),
+            color: AppColors.onSurface,
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -95,10 +96,6 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
             return _buildSuccessView();
           }
 
-          if (user.bvnVerificationAttempts >= 1) {
-            return _buildSupportView();
-          }
-
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Form(
@@ -106,28 +103,34 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: 16),
                   Text(
                     'Link your BVN',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
+                    style: GoogleFonts.manrope(
+                      fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.onSurface,),
+                      color: AppColors.onSurface,
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: 12),
                   Text(
                     'To access premium features, virtual cards, and increased limits, please provide your 11-digit Bank Verification Number.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
                       color: AppColors.onSurfaceVariant,
-                      height: 1.5,),
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 36),
                   Text(
                     'BVN',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.onSurfaceVariant,),
+                      color: AppColors.onSurfaceVariant,
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _bvnCtrl,
                     keyboardType: TextInputType.number,
@@ -164,7 +167,7 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -175,13 +178,15 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(Icons.info_outline_rounded, color: Colors.blue, size: 20),
-                        const SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             'Your BVN is securely encrypted and only used to verify your identity. Dial *565*0# on your registered mobile number to check.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
                               color: Colors.blue.shade700,
-                              height: 1.4,),
+                              height: 1.4,
+                            ),
                           ),
                         ),
                       ],
@@ -199,7 +204,7 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
       ),
       bottomNavigationBar: userAsync.when(
         data: (user) {
-          if (user == null || user.hasBvn || user.bvnVerificationAttempts >= 1) return const SizedBox.shrink();
+          if (user == null || user.hasBvn) return const SizedBox.shrink();
           return Container(
             padding: EdgeInsets.fromLTRB(
                 24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
@@ -232,7 +237,7 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: AppSpacing.xxxl),
+          const SizedBox(height: 64),
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -245,83 +250,25 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
               color: AppColors.primary,
             ),
           ),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: 32),
           Text(
             'BVN Successfully Linked',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
+            style: GoogleFonts.manrope(
+              fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: AppColors.onSurface,),
+              color: AppColors.onSurface,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 12),
           Text(
             'Your BVN and identity have been securely verified and linked to your Gatekipa vault.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
+            style: GoogleFonts.inter(
+              fontSize: 15,
               color: AppColors.onSurfaceVariant,
-              height: 1.5,),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSupportView() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: AppSpacing.xxxl),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+              height: 1.5,
             ),
-            child: const Icon(
-              Icons.warning_rounded,
-              size: 64,
-              color: Colors.red,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            'Verification Limit Reached',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onSurface,),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'You have reached the maximum number of attempts for BVN verification. Please contact admin support for assistance.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
-              color: AppColors.onSurfaceVariant,
-              height: 1.5,),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          GkButton(
-            label: 'Contact Admin Support',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => Scaffold(
-                    appBar: AppBar(
-                      title: Text('Admin Support', style: TextStyle(color: AppColors.primary)),
-                      leading: const CloseButton(),
-                    ),
-                    body: WebViewWidget(
-                      controller: WebViewController()
-                        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                        ..loadRequest(Uri.parse('https://gatekipa.com/support')),
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ],
       ),
