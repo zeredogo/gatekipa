@@ -1,7 +1,10 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
-const { requireAuth } = require("../utils/validators");
+const { requireVerifiedEmail } = require("../utils/validators");
 const { FieldValue } = require("firebase-admin/firestore");
+const { defineSecret } = require("firebase-functions/params");
+
+const QOREID_API_KEY = defineSecret("QOREID_API_KEY");
 
 /**
  * verifyBvn — validates an 11-digit BVN number against QoreID.
@@ -12,8 +15,8 @@ const { FieldValue } = require("firebase-admin/firestore");
  * The function stores the result on the user document regardless of outcome
  * so the client can always rely on Firestore as the source of truth.
  */
-exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
-  requireAuth(request.auth);
+exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [QOREID_API_KEY] }, async (request) => {
+  requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const { bvn } = request.data;
 
@@ -21,7 +24,21 @@ exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true }, asy
     throw new HttpsError("invalid-argument", "A valid 11-digit BVN is required.");
   }
 
-  const qoreIdKey = process.env.QOREID_API_KEY || null;
+  const qoreIdKey = QOREID_API_KEY.value() || null;
+
+  const userRef = db.collection("users").doc(uid);
+  await db.runTransaction(async (transaction) => {
+    const userDoc = await transaction.get(userRef);
+    const userData = userDoc.data() || {};
+    if (userData.hasBvn) {
+      throw new HttpsError("already-exists", "BVN is already verified.");
+    }
+    const bvnAttempts = userData.bvnVerificationAttempts || 0;
+    if (bvnAttempts >= 1) {
+      throw new HttpsError("permission-denied", "Maximum verification attempts reached. Please contact admin support for assistance.");
+    }
+    transaction.set(userRef, { bvnVerificationAttempts: bvnAttempts + 1 }, { merge: true });
+  });
 
   let verified = false;
   let verificationMeta = {};
@@ -55,6 +72,7 @@ exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true }, asy
         lastName: data?.bvn?.lastname || null,
         phone: data?.bvn?.phone || null,
         dob: data?.bvn?.birthdate || null,
+        photo: data?.bvn?.photo || data?.bvn?.image || null,
       };
     } catch (err) {
       if (err instanceof HttpsError) throw err;
@@ -76,6 +94,7 @@ exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true }, asy
   await db.collection("users").doc(uid).set(
     {
       hasBvn: true,
+      kycStatus: "verified",
       bvnVerifiedAt: FieldValue.serverTimestamp(),
       bvnMeta: verificationMeta,
     },
@@ -91,8 +110,8 @@ exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true }, asy
  * Input: { nin: string }
  * Output: { success: boolean, message: string }
  */
-exports.verifyKyc = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
-  requireAuth(request.auth);
+exports.verifyKyc = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [QOREID_API_KEY] }, async (request) => {
+  requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const { nin } = request.data;
 
@@ -100,7 +119,21 @@ exports.verifyKyc = onCall({ region: "us-central1", enforceAppCheck: true }, asy
     throw new HttpsError("invalid-argument", "A valid 11-digit NIN is required.");
   }
 
-  const qoreIdKey = process.env.QOREID_API_KEY || null;
+  const qoreIdKey = QOREID_API_KEY.value() || null;
+
+  const userRef = db.collection("users").doc(uid);
+  await db.runTransaction(async (transaction) => {
+    const userDoc = await transaction.get(userRef);
+    const userData = userDoc.data() || {};
+    if (userData.kycStatus === "verified") {
+      throw new HttpsError("already-exists", "NIN is already verified.");
+    }
+    const kycAttempts = userData.kycVerificationAttempts || 0;
+    if (kycAttempts >= 1) {
+      throw new HttpsError("permission-denied", "Maximum verification attempts reached. Please contact admin support for assistance.");
+    }
+    transaction.set(userRef, { kycVerificationAttempts: kycAttempts + 1 }, { merge: true });
+  });
 
   let verified = false;
   let verificationMeta = {};
