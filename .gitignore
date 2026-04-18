@@ -52,3 +52,5 @@ android/*.keystore
 
 # Security
 .env*
+gatekipa.json
+setup_secrets.sh
