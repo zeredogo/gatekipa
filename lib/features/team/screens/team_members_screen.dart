@@ -5,12 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../../accounts/models/account_model.dart';
-import '../../accounts/providers/account_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/accounts/models/account_model.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 final teamMembersProvider =
     StreamProvider.family<List<Map<String, dynamic>>, String>((ref, accountId) {
@@ -41,15 +41,13 @@ class TeamMembersScreen extends ConsumerWidget {
           children: [
             Text(
               '${account.name} Team',
-              style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w800,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                   fontSize: 20,
                   color: AppColors.onSurface),
             ),
             Text(
               'Manage access and roles',
-              style: GoogleFonts.inter(
-                  fontSize: 12, color: AppColors.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant),
             ),
           ],
         ),
@@ -145,6 +143,7 @@ class TeamMembersScreen extends ConsumerWidget {
                               accountId: account.id,
                               userId: e.value['user_id'] ?? '',
                               isOwner: currentUid == account.ownerUserId,
+                              spendLimit: e.value['spend_limit'],
                             ).animate(delay: (e.key * 40).ms).fadeIn(),
                           )),
                       const SizedBox(height: 20),
@@ -166,6 +165,7 @@ class TeamMembersScreen extends ConsumerWidget {
                               accountId: account.id,
                               userId: e.value['user_id'] ?? '',
                               isOwner: currentUid == account.ownerUserId,
+                              spendLimit: e.value['spend_limit'],
                             ).animate(delay: (e.key * 40).ms).fadeIn(),
                           )),
                     ],
@@ -175,7 +175,7 @@ class TeamMembersScreen extends ConsumerWidget {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 32),
                           child: Text('No team members yet.',
-                              style: GoogleFonts.inter(color: AppColors.onSurfaceVariant)),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
                         ),
                       ),
                   ],
@@ -219,11 +219,10 @@ class _SectionHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.xs),
             Text(
               title,
-              style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w800,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                   fontSize: 14,
                   color: AppColors.onSurface,
                   letterSpacing: 0.2),
@@ -242,6 +241,7 @@ class _MemberTile extends StatelessWidget {
   final String accountId;
   final String userId;
   final bool isOwner; // Whether the current user is the account owner (can remove)
+  final num? spendLimit;
 
   const _MemberTile({
     required this.name,
@@ -251,6 +251,7 @@ class _MemberTile extends StatelessWidget {
     required this.accountId,
     required this.userId,
     required this.isOwner,
+    this.spendLimit,
   });
 
   Color get _badgeColor {
@@ -298,8 +299,7 @@ class _MemberTile extends StatelessWidget {
             child: Center(
               child: Text(
                 name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                style: GoogleFonts.manrope(
-                    color: _badgeColor,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: _badgeColor,
                     fontWeight: FontWeight.w800,
                     fontSize: 18),
               ),
@@ -314,7 +314,7 @@ class _MemberTile extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.onSurface),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.onSurface),
                     ),
                     if (isYou) ...[
                       const SizedBox(width: 6),
@@ -325,25 +325,37 @@ class _MemberTile extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text('You',
-                            style: GoogleFonts.inter(
-                                fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
                       ),
                     ],
                   ],
                 ),
                 if (email != null && email!.isNotEmpty)
-                  Text(email!, style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                  Text(email!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.onSurfaceVariant)),
               ],
             ),
           ),
-          // Role badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: _badgeBg, borderRadius: BorderRadius.circular(8)),
-            child: Text(
-              role[0].toUpperCase() + role.substring(1),
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: _badgeColor),
-            ),
+          // Role badge & Spend Limit
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: _badgeBg, borderRadius: BorderRadius.circular(8)),
+                child: Text(
+                  role[0].toUpperCase() + role.substring(1),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: _badgeColor),
+                ),
+              ),
+              if (spendLimit != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Limit: ₦${spendLimit!.toStringAsFixed(0)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.w700),
+                ),
+              ]
+            ],
           ),
           // Remove button (only for non-owner members and if current user is owner/admin)
           if (role != 'owner' && isOwner) ...[
@@ -363,8 +375,8 @@ class _MemberTile extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Remove Member', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
-        content: Text('Remove $name from this account?', style: GoogleFonts.inter()),
+        title: Text('Remove Member', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        content: Text('Remove $name from this account?', style: Theme.of(context).textTheme.bodyMedium),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
@@ -404,12 +416,14 @@ class _InviteMemberSheet extends ConsumerStatefulWidget {
 
 class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
   final _emailCtrl = TextEditingController();
+  final _limitCtrl = TextEditingController();
   String _role = 'viewer';
   bool _loading = false;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
+    _limitCtrl.dispose();
     super.dispose();
   }
 
@@ -425,10 +439,13 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
     }
     setState(() => _loading = true);
 
+    final limitVal = double.tryParse(_limitCtrl.text.replaceAll(',', ''));
+
     final error = await ref.read(accountNotifierProvider.notifier).inviteTeamMember(
           accountId: widget.accountId,
           targetUserId: _emailCtrl.text.trim().toLowerCase(),
           role: _role,
+          spendLimit: limitVal,
         );
 
     setState(() => _loading = false);
@@ -464,10 +481,10 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
               ),
             ),
             Text('Invite Member',
-                style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
             const SizedBox(height: 6),
             Text('Enter their email and assign a role.',
-                style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant)),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant)),
             const SizedBox(height: 20),
 
             // Email field
@@ -483,11 +500,11 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Role selection — two card options
             Text('Role',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.onSurfaceVariant)),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.onSurfaceVariant)),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -498,7 +515,7 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
                   selected: _role == 'admin',
                   onTap: () => setState(() => _role = 'admin'),
                 )),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(child: _RoleCard(
                   role: 'viewer',
                   title: 'Viewer',
@@ -508,7 +525,23 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
                 )),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.md),
+            
+            // Spend Limit
+            Text('Monthly Spend Limit (Optional)',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.onSurfaceVariant)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _limitCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Amount (NGN)',
+                hintText: 'e.g. 50000',
+                prefixIcon: const Icon(Icons.money_off_csred_outlined),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
 
             SizedBox(
               width: double.infinity,
@@ -521,10 +554,10 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
                 ),
                 child: _loading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Send Invite', style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 16)),
+                    : const Text('Send Invite', style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16)),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
           ],
         ),
       ),
@@ -566,14 +599,12 @@ class _RoleCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700,
                   fontSize: 14,
-                  color: selected ? AppColors.primary : AppColors.onSurface,
-                )),
-            const SizedBox(height: 4),
+                  color: selected ? AppColors.primary : AppColors.onSurface,)),
+            const SizedBox(height: AppSpacing.xxs),
             Text(description,
-                style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant, height: 1.3)),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.onSurfaceVariant, height: 1.3)),
           ],
         ),
       ),

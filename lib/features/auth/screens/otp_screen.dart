@@ -5,11 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../providers/auth_provider.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
@@ -195,33 +195,27 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               child: const Icon(Icons.sms_rounded,
                   color: AppColors.primary, size: 28),
             ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'Enter verification\ncode',
-              style: GoogleFonts.manrope(
-                fontSize: 32,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 32,
                 fontWeight: FontWeight.w800,
                 color: AppColors.onSurface,
                 height: 1.2,
-                letterSpacing: -0.5,
-              ),
+                letterSpacing: -0.5,),
             ).animate().fadeIn(delay: 100.ms),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             RichText(
               text: TextSpan(
-                style: GoogleFonts.inter(
-                  fontSize: 15,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                   color: AppColors.onSurfaceVariant,
-                  height: 1.5,
-                ),
+                  height: 1.5,),
                 children: [
                   const TextSpan(text: 'Code sent to '),
                   TextSpan(
                     text: widget.phoneNumber,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700,
+                      color: AppColors.primary,),
                   ),
                 ],
               ),
@@ -249,11 +243,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                           ],
-                          style: GoogleFonts.manrope(
-                            fontSize: 26,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 26,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
+                            color: AppColors.primary,),
                           decoration: InputDecoration(
                             counterText: '',
                             contentPadding: EdgeInsets.zero,
@@ -289,7 +281,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 }),
               ),
             ).animate().fadeIn(delay: 300.ms),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Paste hint
             Center(
@@ -297,13 +289,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 onPressed: _handlePaste,
                 icon: const Icon(Icons.content_paste_rounded,
                     size: 16, color: AppColors.outline),
-                label: Text(
+                label: const Text(
                   'Paste code',
-                  style: GoogleFonts.inter(
-                    color: AppColors.outline,
+                  style: TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.outline,
                     fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+                    fontWeight: FontWeight.w500,),
                 ),
                 style: TextButton.styleFrom(
                   padding:
@@ -352,30 +342,27 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2.5),
                       )
-                    : Row(
+                    : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.verified_rounded, size: 20),
-                          const SizedBox(width: 10),
+                          Icon(Icons.verified_rounded, size: 20),
+                          SizedBox(width: 10),
                           Text(
                             'Verify & Continue',
-                            style: GoogleFonts.manrope(
-                                fontWeight: FontWeight.w800, fontSize: 16),
+                            style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 16),
                           ),
                         ],
                       ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   "Didn't receive a code? ",
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: AppColors.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
+                    color: AppColors.onSurfaceVariant,),
                 ),
                 GestureDetector(
                   onTap: canResend ? _resendOtp : null,
@@ -390,16 +377,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                           canResend
                               ? 'Resend'
                               : 'Resend in ${_resendSeconds}s',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: canResend
                                 ? AppColors.primary
                                 : AppColors.outline,
                             decoration: canResend
                                 ? TextDecoration.underline
-                                : TextDecoration.none,
-                          ),
+                                : TextDecoration.none,),
                         ),
                 ),
               ],

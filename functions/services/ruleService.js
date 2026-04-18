@@ -1,6 +1,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
-const { requireAuth, requireFields } = require("../utils/validators");
+const { requireAuth, requireFields, requireAdmin } = require("../utils/validators");
+const { evaluateTransaction } = require("../engines/ruleEngine");
 
 exports.createRule = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
   requireAuth(request.auth);
@@ -20,6 +21,17 @@ exports.createRule = onCall({ region: "us-central1", enforceAppCheck: true }, as
   const accountDoc = await db.collection("accounts").doc(cardSnap.data().account_id).get();
   if (!accountDoc.exists || accountDoc.data().owner_user_id !== uid) {
     throw new HttpsError("permission-denied", "Only the account owner can create card rules.");
+  }
+  
+  // Enforce Premium Rule Limits
+  const advancedRules = ["max_per_txn", "monthly_cap", "valid_duration", "max_charges", "block_after_first", "block_if_amount_changes"];
+  if (advancedRules.includes(data.sub_type)) {
+    const ownerDoc = await db.collection("users").doc(uid).get();
+    const planTier = ownerDoc.exists ? (ownerDoc.data().planTier || "none") : "none";
+    
+    if (planTier !== "premium" && planTier !== "business") {
+      throw new HttpsError("permission-denied", "This rule requires the Premium or Business plan.");
+    }
   }
   
   // Create rule in native collection
@@ -58,4 +70,28 @@ exports.deleteRule = onCall({ region: "us-central1", enforceAppCheck: true }, as
 
   await db.collection("rules").doc(rule_id).delete();
   return { success: true };
+});
+
+/**
+ * adminSimulateRuleEngine — Executes evaluating logic but bypasses actual freezing actions.
+ * Perfect for frontend UI debugging traces.
+ */
+exports.adminSimulateRuleEngine = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+  requireAdmin(request.auth);
+  
+  const { card_id, amount, merchant_name, currency, channel } = request.data;
+  requireFields(request.data, ["card_id", "amount", "merchant_name"]);
+
+  // We mock a transaction object exactly matching Webhook schema payload
+  const mockTx = {
+    amount: parseInt(amount, 10),
+    currency: currency || "NGN",
+    merchant_name,
+    channel: channel || "WEB",
+  };
+
+  // Run the actual evaluation module WITHOUT firing the freeze triggers 
+  const result = await evaluateTransaction(card_id, mockTx, { dryRun: true });
+
+  return result;
 });

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../providers/detection_provider.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/detect/providers/detection_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class DetectedSubscriptionsScreen extends ConsumerWidget {
   const DetectedSubscriptionsScreen({super.key});
@@ -55,8 +55,7 @@ class DetectedSubscriptionsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           'Detected Subscriptions',
-          style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w800, color: AppColors.primary),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
         ),
         leading: const BackButton(color: AppColors.onSurface),
         actions: [
@@ -79,10 +78,9 @@ class DetectedSubscriptionsScreen extends ConsumerWidget {
                   const Icon(Icons.shield_rounded, color: AppColors.outlineVariant, size: 60)
                       .animate()
                       .scale(delay: 200.ms, begin: const Offset(0.8, 0.8)),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   Text('No unprotected subscriptions found.',
-                      style: GoogleFonts.inter(
-                          color: AppColors.onSurfaceVariant, fontSize: 14)),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 14)),
                 ],
               ),
             );
@@ -117,25 +115,21 @@ class DetectedSubscriptionsScreen extends ConsumerWidget {
                   children: [
                     const Icon(Icons.warning_amber_rounded,
                         color: AppColors.error, size: 24),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '${subs.length} Unprotected Subscriptions',
-                            style: GoogleFonts.manrope(
-                              fontWeight: FontWeight.w700,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
                               fontSize: 14,
-                              color: AppColors.error,
-                            ),
+                              color: AppColors.error,),
                           ),
                           Text(
                             'Total exposure: ₦${totalExposure.toStringAsFixed(0)}/month',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: AppColors.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
+                              color: AppColors.onSurfaceVariant,),
                           ),
                         ],
                       ),
@@ -230,12 +224,10 @@ class _SubCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(name,
-                        style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w700, fontSize: 15)),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 15)),
                     Text(
                       category,
-                      style: GoogleFonts.inter(
-                          fontSize: 12, color: AppColors.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -245,22 +237,19 @@ class _SubCard extends StatelessWidget {
                 children: [
                   Text(
                     '₦${amount.toStringAsFixed(0)}',
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w800,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                       fontSize: 16,
-                      color: AppColors.error,
-                    ),
+                      color: AppColors.error,),
                   ),
                   Text(
                     '/ $cycle',
-                    style: GoogleFonts.inter(
-                        fontSize: 11, color: AppColors.outline),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           // Status row
           Row(
             children: [
@@ -285,12 +274,10 @@ class _SubCard extends StatelessWidget {
                     const SizedBox(width: 5),
                     Text(
                       'UNPROTECTED',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: AppColors.error,
-                        letterSpacing: 0.5,
-                      ),
+                        letterSpacing: 0.5,),
                     ),
                   ],
                 ),
@@ -311,11 +298,9 @@ class _SubCard extends StatelessWidget {
                   ),
                   child: Text(
                     '🛡️  Protect',
-                    style: GoogleFonts.manrope(
-                      color: Colors.white,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+                      fontWeight: FontWeight.w700,),
                   ),
                 ),
               ),

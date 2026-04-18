@@ -1,5 +1,6 @@
 // lib/features/accounts/models/account_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 /// Maps exactly to the `accounts` Firestore collection schema:
 /// { id, owner_user_id, name, type, created_at }
@@ -32,7 +33,7 @@ class AccountModel {
               DateTime.now().millisecondsSinceEpoch,
       );
     } catch (e) {
-      print('[DataBoundary] Failed to parse AccountModel for document ${doc.id}. Error: $e');
+      debugPrint('[DataBoundary] Failed to parse AccountModel for document ${doc.id}. Error: $e');
       rethrow;
     }
   }

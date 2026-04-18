@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../../cards/models/virtual_card_model.dart';
-import '../../cards/providers/card_provider.dart';
-import '../models/account_model.dart';
-import '../providers/account_provider.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../../team/screens/team_members_screen.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/accounts/models/account_model.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/team/screens/team_members_screen.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class AccountDetailScreen extends ConsumerWidget {
   final AccountModel account;
@@ -32,11 +32,9 @@ class AccountDetailScreen extends ConsumerWidget {
         scrolledUnderElevation: 0,
         title: Text(
           account.name,
-          style: GoogleFonts.manrope(
-            fontWeight: FontWeight.w800,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
             fontSize: 20,
-            color: AppColors.onSurface,
-          ),
+            color: AppColors.onSurface,),
         ),
         actions: [
           PopupMenuButton<String>(
@@ -53,7 +51,7 @@ class AccountDetailScreen extends ConsumerWidget {
                 child: Row(children: [
                   const Icon(Icons.edit_outlined, size: 18),
                   const SizedBox(width: 10),
-                  Text('Rename', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                  Text('Rename', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
                 ]),
               ),
               PopupMenuItem(
@@ -61,7 +59,7 @@ class AccountDetailScreen extends ConsumerWidget {
                 child: Row(children: [
                   const Icon(Icons.group_outlined, size: 18),
                   const SizedBox(width: 10),
-                  Text('Manage Team', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                  Text('Manage Team', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
                 ]),
               ),
               PopupMenuItem(
@@ -70,12 +68,12 @@ class AccountDetailScreen extends ConsumerWidget {
                   const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
                   const SizedBox(width: 10),
                   Text('Delete Account',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: AppColors.error)),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, color: AppColors.error)),
                 ]),
               ),
             ],
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.xs),
         ],
       ),
       body: RefreshIndicator(
@@ -104,14 +102,12 @@ class AccountDetailScreen extends ConsumerWidget {
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
                             'Cards',
-                            style: GoogleFonts.manrope(
-                              fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.onSurface,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.onSurface,),
                           ),
                         ),
                         Text(
                           'Cards for this client',
-                          style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -128,14 +124,14 @@ class AccountDetailScreen extends ConsumerWidget {
                           ));
                         },
                         icon: const Icon(Icons.group_add_rounded, size: 18),
-                        label: Text(
+                        label: const Text(
                           'Manage Team',
-                          style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 13),
+                          style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 13),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
 
                 // ── Card list ──────────────────────────────────────────────
                 if (cards.isEmpty)
@@ -149,7 +145,7 @@ class AccountDetailScreen extends ConsumerWidget {
                     child: Center(
                       child: Text(
                         'No cards yet. Create one below.',
-                        style: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontSize: 14),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 14),
                       ),
                     ),
                   )
@@ -165,7 +161,7 @@ class AccountDetailScreen extends ConsumerWidget {
                     );
                   }),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
 
                 // ── Create New Card button ─────────────────────────────────
                 SizedBox(
@@ -174,9 +170,9 @@ class AccountDetailScreen extends ConsumerWidget {
                   child: FilledButton.icon(
                     onPressed: () => context.push('/home/cards/create', extra: account.id),
                     icon: const Icon(Icons.add_rounded),
-                    label: Text(
+                    label: const Text(
                       '+ Create New Card',
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 15),
+                      style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 15),
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary,
@@ -186,7 +182,7 @@ class AccountDetailScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
 
                 // ── Summary ────────────────────────────────────────────────
                 Container(
@@ -201,11 +197,9 @@ class AccountDetailScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'Summary',
-                        style: GoogleFonts.manrope(
-                          fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.onSurface,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.onSurface,),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.md),
                       Row(
                         children: [
                           Expanded(
@@ -262,10 +256,10 @@ class AccountDetailScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         icon: const Icon(Icons.delete_forever_rounded, color: AppColors.error, size: 36),
-        title: Text('Delete Account', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+        title: Text('Delete Account', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         content: Text(
           'Permanently delete "${account.name}" and all its cards?',
-          style: GoogleFonts.inter(),
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -339,14 +333,12 @@ class _CardListTile extends StatelessWidget {
                 children: [
                   Text(
                     card.name,
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.onSurface,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.onSurface,),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '•••• ${card.last4 ?? '****'}',
-                    style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -360,7 +352,7 @@ class _CardListTile extends StatelessWidget {
               ),
               child: Text(
                 statusLabel[0].toUpperCase() + statusLabel.substring(1),
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: statusColor),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: statusColor),
               ),
             ),
           ],
@@ -395,13 +387,13 @@ class _SummaryItem extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: iconColor),
               const SizedBox(width: 6),
-              Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
+              Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             value,
-            style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface),
           ),
         ],
       ),
@@ -456,7 +448,7 @@ class _RenameSheetState extends ConsumerState<_RenameSheet> {
               ),
             ),
             Text('Rename Account',
-                style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
             const SizedBox(height: 20),
             TextField(
               controller: _ctrl,
@@ -466,7 +458,7 @@ class _RenameSheetState extends ConsumerState<_RenameSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -492,10 +484,10 @@ class _RenameSheetState extends ConsumerState<_RenameSheet> {
                 ),
                 child: _loading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Save', style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 16)),
+                    : const Text('Save', style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16)),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
           ],
         ),
       ),

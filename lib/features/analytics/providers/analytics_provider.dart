@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../cards/providers/card_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
 
 class TrialData {
   final String name;

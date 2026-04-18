@@ -1,7 +1,7 @@
 // lib/core/theme/app_theme.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {
@@ -85,7 +85,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(100),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           textStyle: GoogleFonts.manrope(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -101,6 +101,26 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) return AppColors.primary;
           return AppColors.surfaceVariant;
         }),
+        thumbIcon: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const Icon(Icons.check, color: AppColors.primary);
+          }
+           return const Icon(Icons.close, color: AppColors.surface);
+        }),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          textStyle: GoogleFonts.manrope(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
       sliderTheme: const SliderThemeData(
         activeTrackColor: AppColors.primary,

@@ -1,8 +1,8 @@
 // lib/core/widgets/gk_card_list_tile.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../features/cards/models/virtual_card_model.dart';
-import '../theme/app_colors.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class GkCardListTile extends StatelessWidget {
   final VirtualCardModel card;
@@ -42,27 +42,23 @@ class GkCardListTile extends StatelessWidget {
                 size: 22,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     card.displayName,
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w700,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
                       fontSize: 15,
                       color: AppColors.onSurface,
-                      decoration: card.isBlocked ? TextDecoration.lineThrough : null,
-                    ),
+                      decoration: card.isBlocked ? TextDecoration.lineThrough : null,),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '•••• ${card.last4 ?? '****'}',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: AppColors.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                      color: AppColors.onSurfaceVariant,),
                   ),
                 ],
               ),
@@ -70,13 +66,11 @@ class GkCardListTile extends StatelessWidget {
             if (card.rule.maxAmountPerTransaction != null)
               Text(
                 '₦${card.rule.maxAmountPerTransaction!.toStringAsFixed(0)} limit',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
+                  color: AppColors.primary,),
               ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.xs),
             const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.outline),
           ],
         ),

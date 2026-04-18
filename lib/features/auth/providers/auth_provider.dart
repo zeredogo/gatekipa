@@ -3,11 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/user_model.dart';
-import '../../accounts/providers/account_provider.dart';
-import '../../search/providers/search_provider.dart';
+import 'package:gatekipa/features/auth/models/user_model.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/search/providers/search_provider.dart';
 
-import '../../../core/constants/app_constants.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
 
 // ── Firebase instances ──────────────────────────────────────────────────────────
 final firebaseAuthProvider = Provider((ref) => FirebaseAuth.instance);
@@ -201,7 +201,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
       } catch (_) {}
     }
     
-    // SECURITY HARDENING: Prevents client-site payload injection 
+    // SECURITY HARDENING: Prevents client-side payload injection.
+    // Sensitive fields must be set via dedicated methods below.
     final safeData = Map<String, dynamic>.from(data)
       ..remove('kycStatus')
       ..remove('isPremium')
@@ -210,6 +211,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
       
     await _db.collection(AppConstants.usersCollection).doc(uid).set(safeData, SetOptions(merge: true));
   }
+
 
   /// Saves the current user's UID so the lock-and-biometric flow can reference it.
   Future<void> _saveLastUserId(String uid) async {

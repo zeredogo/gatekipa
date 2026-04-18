@@ -1,10 +1,10 @@
 // lib/features/analytics/screens/efficiency_portfolio_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_colors.dart';
-import '../providers/analytics_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/analytics/providers/analytics_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class EfficiencyPortfolioScreen extends ConsumerWidget {
   const EfficiencyPortfolioScreen({super.key});
@@ -18,8 +18,7 @@ class EfficiencyPortfolioScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           'Efficiency Portfolio',
-          style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w800, color: AppColors.primary),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
         ),
         leading: const BackButton(color: AppColors.onSurface),
       ),
@@ -50,16 +49,14 @@ class EfficiencyPortfolioScreen extends ConsumerWidget {
                 if (vampireServices.isNotEmpty) ...[
                   Text(
                     'Vampire Subscriptions',
-                    style: GoogleFonts.manrope(
-                        fontSize: 18, fontWeight: FontWeight.w800),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     'High cost, low usage — consider cancelling.',
-                    style: GoogleFonts.inter(
-                        fontSize: 13, color: AppColors.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   ...vampireServices.asMap().entries.map((e) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -68,16 +65,15 @@ class EfficiencyPortfolioScreen extends ConsumerWidget {
                           .fadeIn(),
                     );
                   }),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.lg),
                 ],
 
                 // All subscriptions ranked
                 Text(
                   'Cost-Per-Use Ranking',
-                  style: GoogleFonts.manrope(
-                      fontSize: 18, fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
                 ...analytics.topServices.asMap().entries.map((e) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -121,8 +117,7 @@ class _EfficiencyRing extends StatelessWidget {
       child: Column(
         children: [
           Text('Efficiency Score',
-              style: GoogleFonts.inter(
-                  color: AppColors.onSurfaceVariant, fontSize: 14)),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 14)),
           const SizedBox(height: 20),
           Stack(
             alignment: Alignment.center,
@@ -142,16 +137,13 @@ class _EfficiencyRing extends StatelessWidget {
                 children: [
                   Text(
                     '$score',
-                    style: GoogleFonts.manrope(
-                      fontSize: 48,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 48,
                       fontWeight: FontWeight.w800,
-                      color: _ringColor,
-                    ),
+                      color: _ringColor,),
                   ),
                   Text(
                     'out of 100',
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.outline),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline),
                   ),
                 ],
               ),
@@ -170,8 +162,7 @@ class _EfficiencyRing extends StatelessWidget {
                     ? '⚠️ Fair — some subscriptions have low usage.'
                     : '🚨 Poor — several vampire subscriptions detected.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-                fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5),
           ),
         ],
       ),
@@ -221,11 +212,9 @@ class _CostPerUseCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(service.name,
-                    style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700, fontSize: 14)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14)),
                 Text('${service.category} • ${service.usage}',
-                    style: GoogleFonts.inter(
-                        fontSize: 11, color: AppColors.onSurfaceVariant)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.onSurfaceVariant)),
               ],
             ),
           ),
@@ -234,8 +223,7 @@ class _CostPerUseCard extends StatelessWidget {
             children: [
               Text(
                 '₦${service.cost.toStringAsFixed(0)}/mo',
-                style: GoogleFonts.manrope(
-                    fontWeight: FontWeight.w700, fontSize: 13),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 13),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -245,8 +233,7 @@ class _CostPerUseCard extends StatelessWidget {
                 ),
                 child: Text(
                   '${service.efficiency}% efficient',
-                  style: GoogleFonts.inter(
-                      fontSize: 10,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: _effColor),
                 ),

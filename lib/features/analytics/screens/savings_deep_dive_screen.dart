@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../core/theme/app_colors.dart';
-import '../providers/analytics_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/analytics/providers/analytics_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class SavingsDeepDiveScreen extends ConsumerWidget {
   const SavingsDeepDiveScreen({super.key});
@@ -19,8 +19,7 @@ class SavingsDeepDiveScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           'Savings Deep Dive',
-          style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w800, color: AppColors.primary),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
         ),
         leading: const BackButton(color: AppColors.onSurface),
       ),
@@ -49,20 +48,16 @@ class SavingsDeepDiveScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Recovered Capital',
-                          style: GoogleFonts.inter(
-                              color: Colors.white60, fontSize: 14)),
-                      const SizedBox(height: 8),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60, fontSize: 14)),
+                      const SizedBox(height: AppSpacing.xs),
                       Text('₦${analytics.recoveredCapital.toStringAsFixed(0)}',
-                          style: GoogleFonts.manrope(
-                            color: Colors.white,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                             fontSize: 44,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: -1,
-                          )),
-                      const SizedBox(height: 4),
+                            letterSpacing: -1,)),
+                      const SizedBox(height: AppSpacing.xxs),
                       Text('Since you joined Gatekipa',
-                          style: GoogleFonts.inter(
-                              color: Colors.white54, fontSize: 13)),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white54, fontSize: 13)),
                       const SizedBox(height: 20),
                       Row(
                         children: [
@@ -72,14 +67,14 @@ class SavingsDeepDiveScreen extends ConsumerWidget {
                                 value: '${analytics.chargesBlocked}',
                                 icon: Icons.block_rounded),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: _MiniStat(
                                 label: 'Trial Cards',
                                 value: '${analytics.trialCardsCount}',
                                 icon: Icons.credit_card_rounded),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: _MiniStat(
                                 label: 'Months Active',
@@ -91,24 +86,22 @@ class SavingsDeepDiveScreen extends ConsumerWidget {
                     ],
                   ),
                 ).animate().fadeIn().slideY(begin: 0.05, end: 0),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
 
                 // Trend chart
                 Text('Activity Trend',
-                    style: GoogleFonts.manrope(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 12),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: AppSpacing.sm),
                 _TrendChart(
                   values: analytics.trendValues,
                   months: analytics.trendMonths,
                 ).animate().fadeIn(delay: 150.ms),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
 
                 // Blocked trial cards
                 Text('Blocked Trial Cards',
-                    style: GoogleFonts.manrope(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 12),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: AppSpacing.sm),
                 ...analytics.blockedTrials.asMap().entries.map((e) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -118,17 +111,16 @@ class SavingsDeepDiveScreen extends ConsumerWidget {
                         .slideX(begin: 0.05, end: 0),
                   );
                 }),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
 
                 // Protection score
                 _ProtectionScoreCard(score: analytics.protectionScore),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
 
                 // Milestones
                 Text('Savings Milestones',
-                    style: GoogleFonts.manrope(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 12),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: AppSpacing.sm),
                 ...analytics.milestones.asMap().entries.map((e) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -167,13 +159,12 @@ class _MiniStat extends StatelessWidget {
           Icon(icon, color: Colors.white60, size: 18),
           const SizedBox(height: 6),
           Text(value,
-              style: GoogleFonts.manrope(
-                  color: Colors.white,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                   fontWeight: FontWeight.w800,
                   fontSize: 18)),
           Text(label,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: Colors.white54, fontSize: 10)),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white54, fontSize: 10)),
         ],
       ),
     );
@@ -217,8 +208,7 @@ class _TrendChart extends StatelessWidget {
                     return const SizedBox.shrink();
                   }
                   return Text(months[idx],
-                      style: GoogleFonts.inter(
-                          fontSize: 10, color: AppColors.outline));
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10, color: AppColors.outline));
                 },
               ),
             ),
@@ -280,11 +270,9 @@ class _BlockedTrialCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(trial.name,
-                    style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600, fontSize: 14)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
                 Text(trial.date,
-                    style: GoogleFonts.inter(
-                        fontSize: 11, color: AppColors.outline)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline)),
               ],
             ),
           ),
@@ -293,16 +281,14 @@ class _BlockedTrialCard extends StatelessWidget {
             children: [
               Text(
                 '₦${trial.savedAmount.toStringAsFixed(0)}',
-                style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w800,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                   color: AppColors.tertiary,
-                  fontSize: 15,
-                ),
+                  fontSize: 15,),
               ),
               Text(
                 trial.autoBlocked ? 'Auto-blocked' : 'Manual',
                 style:
-                    GoogleFonts.inter(fontSize: 10, color: AppColors.outline),
+                    Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10, color: AppColors.outline),
               ),
             ],
           ),
@@ -328,22 +314,19 @@ class _ProtectionScoreCard extends StatelessWidget {
       child: Row(
         children: [
           const Icon(Icons.shield_rounded, color: AppColors.primary, size: 40),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Protection Score',
-                    style: GoogleFonts.inter(
-                        color: AppColors.onSurfaceVariant, fontSize: 12)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 12)),
                 Text('$score/100',
-                    style: GoogleFonts.manrope(
-                        fontSize: 28,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 28,
                         fontWeight: FontWeight.w800,
                         color: AppColors.primary)),
                 Text('Your vault is highly secured.',
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.onSurfaceVariant)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
               ],
             ),
           ),
@@ -389,11 +372,9 @@ class _MilestoneRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(m.title,
-                    style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700, fontSize: 13)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 13)),
                 Text(m.sub,
-                    style: GoogleFonts.inter(
-                        fontSize: 11, color: AppColors.onSurfaceVariant)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.onSurfaceVariant)),
               ],
             ),
           ),
@@ -405,8 +386,7 @@ class _MilestoneRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(100),
               ),
               child: Text('✓ Done',
-                  style: GoogleFonts.inter(
-                      fontSize: 10,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: AppColors.tertiary)),
             ),

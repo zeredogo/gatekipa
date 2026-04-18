@@ -1,0 +1,121 @@
+--- lib/features/cards/screens/card_creation_screen.dart
++++ lib/features/cards/screens/card_creation_screen.dart
+@@ -893,3 +893,121 @@
+     );
+   }
+ }
++
++class _PlanSelectionView extends ConsumerStatefulWidget {
++  final dynamic user; // UserModel
++  const _PlanSelectionView({required this.user});
++  @override
++  ConsumerState<_PlanSelectionView> createState() => _PlanSelectionViewState();
++}
++
++class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
++  bool _isLoading = false;
++
++  Future<void> _purchasePlan(String planId, int cost) async {
++    final wallet = ref.read(walletProvider).valueOrNull;
++    if (wallet == null || wallet.balance < cost) {
++      GkToast.show(context, message: 'Insufficient funds. Vault needs ₦$cost.', type: ToastType.error);
++      return;
++    }
++
++    setState(() => _isLoading = true);
++    try {
++      final callable = FirebaseFunctions.instance.httpsCallable('auth-purchasePlan');
++      await callable.call({'plan': planId});
++      GkToast.show(context, message: 'Plan Unlocked!', type: ToastType.success);
++      // userProfileProvider should auto-update since it listens to firestore
++    } catch (e) {
++      GkToast.show(context, message: 'Purchase failed: $e', type: ToastType.error);
++    } finally {
++      if (mounted) setState(() => _isLoading = false);
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return _isLoading 
++      ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
++      : ListView(
++          padding: const EdgeInsets.all(20),
++          children: [
++            Text(
++              'Initialize your Account',
++              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
++            ),
++            const SizedBox(height: 8),
++            Text(
++              'Select a baseline subscription tier to start issuing cards. This is a one-time deduction.',
++              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
++            ),
++            const SizedBox(height: 24),
++            _buildPlanCard('Free', 'free', 700, ['1 Card Included', 'Basic Control'], false),
++            const SizedBox(height: 16),
++            _buildPlanCard('Activation', 'activation', 1400, ['2 Cards Included', 'Basic Control'], false),
++            const SizedBox(height: 16),
++            _buildPlanCard('Premium', 'premium', 2000, ['3 Cards Included', 'Advanced Rules & Automation', 'Geofencing'], true),
++            const SizedBox(height: 16),
++            _buildPlanCard('Business', 'business', 5000, ['5 Cards Included', 'Priority Protection', 'Team Access'], false),
++          ],
++        );
++  }
++
++  Widget _buildPlanCard(String name, String id, int price, List<String> features, bool isPopular) {
++    return Container(
++      decoration: BoxDecoration(
++        borderRadius: BorderRadius.circular(20),
++        border: Border.all(color: isPopular ? AppColors.primary : AppColors.outlineVariant),
++        color: isPopular ? AppColors.primary.withOpacity(0.05) : AppColors.surfaceContainerLowest,
++      ),
++      padding: const EdgeInsets.all(20),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          if (isPopular)
++            Container(
++              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
++              margin: const EdgeInsets.only(bottom: 12),
++              decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
++              child: Text('RECOMMENDED', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
++            ),
++          Row(
++            mainAxisAlignment: MainAxisAlignment.spaceBetween,
++            children: [
++              Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
++              Text('₦$price', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800)),
++            ],
++          ),
++          const SizedBox(height: 16),
++          ...features.map((f) => Padding(
++            padding: const EdgeInsets.only(bottom: 8),
++            child: Row(
++              children: [
++                Icon(Icons.check_circle, color: AppColors.primary, size: 16),
++                const SizedBox(width: 8),
++                Expanded(child: Text(f, style: Theme.of(context).textTheme.bodyMedium)),
++              ],
++            ),
++          )),
++          const SizedBox(height: 20),
++          SizedBox(
++            width: double.infinity,
++            child: OutlinedButton(
++              style: OutlinedButton.styleFrom(
++                backgroundColor: isPopular ? AppColors.primary : Colors.transparent,
++                foregroundColor: isPopular ? Colors.white : AppColors.primary,
++                side: BorderSide(color: AppColors.primary),
++                padding: const EdgeInsets.symmetric(vertical: 16),
++                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
++              ),
++              onPressed: () => _purchasePlan(id, price),
++              child: Text('Select $name', style: TextStyle(fontWeight: FontWeight.w700)),
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}

@@ -1,13 +1,15 @@
-// lib/features/profile/screens/settings_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -17,12 +19,12 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _pushEnabled = true;
   bool _biometrics = false;
   bool _biometricsLoading = true;
-  final bool _darkMode = false;
   String _language = 'English';
   final _localAuth = LocalAuthentication();
+  bool _pushLoading = false;
+  bool _languageLoading = false;
 
   @override
   void initState() {
@@ -37,8 +39,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
     final prefs = await SharedPreferences.getInstance();
+    final savedLang = prefs.getString('${uid}_language') ?? 'English';
     setState(() {
       _biometrics = prefs.getBool('${uid}_use_biometrics') ?? false;
+      _language = savedLang;
       _biometricsLoading = false;
     });
   }
@@ -99,6 +103,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _togglePushNotifications(bool value) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    setState(() => _pushLoading = true);
+    try {
+      // blockAlerts = true means user wants to BLOCK alerts (i.e. push OFF)
+      // so pushEnabled = true → blockAlerts = false
+      await FirebaseFirestore.instance
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .update({'blockAlerts': !value});
+      if (mounted) {
+        GkToast.show(context,
+            message: value ? 'Push notifications enabled' : 'Push notifications disabled',
+            type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) {
+        GkToast.show(context,
+            message: 'Failed to update notification preference',
+            type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _pushLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,90 +137,108 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(
         title: Text(
           'Settings',
-          style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w800, color: AppColors.primary),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
         ),
         leading: const BackButton(color: AppColors.onSurface),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 140),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Section(title: 'PREFERENCES', items: [
-              _ToggleItem(
-                icon: Icons.dark_mode_rounded,
-                label: 'Dark Mode',
-                sub: 'Coming soon',
-                value: _darkMode,
-                onChanged: (_) => GkToast.show(context,
-                    message: 'Dark mode coming soon!', type: ToastType.info),
-              ),
-              _DropdownItem(
-                icon: Icons.language_rounded,
-                label: 'Language',
-                value: _language,
-                options: const ['English', 'Yoruba', 'Hausa', 'Igbo'],
-                onChanged: (v) => setState(() => _language = v!),
-              ),
-            ]),
-            const SizedBox(height: 20),
-            _Section(title: 'NOTIFICATIONS', items: [
-              _ToggleItem(
-                icon: Icons.notifications_rounded,
-                label: 'Push Notifications',
-                value: _pushEnabled,
-                onChanged: (v) => setState(() => _pushEnabled = v),
-              ),
-            ]),
-            const SizedBox(height: 20),
-            _Section(title: 'SECURITY', items: [
-              _biometricsLoading
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                      child: LinearProgressIndicator(
-                        color: AppColors.primary,
-                        backgroundColor: AppColors.surfaceBright,
-                      ),
-                    )
-                  : _ToggleItem(
-                      icon: Icons.fingerprint_rounded,
-                      label: 'Biometric Lock',
-                      sub: _biometrics
-                          ? 'Active — secures your app on launch'
-                          : 'Tap to enable Face ID / Fingerprint',
-                      value: _biometrics,
-                      onChanged: _toggleBiometrics,
-                    ),
-            ]),
-            const SizedBox(height: 20),
-            const _Section(title: 'LEGAL', items: [
-              _LinkItem(
-                icon: Icons.privacy_tip_rounded,
-                label: 'Privacy Policy',
-                url: 'https://gatekipa.com/privacy',
-              ),
-              _LinkItem(
-                icon: Icons.article_rounded,
-                label: 'Terms of Service',
-                url: 'https://gatekipa.com/terms',
-              ),
-              _LinkItem(
-                icon: Icons.help_outline_rounded,
-                label: 'Help & Support',
-                url: 'https://gatekipa.com/support',
-              ),
-            ]),
-            const SizedBox(height: 40),
-            Center(
-              child: Text(
-                '${AppConstants.appName} v${AppConstants.appVersion} — Built with ❤️ in Nigeria',
-                style:
-                    GoogleFonts.inter(fontSize: 11, color: AppColors.outline),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
+        child: Consumer(
+          builder: (context, ref, _) {
+            final user = ref.watch(userProfileProvider).valueOrNull;
+            // blockAlerts = true means notifications are OFF
+            final pushEnabled = !(user?.blockAlerts ?? false);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Section(title: 'PREFERENCES', items: [
+                  _DropdownItem(
+                    icon: Icons.language_rounded,
+                    label: 'Language',
+                    value: _language,
+                    options: const ['English', 'Yoruba', 'Hausa', 'Igbo'],
+                    onChanged: _languageLoading
+                        ? null
+                        : (v) async {
+                            if (v == null || v == _language) return;
+                            final uid = FirebaseAuth.instance.currentUser?.uid;
+                            if (uid == null) return;
+                            setState(() {
+                              _language = v;
+                              _languageLoading = true;
+                            });
+                            try {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setString('${uid}_language', v);
+                              await FirebaseFirestore.instance
+                                  .collection(AppConstants.usersCollection)
+                                  .doc(uid)
+                                  .set({'preferredLanguage': v}, SetOptions(merge: true));
+                            } finally {
+                              if (mounted) setState(() => _languageLoading = false);
+                            }
+                          },
+                  ),
+                ]),
+                const SizedBox(height: 20),
+                _Section(title: 'NOTIFICATIONS', items: [
+                  _ToggleItem(
+                    icon: Icons.notifications_rounded,
+                    label: 'Push Notifications',
+                    sub: _pushLoading ? 'Updating...' : (pushEnabled ? 'Receive alerts for blocked charges' : 'Notifications are off'),
+                    value: pushEnabled,
+                    onChanged: _pushLoading ? (_) {} : _togglePushNotifications,
+                  ),
+                ]),
+                const SizedBox(height: 20),
+                _Section(title: 'SECURITY', items: [
+                  _biometricsLoading
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                          child: LinearProgressIndicator(
+                            color: AppColors.primary,
+                            backgroundColor: AppColors.surfaceBright,
+                          ),
+                        )
+                      : _ToggleItem(
+                          icon: Icons.fingerprint_rounded,
+                          label: 'Biometric Lock',
+                          sub: _biometrics
+                              ? 'Active — secures your app on launch'
+                              : 'Tap to enable Face ID / Fingerprint',
+                          value: _biometrics,
+                          onChanged: _toggleBiometrics,
+                        ),
+                ]),
+                const SizedBox(height: 20),
+                const _Section(title: 'LEGAL', items: [
+                  _LinkItem(
+                    icon: Icons.privacy_tip_rounded,
+                    label: 'Privacy Policy',
+                    url: 'https://gatekipa.com/privacy',
+                  ),
+                  _LinkItem(
+                    icon: Icons.article_rounded,
+                    label: 'Terms of Service',
+                    url: 'https://gatekipa.com/terms',
+                  ),
+                  _LinkItem(
+                    icon: Icons.help_outline_rounded,
+                    label: 'Help & Support',
+                    url: 'https://gatekipa.com/support',
+                  ),
+                ]),
+                const SizedBox(height: 40),
+                Center(
+                  child: Text(
+                    '${AppConstants.appName} v${AppConstants.appVersion} — Built with ❤️ in Nigeria',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -218,15 +267,13 @@ class _Section extends StatelessWidget {
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 title,
-                style: GoogleFonts.inter(
-                  fontSize: 11,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: AppColors.onSurfaceVariant,
-                  letterSpacing: 1.2,
-                ),
+                  letterSpacing: 1.2,),
               ),
             ],
           ),
@@ -264,13 +311,13 @@ class _ToggleItem extends StatelessWidget {
   final String label;
   final String? sub;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged; // nullable — null = disabled
 
   const _ToggleItem({
     required this.icon,
     required this.label,
     required this.value,
-    required this.onChanged,
+    this.onChanged,
     this.sub,
   });
 
@@ -295,12 +342,10 @@ class _ToggleItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600, fontSize: 14)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
                 if (sub != null)
                   Text(sub!,
-                      style: GoogleFonts.inter(
-                          fontSize: 11, color: AppColors.outline)),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline)),
               ],
             ),
           ),
@@ -320,14 +365,14 @@ class _DropdownItem extends StatelessWidget {
   final String label;
   final String value;
   final List<String> options;
-  final ValueChanged<String?> onChanged;
+  final ValueChanged<String?>? onChanged; // nullable — null = disabled
 
   const _DropdownItem({
     required this.icon,
     required this.label,
     required this.value,
     required this.options,
-    required this.onChanged,
+    this.onChanged,
   });
 
   @override
@@ -348,8 +393,7 @@ class _DropdownItem extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Text(label,
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600, fontSize: 14)),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
           ),
           DropdownButtonHideUnderline(
             child: DropdownButton<String>(
@@ -359,7 +403,7 @@ class _DropdownItem extends StatelessWidget {
                   .map((o) => DropdownMenuItem(
                         value: o,
                         child: Text(o,
-                            style: GoogleFonts.inter(fontSize: 14)),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14)),
                       ))
                   .toList(),
               onChanged: onChanged,
@@ -382,11 +426,11 @@ class _LinkItem extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () {
-        // Show a coming-soon notice until the pages are live
-        GkToast.show(
+        Navigator.push(
           context,
-          message: '$label will be available at launch',
-          type: ToastType.info,
+          MaterialPageRoute(
+            builder: (_) => _WebViewScreen(title: label, url: url),
+          ),
         );
       },
       child: Padding(
@@ -405,13 +449,59 @@ class _LinkItem extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: Text(label,
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w600, fontSize: 14)),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 14)),
             ),
             const Icon(Icons.chevron_right_rounded,
                 color: AppColors.outline, size: 20),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── In-App WebView Screen ──────────────────────────────────────────────────────
+class _WebViewScreen extends StatefulWidget {
+  final String title;
+  final String url;
+  const _WebViewScreen({required this.title, required this.url});
+
+  @override
+  State<_WebViewScreen> createState() => _WebViewScreenState();
+}
+
+class _WebViewScreenState extends State<_WebViewScreen> {
+  late final WebViewController _controller;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageFinished: (_) => setState(() => _isLoading = false),
+      ))
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        title: Text(
+          widget.title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: AppColors.primary),
+        ),
+        leading: const CloseButton(color: AppColors.onSurface),
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        ],
       ),
     );
   }

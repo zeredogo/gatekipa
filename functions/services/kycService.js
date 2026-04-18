@@ -76,6 +76,7 @@ exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true }, asy
   await db.collection("users").doc(uid).set(
     {
       hasBvn: true,
+      bvn: bvn, // Persistent to avoid prompting user again for Bridgecard KYC
       bvnVerifiedAt: FieldValue.serverTimestamp(),
       bvnMeta: verificationMeta,
     },

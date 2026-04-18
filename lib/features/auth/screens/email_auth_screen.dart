@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../providers/auth_provider.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class EmailAuthScreen extends ConsumerStatefulWidget {
   const EmailAuthScreen({super.key});
@@ -33,6 +33,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
   bool _obscurePassword = true;
   bool _biometricAvailable = false;
   bool _isBiometricLoading = false;
+  bool _acceptedPrivacy = false;
 
   @override
   void initState() {
@@ -103,6 +104,11 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    if (!_isLogin && !_acceptedPrivacy) {
+      GkToast.show(context, message: "You must accept the Privacy Policy to register.", type: ToastType.warning);
+      return;
+    }
 
     setState(() => _isLoading = true);
     final email = _emailController.text.trim();
@@ -184,18 +190,14 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
       controller: controller,
       obscureText: isPassword && _obscurePassword,
       keyboardType: keyboardType,
-      style: GoogleFonts.inter(
-        fontSize: 16,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16,
         color: AppColors.onSurface,
-        fontWeight: FontWeight.w600,
-      ),
+        fontWeight: FontWeight.w600,),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-          color: AppColors.outline,
+        labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.outline,
           fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
+          fontWeight: FontWeight.w500,),
         prefixIcon: Icon(icon, color: AppColors.primary.withValues(alpha: 0.7)),
         suffixIcon: isPassword
             ? IconButton(
@@ -259,27 +261,23 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                 child: const Icon(Icons.email_rounded,
                     color: AppColors.primary, size: 28),
               ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 _isLogin ? 'Welcome Back' : 'Create Account',
-                style: GoogleFonts.manrope(
-                  fontSize: 32,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 32,
                   fontWeight: FontWeight.w800,
                   color: AppColors.onSurface,
                   height: 1.2,
-                  letterSpacing: -0.5,
-                ),
+                  letterSpacing: -0.5,),
               ).animate().fadeIn(delay: 100.ms),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 _isLogin
                     ? 'Sign in to access your secure vault.'
                     : 'Start protecting your subscriptions today.',
-                style: GoogleFonts.inter(
-                  fontSize: 15,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                   color: AppColors.onSurfaceVariant,
-                  height: 1.5,
-                ),
+                  height: 1.5,),
               ).animate().fadeIn(delay: 200.ms),
               const SizedBox(height: 36),
 
@@ -295,7 +293,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                             (v == null || v.isEmpty) ? 'Required' : null,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: _buildTextField(
                         controller: _lastNameController,
@@ -346,7 +344,29 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                   return null;
                 },
               ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.05, end: 0),
-              const SizedBox(height: 8),
+              
+              if (!_isLogin) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _acceptedPrivacy,
+                      onChanged: (val) {
+                        setState(() => _acceptedPrivacy = val ?? false);
+                      },
+                      activeColor: AppColors.primary,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'I agree to the Gatekipa Privacy Policy and Terms of Service.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 450.ms),
+              ],
+              
+              const SizedBox(height: AppSpacing.xs),
             ],
           ),
         ),
@@ -401,8 +421,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                           const SizedBox(width: 10),
                           Text(
                             _isLogin ? 'Sign In' : 'Create Account',
-                            style: GoogleFonts.manrope(
-                                fontWeight: FontWeight.w800, fontSize: 16),
+                            style: const TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 16),
                           ),
                         ],
                       ),
@@ -425,22 +444,18 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                 _isLogin
                     ? "Don't have an account? Sign Up"
                     : 'Already have an account? Sign In',
-                style: GoogleFonts.inter(
-                  color: AppColors.primary,
+                style: const TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.primary,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+                  fontSize: 14,),
               ),
             ),
             TextButton.icon(
               onPressed: () => context.pushReplacement(Routes.phoneAuth),
               icon: const Icon(Icons.phone_rounded, size: 18),
-              label: Text(
+              label: const Text(
                 'Use Phone Number instead',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
+                style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w600,
+                  fontSize: 13,),
               ),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.onSurfaceVariant,
@@ -503,26 +518,22 @@ class _BiometricUnlockButton extends StatelessWidget {
             else
               const Icon(Icons.fingerprint_rounded,
                   color: AppColors.primary, size: 26),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   isLoading ? 'Verifying...' : 'Use Biometrics',
-                  style: GoogleFonts.manrope(
-                    fontSize: 15,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+                    color: AppColors.primary,),
                 ),
                 if (displayName != null && displayName.isNotEmpty)
                   Text(
                     'Continue as $displayName',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                       color: AppColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
+                      fontWeight: FontWeight.w500,),
                   ),
               ],
             ),

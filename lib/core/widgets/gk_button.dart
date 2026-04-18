@@ -1,8 +1,9 @@
 // lib/core/widgets/gk_button.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 enum GkButtonVariant { primary, secondary, ghost, danger }
 
@@ -96,7 +97,7 @@ class _GkButtonState extends State<GkButton>
               else ...[
                 if (widget.icon != null) ...[
                   Icon(widget.icon, color: fg, size: 20),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.xs),
                 ],
                 Text(
                   widget.label,

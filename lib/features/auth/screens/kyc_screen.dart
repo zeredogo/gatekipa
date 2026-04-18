@@ -1,56 +1,51 @@
 // lib/features/auth/screens/kyc_screen.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_button.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../providers/auth_provider.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
-class KycScreen extends ConsumerStatefulWidget {
+class KycScreen extends StatefulWidget {
   const KycScreen({super.key});
   @override
-  ConsumerState<KycScreen> createState() => _KycScreenState();
+  State<KycScreen> createState() => _KycScreenState();
 }
 
-class _KycScreenState extends ConsumerState<KycScreen> {
+class _KycScreenState extends State<KycScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
+  final _bvnCtrl = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _emailCtrl.dispose();
+    _bvnCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('verifyBvn');
+      await callable.call({'bvn': _bvnCtrl.text.trim()});
 
-    await ref.read(authNotifierProvider.notifier).updateProfile(
-          uid: uid,
-          data: {
-            'displayName': _nameCtrl.text.trim(),
-            if (_emailCtrl.text.trim().isNotEmpty)
-              'email': _emailCtrl.text.trim(),
-            'kycStatus': 'verified',
-          },
-        );
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    GkToast.show(context,
-        message: 'Welcome to Gatekipa!', type: ToastType.success);
-    context.go(Routes.dashboard);
+      if (!mounted) return;
+      GkToast.show(context, message: 'Identity Verified Successfully!', type: ToastType.success);
+      context.go(Routes.dashboard);
+    } catch (e) {
+      if (!mounted) return;
+      GkToast.show(context, message: 'Identity Verification Failed', type: ToastType.error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -65,7 +60,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
                 // Header illustration
                 Container(
                   width: double.infinity,
@@ -82,22 +77,18 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     children: [
                       const Icon(Icons.person_rounded,
                           color: Colors.white, size: 52),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         'Set up your identity',
-                        style: GoogleFonts.manrope(
-                          fontSize: 22,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
+                          color: Colors.white,),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         'This helps us personalise your vault',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
+                          color: Colors.white70,),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -105,20 +96,22 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
                 const SizedBox(height: 36),
                 Text(
-                  'Full Name *',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
+                  'Bank Verification Number (BVN) *',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.onSurfaceVariant,
-                  ),
+                    color: AppColors.onSurfaceVariant,),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.xs),
                 TextFormField(
-                  controller: _nameCtrl,
-                  textCapitalization: TextCapitalization.words,
+                  controller: _bvnCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(11),
+                  ],
                   decoration: InputDecoration(
-                    hintText: 'e.g. Chukwuemeka Obi',
-                    prefixIcon: const Icon(Icons.person_outline_rounded),
+                    hintText: 'e.g. 22212345678',
+                    prefixIcon: const Icon(Icons.fingerprint_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
@@ -141,51 +134,13 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                         horizontal: 20, vertical: 20),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Please enter your full name';
+                    if (v == null || v.trim().length != 11) {
+                      return 'Please enter a valid 11-digit BVN';
                     }
                     return null;
                   },
                 ).animate().fadeIn(delay: 150.ms),
-                const SizedBox(height: 20),
-                Text(
-                  'Email Address (Optional)',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    hintText: 'you@example.com',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide:
-                          const BorderSide(color: AppColors.primary, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: AppColors.surfaceBright,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 20),
-                  ),
-                ).animate().fadeIn(delay: 250.ms),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Privacy note
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -199,15 +154,13 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     children: [
                       const Icon(Icons.lock_outline_rounded,
                           color: AppColors.primary, size: 20),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
                           'Your data is encrypted and never shared. Gatekipa uses your info only to personalise your vault.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                             color: AppColors.onSurfaceVariant,
-                            height: 1.5,
-                          ),
+                            height: 1.5,),
                         ),
                       ),
                     ],
@@ -241,25 +194,24 @@ class _KycScreenState extends ConsumerState<KycScreen> {
               isLoading: _isLoading,
               onPressed: _save,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             TextButton(
               onPressed: () async {
                 // Mark KYC as skipped so the router guard doesn't re-block.
                 final uid = FirebaseAuth.instance.currentUser?.uid;
                 if (uid != null) {
-                  await ref
-                      .read(authNotifierProvider.notifier)
-                      .updateProfile(uid: uid, data: {'kycStatus': 'skipped'});
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(uid)
+                      .update({'kycStatus': 'skipped'});
                 }
                 // ignore: use_build_context_synchronously
                 if (context.mounted) context.go(Routes.dashboard);
               },
-              child: Text(
+              child: const Text(
                 'Skip for now',
-                style: GoogleFonts.inter(
-                  color: AppColors.outline,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.outline,
+                  fontWeight: FontWeight.w600,),
               ),
             ),
           ],

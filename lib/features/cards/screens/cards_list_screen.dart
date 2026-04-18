@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_virtual_card.dart';
-import '../../../core/widgets/gk_card_list_tile.dart';
-import '../../../core/widgets/shimmer_loader.dart';
-import '../models/virtual_card_model.dart';
-import '../providers/card_provider.dart';
-import '../../search/providers/search_provider.dart';
-import '../../search/screens/search_screen.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_virtual_card.dart';
+import 'package:gatekipa/core/widgets/gk_card_list_tile.dart';
+import 'package:gatekipa/core/widgets/shimmer_loader.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/search/providers/search_provider.dart';
+import 'package:gatekipa/features/search/screens/search_screen.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class CardsListScreen extends ConsumerStatefulWidget {
   const CardsListScreen({super.key});
@@ -53,11 +53,9 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
         titleSpacing: 24,
         title: Text(
           'My Cards',
-          style: GoogleFonts.manrope(
-            fontWeight: FontWeight.w800,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
             fontSize: 22,
-            color: AppColors.onSurface,
-          ),
+            color: AppColors.onSurface,),
         ),
         actions: [
           // Card count badge
@@ -74,11 +72,9 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
                 ),
                 child: Text(
                   '${cards.length} card${cards.length != 1 ? 's' : ''}',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+                    color: AppColors.primary,),
                 ),
               ),
             ),
@@ -112,12 +108,10 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
             padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
             child: TextField(
               controller: _searchCtrl,
-              style: GoogleFonts.inter(
-                  fontSize: 15, color: AppColors.onSurface),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15, color: AppColors.onSurface),
               decoration: InputDecoration(
                 hintText: 'Search cards or merchants...',
-                hintStyle: GoogleFonts.inter(
-                    color: AppColors.outline, fontSize: 15),
+                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.outline, fontSize: 15),
                 prefixIcon: const Icon(Icons.search_rounded,
                     color: AppColors.outline, size: 20),
                 suffixIcon: isSearching
@@ -166,10 +160,8 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
                             child: FilterChip(
                               label: Text(
                                 f[0].toUpperCase() + f.substring(1),
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                                  fontWeight: FontWeight.w600,),
                               ),
                               selected: _filter == f,
                               onSelected: (_) =>
@@ -278,8 +270,7 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
                         child: Text(
                           'Failed to load cards.\nPull to refresh.',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
-                              color: AppColors.outline, fontSize: 14),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.outline, fontSize: 14),
                         ),
                       ),
                     ),
@@ -316,15 +307,14 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                     Row(
                       mainAxisAlignment:
                           MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Quick Preview',
-                          style: GoogleFonts.manrope(
-                              fontWeight: FontWeight.w800,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                               fontSize: 17,
                               color: AppColors.onSurface),
                         ),
@@ -333,10 +323,9 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
                             TextButton(
                               onPressed: () => context.push(
                                   '/home/cards/${_selectedCard!.id}'),
-                              child: Text(
+                              child: const Text(
                                 'View Details',
-                                style: GoogleFonts.inter(
-                                    color: AppColors.primary,
+                                style: TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.primary,
                                     fontWeight: FontWeight.w600),
                               ),
                             ),
@@ -350,7 +339,7 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.sm),
                     SizedBox(
                       height: 190,
                       child: Center(
@@ -361,7 +350,7 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.xs),
                   ],
                 ),
               ).animate().slideY(begin: 1.0, end: 0).fadeIn(
@@ -400,26 +389,23 @@ class _EmptyState extends StatelessWidget {
               const SizedBox(height: 20),
               Text(
                 filter == 'all' ? 'No cards yet' : 'No $filter cards',
-                style: GoogleFonts.manrope(
-                  fontSize: 18,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
+                  color: AppColors.onSurface,),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 filter == 'all'
                     ? 'Create your first virtual card to control\nsubscription payments'
                     : 'Try changing the filter above',
-                style: GoogleFonts.inter(
-                    color: AppColors.onSurfaceVariant,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant,
                     fontSize: 14,
                     height: 1.5),
                 textAlign: TextAlign.center,
               ),
               if (filter == 'all') ...[
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
                 FilledButton.icon(
                   onPressed: () => context.push(Routes.cardCreation),
                   icon: const Icon(Icons.add_rounded),

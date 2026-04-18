@@ -3,9 +3,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_colors.dart';
-import '../constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class AppShell extends StatefulWidget {
   final Widget child;
@@ -162,21 +162,19 @@ class _GkBottomNav extends StatelessWidget {
                               duration: 200.ms,
                               curve: Curves.easeOut,
                             ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSpacing.xxs),
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             tab.label,
                             maxLines: 1,
                             softWrap: false,
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10,
                               fontWeight:
                                   isSelected ? FontWeight.w700 : FontWeight.w500,
                               color: isSelected
                                   ? AppColors.primary
-                                  : AppColors.outline,
-                            ),
+                                  : AppColors.outline,),
                           ),
                         ),
                       ],

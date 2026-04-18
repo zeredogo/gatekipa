@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/wallet_model.dart';
+import 'package:gatekipa/features/wallet/models/wallet_model.dart';
 
 
 // ── Wallet Stream ───────────────────────────────────────────────────────────────
@@ -25,42 +25,27 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
 
   WalletNotifier(this._functions) : super(const AsyncValue.data(null));
 
+  /// DEPRECATED — This method is intentionally unusable.
+  ///
+  /// The backend [fundWallet] Cloud Function immediately throws a
+  /// permission-denied error by design.
+  ///
+  /// The CORRECT wallet top-up flow is:
+  ///   1. Show Paystack checkout (see [AddFundsScreen])
+  ///   2. After user completes payment, call [verifyPaystackPayment]
+  ///
+  /// Never call this method.
+  @Deprecated('Use verifyPaystackPayment() after Paystack checkout instead.')
   Future<bool> fundWallet({
     required String userId,
     required double amount,
     required String method,
     String? reference,
   }) async {
-    state = const AsyncValue.loading();
-    try {
-      final callable = _functions.httpsCallable('fundWallet');
-      await callable.call({
-        'userId': userId,
-        'amount': amount,
-        'method': method,
-        'reference': reference ?? 'GTK-${DateTime.now().millisecondsSinceEpoch}',
-      });
-      state = const AsyncValue.data(null);
-      return true;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      return false;
-    }
-  }
-
-  Future<bool> withdraw({required String userId, required double amount}) async {
-    state = const AsyncValue.loading();
-    try {
-      final callable = _functions.httpsCallable('withdrawFunds');
-      await callable.call({
-        'amount': amount,
-      });
-      state = const AsyncValue.data(null);
-      return true;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      return false;
-    }
+    throw UnsupportedError(
+      'fundWallet is disabled. Use the Paystack checkout flow in AddFundsScreen '
+      'and call verifyPaystackPayment() to credit the wallet.',
+    );
   }
 
   Future<bool> generateVaultAccount(String userId) async {

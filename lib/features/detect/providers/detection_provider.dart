@@ -42,15 +42,10 @@ class DetectionScanState {
 class DetectionScanNotifier extends StateNotifier<DetectionScanState> {
   DetectionScanNotifier() : super(const DetectionScanState());
 
-  static const List<String> _sampleMessages = [
-    "Your NGN 4,500 Netflix subscription renewal was successful. Receipt from Netflix.",
-    "Monthly billing from Spotify NGN 1,500. Your subscription plan auto-renewed.",
-    "AWS S3 NGN 8,500 recurring monthly charge processed. Billed to your account.",
-    "Apple receipt from App Store NGN 3,000 annual subscription renewed.",
-    "Receipt from Showmax NGN 2,100 for your monthly membership.",
-  ];
-
-  Future<int> runScan() async {
+  /// [messages] — SMS/email text messages to analyze. Pass real user messages from
+  /// the device's SMS inbox or email API. Passing an empty list returns 0 results
+  /// without error, which is the correct behavior when no connectors are active.
+  Future<int> runScan({List<String> messages = const []}) async {
     if (state.isLoading) return 0;
     state = state.copyWith(isLoading: true, progress: 0.0);
 
@@ -67,10 +62,11 @@ class DetectionScanNotifier extends StateNotifier<DetectionScanState> {
     try {
       final result = await FirebaseFunctions.instance
           .httpsCallable('detectSubscriptions')
-          .call({'messages': _sampleMessages});
+          .call({'messages': messages});
 
       ticker.cancel();
-      final count = (result.data['count'] ?? 0) as int;
+      final dataMap = result.data as Map<dynamic, dynamic>;
+      final count = (dataMap['count'] ?? 0) as int;
       state = state.copyWith(isLoading: false, progress: 1.0, lastCount: count);
       return count;
     } catch (_) {

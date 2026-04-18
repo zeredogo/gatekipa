@@ -112,9 +112,9 @@ class AccountsScreen extends ConsumerWidget {
           child: FilledButton.icon(
             onPressed: () => _showCreateAccountSheet(context, ref),
             icon: const Icon(Icons.add_rounded),
-            label: Text(
+            label: const Text(
               'Create Client Profile',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 16),
+              style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -361,7 +361,7 @@ class _CreateAccountSheetState extends ConsumerState<_CreateAccountSheet> {
         GkToast.show(context, message: 'Account created!', type: ToastType.success);
         Navigator.pop(context);
       } else {
-        GkToast.show(context, message: 'Failed to create account', type: ToastType.error);
+        final e = ref.read(accountNotifierProvider).error; GkToast.show(context, message: 'Failed: $e', type: ToastType.error);
       }
     }
   }
@@ -445,7 +445,7 @@ class _CreateAccountSheetState extends ConsumerState<_CreateAccountSheet> {
                   ),
                   child: _loading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Create Account', style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 16)),
+                      : const Text('Create Account', style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 8),
@@ -543,7 +543,7 @@ class _RenameAccountSheetState extends ConsumerState<_RenameAccountSheet> {
                 ),
                 child: _loading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Save', style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 16)),
+                    : const Text('Save', style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16)),
               ),
             ),
             const SizedBox(height: 8),

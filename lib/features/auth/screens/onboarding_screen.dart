@@ -1,13 +1,14 @@
 // lib/features/auth/screens/onboarding_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_button.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -93,13 +94,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: TextButton(
                   onPressed: () => _goToLogin(),
-                  child: Text(
-                    'Skip',
-                    style: GoogleFonts.inter(
-                      color: AppColors.outline,
+                  child: const Text(
+                    'Sign In',
+                    style: TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.outline,
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                      fontSize: 14,),
                   ),
                 ),
               ),
@@ -136,7 +135,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppSpacing.xl),
                   GkButton(
                     label: _currentPage == _pages.length - 1
                         ? 'Create My Vault'
@@ -145,16 +144,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: _nextPage,
                   ),
                   if (_currentPage == _pages.length - 1) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                     TextButton.icon(
                       onPressed: () => _goToLogin(useEmail: true),
                       icon: const Icon(Icons.email_rounded, size: 20),
-                      label: Text(
+                      label: const Text(
                         'Continue with Email',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
+                        style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700,
+                          fontSize: 15,),
                       ),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,
@@ -256,12 +253,10 @@ class _OnboardingPageWidget extends StatelessWidget {
                               color: Colors.white70, size: 28),
                           Text(
                             'GATEKIPA',
-                            style: GoogleFonts.manrope(
-                              color: Colors.white,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                               fontWeight: FontWeight.w800,
                               fontSize: 14,
-                              letterSpacing: 3,
-                            ),
+                              letterSpacing: 3,),
                           ),
                         ],
                       ),
@@ -287,8 +282,7 @@ class _OnboardingPageWidget extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text('VALID THRU',
-                                      style: GoogleFonts.inter(
-                                          fontSize: 8,
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 8,
                                           color: Colors.white54,
                                           fontWeight: FontWeight.w600)),
                                   Text('12/28',
@@ -296,10 +290,9 @@ class _OnboardingPageWidget extends StatelessWidget {
                                           fontSize: 14,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600)),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: AppSpacing.xxs),
                                   Text('GATEKIPA USER',
-                                      style: GoogleFonts.inter(
-                                          fontSize: 14,
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
                                           letterSpacing: 1)),
@@ -332,33 +325,27 @@ class _OnboardingPageWidget extends StatelessWidget {
                   ),
                   child: Text(
                     page.tag,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,
-                      letterSpacing: 2,
-                    ),
+                      letterSpacing: 2,),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   page.headline,
-                  style: GoogleFonts.manrope(
-                    fontSize: 30,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 30,
                     fontWeight: FontWeight.w800,
                     color: AppColors.onSurface,
                     height: 1.2,
-                    letterSpacing: -0.5,
-                  ),
+                    letterSpacing: -0.5,),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   page.sub,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16,
                     color: AppColors.onSurfaceVariant,
-                    height: 1.6,
-                  ),
+                    height: 1.6,),
                 ),
               ],
             ),
@@ -411,13 +398,11 @@ class _CardNetworkLogo extends StatelessWidget {
       // Visa-esque logo
       return Text(
         'VISA',
-        style: GoogleFonts.inter(
-          fontSize: 24,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 24,
           fontWeight: FontWeight.w900,
           fontStyle: FontStyle.italic,
           color: Colors.white,
-          letterSpacing: -1,
-        ),
+          letterSpacing: -1,),
       );
     } else {
       // Verve-esque logo
@@ -432,12 +417,10 @@ class _CardNetworkLogo extends StatelessWidget {
             ),
             child: Text(
               'Verve',
-              style: GoogleFonts.inter(
-                fontSize: 14,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                 fontWeight: FontWeight.w800,
                 fontStyle: FontStyle.italic,
-                color: Colors.white,
-              ),
+                color: Colors.white,),
             ),
           ),
         ],

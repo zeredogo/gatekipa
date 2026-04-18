@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/currency_formatter.dart';
-import '../../../core/utils/date_formatter.dart';
-import '../../../core/widgets/shimmer_loader.dart';
-import '../providers/wallet_provider.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/currency_formatter.dart';
+import 'package:gatekipa/core/utils/date_formatter.dart';
+import 'package:gatekipa/core/widgets/shimmer_loader.dart';
+import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
 import '../../cards/providers/card_provider.dart'
     show transactionsProvider, TransactionModel;
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
@@ -74,8 +74,7 @@ class WalletScreen extends ConsumerWidget {
                               const SizedBox(width: 10),
                               Text(
                                 'Vault Balance',
-                                style: GoogleFonts.inter(
-                                  color:
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color:
                                       Colors.white.withValues(alpha: 0.8),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -83,17 +82,15 @@ class WalletScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.sm),
                           // Balance
                           walletAsync.when(
                             data: (w) => Text(
                               CurrencyFormatter.format(w?.balance ?? 0),
-                              style: GoogleFonts.manrope(
-                                color: Colors.white,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                                 fontSize: 40,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: -1.5,
-                              ),
+                                letterSpacing: -1.5,),
                             )
                                 .animate()
                                 .fadeIn()
@@ -104,35 +101,18 @@ class WalletScreen extends ConsumerWidget {
                                 width: 180, height: 44, radius: 8),
                             error: (_, __) => Text(
                               '₦ 0.00',
-                              style: GoogleFonts.manrope(
-                                  color: Colors.white,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                                   fontSize: 40,
                                   fontWeight: FontWeight.w800),
                             ),
                           ),
                           const Spacer(),
                           // Action buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _WalletActionBtn(
-                                  icon: Icons.add_rounded,
-                                  label: 'Add Funds',
-                                  onTap: () =>
-                                      context.push(Routes.addFunds),
-                                  filled: true,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _WalletActionBtn(
-                                  icon: Icons.arrow_outward_rounded,
-                                  label: 'Withdraw',
-                                  onTap: () => _showWithdrawComingSoon(context),
-                                  filled: false,
-                                ),
-                              ),
-                            ],
+                          _WalletActionBtn(
+                            icon: Icons.add_rounded,
+                            label: 'Add Funds',
+                            onTap: () => context.push(Routes.addFunds),
+                            filled: true,
                           ),
                         ],
                       ),
@@ -142,8 +122,7 @@ class WalletScreen extends ConsumerWidget {
               ),
               title: Text(
                 'My Wallet',
-                style: GoogleFonts.manrope(
-                    color: Colors.white, fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
               ),
             ),
 
@@ -156,11 +135,9 @@ class WalletScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'All Transactions',
-                      style: GoogleFonts.manrope(
-                        fontSize: 18,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.onSurface,
-                      ),
+                        color: AppColors.onSurface,),
                     ),
                     walletAsync.when(
                       data: (w) => Container(
@@ -173,11 +150,9 @@ class WalletScreen extends ConsumerWidget {
                         ),
                         child: Text(
                           txAsync.valueOrNull?.length.toString() ?? '0',
-                          style: GoogleFonts.manrope(
-                            fontSize: 12,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
+                            color: AppColors.primary,),
                         ),
                       ),
                       loading: () => const SizedBox(),
@@ -209,19 +184,17 @@ class WalletScreen extends ConsumerWidget {
                                 size: 32,
                                 color: AppColors.outline),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.md),
                           Text(
                             'No transactions yet',
-                            style: GoogleFonts.manrope(
-                                fontSize: 18,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.onSurface),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Fund your vault to get started',
-                            style: GoogleFonts.inter(
-                                fontSize: 14,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                                 color: AppColors.onSurfaceVariant),
                           ),
                         ],
@@ -254,7 +227,7 @@ class WalletScreen extends ConsumerWidget {
             ),
 
             const SliverToBoxAdapter(
-              child: SizedBox(height: 8),
+              child: SizedBox(height: AppSpacing.xs),
             ),
             // Dynamic bottom clearance: clears the shell nav bar + safe area
             SliverPadding(
@@ -269,72 +242,7 @@ class WalletScreen extends ConsumerWidget {
   }
 }
 
-void _showWithdrawComingSoon(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    builder: (sheetCtx) => Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(Icons.arrow_outward_rounded,
-                color: AppColors.primary, size: 32),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Withdrawals Coming Soon',
-            style: GoogleFonts.manrope(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'We\'re building a secure withdrawal flow. Funds remain safe in your vault and can be used directly via your virtual cards.',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.onSurfaceVariant,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: FilledButton(
-              onPressed: () => Navigator.pop(sheetCtx),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              child: Text('Got it',
-                  style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w700, fontSize: 16)),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    ),
-  );
-}
+// Coming soon wrapper removed
 
 class _WalletActionBtn extends StatelessWidget {
   final IconData icon;
@@ -370,11 +278,9 @@ class _WalletActionBtn extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700,
                   fontSize: 14,
-                  color: filled ? AppColors.primary : Colors.white,
-                ),
+                  color: filled ? AppColors.primary : Colors.white,),
               ),
             ],
           ),
@@ -436,21 +342,17 @@ class _TxCard extends StatelessWidget {
               children: [
                 Text(
                   tx.merchant,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: AppColors.onSurface,
-                  ),
+                    color: AppColors.onSurface,),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
                 Text(
                   DateFormatter.formatDateTime(tx.timestamp),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.outline,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
+                    color: AppColors.outline,),
                 ),
               ],
             ),
@@ -461,17 +363,15 @@ class _TxCard extends StatelessWidget {
             children: [
               Text(
                 '${tx.isCredit ? '+' : '-'}${CurrencyFormatter.format(tx.amount)}',
-                style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w700,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
                   fontSize: 14,
                   color: tx.isCredit
                       ? AppColors.tertiary
                       : tx.isBlocked
                           ? AppColors.error
-                          : AppColors.onSurface,
-                ),
+                          : AppColors.onSurface,),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xxs),
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 8, vertical: 2),
@@ -485,16 +385,14 @@ class _TxCard extends StatelessWidget {
                 ),
                 child: Text(
                   tx.status.toUpperCase(),
-                  style: GoogleFonts.inter(
-                    fontSize: 9,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 9,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                     color: tx.isApproved
                         ? AppColors.tertiary
                         : tx.isBlocked
                             ? AppColors.error
-                            : AppColors.outline,
-                  ),
+                            : AppColors.outline,),
                 ),
               ),
             ],

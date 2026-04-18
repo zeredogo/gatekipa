@@ -4,10 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class EmailVerifyPendingScreen extends StatefulWidget {
   final String email;
@@ -133,7 +133,7 @@ class _EmailVerifyPendingScreenState extends State<EmailVerifyPendingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             // Animated email icon
             Container(
               width: 100,
@@ -153,32 +153,26 @@ class _EmailVerifyPendingScreenState extends State<EmailVerifyPendingScreen> {
             const SizedBox(height: 36),
             Text(
               'Check your email',
-              style: GoogleFonts.manrope(
-                fontSize: 28,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 28,
                 fontWeight: FontWeight.w800,
                 color: AppColors.onSurface,
-                letterSpacing: -0.5,
-              ),
+                letterSpacing: -0.5,),
               textAlign: TextAlign.center,
             ).animate().fadeIn(delay: 100.ms),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
-                style: GoogleFonts.inter(
-                  fontSize: 15,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                   color: AppColors.onSurfaceVariant,
-                  height: 1.6,
-                ),
+                  height: 1.6,),
                 children: [
                   const TextSpan(
                       text: 'We sent a verification link to\n'),
                   TextSpan(
                     text: widget.email,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700,
+                      color: AppColors.primary,),
                   ),
                   const TextSpan(
                       text:
@@ -194,25 +188,25 @@ class _EmailVerifyPendingScreenState extends State<EmailVerifyPendingScreen> {
               text: 'Open your email app',
               icon: Icons.open_in_new_rounded,
             ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.06, end: 0),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             const _StepTile(
               step: '2',
               text: 'Find the email from Gatekipa',
               icon: Icons.search_rounded,
             ).animate().fadeIn(delay: 380.ms).slideX(begin: 0.06, end: 0),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             const _StepTile(
               step: '3',
               text: 'Click "Verify Email" in the message',
               icon: Icons.touch_app_rounded,
             ).animate().fadeIn(delay: 460.ms).slideX(begin: 0.06, end: 0),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             const _StepTile(
               step: '4',
               text: 'Come back and tap "I\'ve Verified" below',
               icon: Icons.check_circle_outline_rounded,
             ).animate().fadeIn(delay: 540.ms).slideX(begin: 0.06, end: 0),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
@@ -254,30 +248,27 @@ class _EmailVerifyPendingScreenState extends State<EmailVerifyPendingScreen> {
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2.5),
                       )
-                    : Row(
+                    : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.verified_rounded, size: 20),
-                          const SizedBox(width: 10),
+                          Icon(Icons.verified_rounded, size: 20),
+                          SizedBox(width: 10),
                           Text(
                             "I've Verified My Email",
-                            style: GoogleFonts.manrope(
-                                fontWeight: FontWeight.w800, fontSize: 15),
+                            style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 15),
                           ),
                         ],
                       ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   "Didn't get an email? ",
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: AppColors.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
+                    color: AppColors.onSurfaceVariant,),
                 ),
                 GestureDetector(
                   onTap: canResend ? _resendEmail : null,
@@ -292,16 +283,14 @@ class _EmailVerifyPendingScreenState extends State<EmailVerifyPendingScreen> {
                           canResend
                               ? 'Resend email'
                               : 'Resend in ${_resendSeconds}s',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: canResend
                                 ? AppColors.primary
                                 : AppColors.outline,
                             decoration: canResend
                                 ? TextDecoration.underline
-                                : TextDecoration.none,
-                          ),
+                                : TextDecoration.none,),
                         ),
                 ),
               ],
@@ -342,23 +331,19 @@ class _StepTile extends StatelessWidget {
             child: Center(
               child: Text(
                 step,
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
+                  color: AppColors.primary,),
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(
-                fontSize: 14,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                 color: AppColors.onSurface,
-                fontWeight: FontWeight.w500,
-              ),
+                fontWeight: FontWeight.w500,),
             ),
           ),
           Icon(icon, size: 18, color: AppColors.outline),

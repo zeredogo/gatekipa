@@ -2,12 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/date_formatter.dart';
-import '../../../core/widgets/gk_button.dart';
-import '../models/notification_model.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/date_formatter.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/features/notifications/models/notification_model.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class NotificationDetailScreen extends StatelessWidget {
   final String notifId;
@@ -37,8 +37,7 @@ class NotificationDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Notification Detail',
-          style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w800, color: AppColors.primary),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
         ),
         leading: const BackButton(color: AppColors.onSurface),
       ),
@@ -70,32 +69,26 @@ class NotificationDetailScreen extends StatelessWidget {
                       child: const Icon(Icons.block_rounded,
                           color: AppColors.error, size: 32),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       'Transaction Blocked',
-                      style: GoogleFonts.manrope(
-                        fontWeight: FontWeight.w800,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                         fontSize: 20,
-                        color: AppColors.error,
-                      ),
+                        color: AppColors.error,),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.xs),
                     if (meta != null && meta['amount'] != null)
                       Text(
                         '₦${meta['amount']}',
-                        style: GoogleFonts.manrope(
-                          fontWeight: FontWeight.w800,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                           fontSize: 36,
-                          color: AppColors.onSurface,
-                        ),
+                          color: AppColors.onSurface,),
                       ),
                     if (meta != null && meta['merchant'] != null)
                       Text(
                         meta['merchant'],
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          color: AppColors.onSurfaceVariant,
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16,
+                          color: AppColors.onSurfaceVariant,),
                       ),
                   ],
                 ),
@@ -104,38 +97,32 @@ class NotificationDetailScreen extends StatelessWidget {
                     end: const Offset(1, 1),
                     duration: 400.ms,
                   ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
             ],
 
             // Notification body
             Text(
               notif.title,
-              style: GoogleFonts.manrope(
-                fontSize: 22,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: AppColors.onSurface,
-              ),
+                color: AppColors.onSurface,),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               notif.body,
-              style: GoogleFonts.inter(
-                fontSize: 15,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                 color: AppColors.onSurfaceVariant,
-                height: 1.6,
-              ),
+                height: 1.6,),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               DateFormatter.formatDateTime(notif.timestamp),
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.outline,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
+                color: AppColors.outline,),
             ),
 
             if (meta != null && meta['ruleTriggered'] != null) ...[
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -148,26 +135,22 @@ class NotificationDetailScreen extends StatelessWidget {
                   children: [
                     const Icon(Icons.gavel_rounded,
                         color: AppColors.primary, size: 20),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Rule Triggered',
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w600,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: AppColors.onSurfaceVariant,
-                            ),
+                              color: AppColors.onSurfaceVariant,),
                           ),
                           Text(
                             meta['ruleTriggered'],
-                            style: GoogleFonts.manrope(
-                              fontWeight: FontWeight.w700,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
                               fontSize: 14,
-                              color: AppColors.primary,
-                            ),
+                              color: AppColors.primary,),
                           ),
                         ],
                       ),
@@ -186,7 +169,7 @@ class NotificationDetailScreen extends StatelessWidget {
                 variant: GkButtonVariant.secondary,
                 onPressed: () => context.push(Routes.cards),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               GkButton(
                 label: 'Confirm Block',
                 icon: Icons.check_rounded,

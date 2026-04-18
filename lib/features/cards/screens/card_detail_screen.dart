@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/date_formatter.dart';
-import '../../../core/utils/currency_formatter.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../../../core/widgets/gk_virtual_card.dart';
-import '../models/virtual_card_model.dart';
-import '../providers/card_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/date_formatter.dart';
+import 'package:gatekipa/core/utils/currency_formatter.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/widgets/gk_virtual_card.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class CardDetailScreen extends ConsumerWidget {
   final String cardId;
@@ -32,7 +33,7 @@ class CardDetailScreen extends ConsumerWidget {
         }
         final rules = rulesAsync.valueOrNull ?? [];
         final primaryRule = rules.isNotEmpty ? rules.first : card.rule;
-        return _CardDetailContent(card: card, txAsync: txAsync, primaryRule: primaryRule);
+        return _CardDetailContent(card: card, txAsync: txAsync, rules: rules, primaryRule: primaryRule);
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -48,9 +49,10 @@ class CardDetailScreen extends ConsumerWidget {
 class _CardDetailContent extends ConsumerWidget {
   final VirtualCardModel card;
   final AsyncValue<List<TransactionModel>> txAsync;
+  final List<CardRule> rules;
   final CardRule primaryRule;
 
-  const _CardDetailContent({required this.card, required this.txAsync, required this.primaryRule});
+  const _CardDetailContent({required this.card, required this.txAsync, required this.rules, required this.primaryRule});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -65,11 +67,9 @@ class _CardDetailContent extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           card.displayName,
-          style: GoogleFonts.manrope(
-            fontWeight: FontWeight.w800,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
             fontSize: 20,
-            color: AppColors.primary,
-          ),
+            color: AppColors.primary,),
         ),
         leading: const BackButton(color: AppColors.onSurface),
         actions: [
@@ -97,7 +97,7 @@ class _CardDetailContent extends ConsumerWidget {
                 child: Row(children: [
                   const Icon(Icons.copy_rounded, size: 18, color: AppColors.outline),
                   const SizedBox(width: 10),
-                  Text('Copy card number', style: GoogleFonts.inter()),
+                  Text('Copy card number', style: Theme.of(context).textTheme.bodyMedium),
                 ]),
               ),
               PopupMenuItem(
@@ -105,7 +105,7 @@ class _CardDetailContent extends ConsumerWidget {
                 child: Row(children: [
                   const Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
                   const SizedBox(width: 10),
-                  Text('Rename Card', style: GoogleFonts.inter(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                  Text('Rename Card', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
                 ]),
               ),
             ],
@@ -129,18 +129,22 @@ class _CardDetailContent extends ConsumerWidget {
 
             // Usage bar
             _UsageSection(card: card),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             // Rule toggles integrated into Kill switch below
 
 
             // Kill switch for this card
-            _CardKillSwitch(card: card, primaryRule: primaryRule),
-            const SizedBox(height: 24),
+            _CardKillSwitch(card: card, rules: rules),
+            const SizedBox(height: AppSpacing.md),
+            
+            // OTP fetcher
+            _OtpActionPanel(card: card),
+            const SizedBox(height: AppSpacing.lg),
 
             // Transactions for this card
             const _SectionHeader('Transaction History'),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             if (cardTxs.isEmpty)
               _EmptyTxState()
             else
@@ -183,20 +187,17 @@ class _UsageSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Spend Usage',
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w600,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600,
                       color: AppColors.onSurfaceVariant)),
               Text(
                 '${(card.usagePercent * 100).toStringAsFixed(0)}%',
-                style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w800,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                   color: AppColors.primary,
-                  fontSize: 18,
-                ),
+                  fontSize: 18,),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           ClipRRect(
             borderRadius: BorderRadius.circular(100),
             child: LinearProgressIndicator(
@@ -206,19 +207,17 @@ class _UsageSection extends StatelessWidget {
               color: AppColors.primary,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 '${CurrencyFormatter.format(card.spentAmount)} spent',
-                style: GoogleFonts.inter(
-                    fontSize: 12, color: AppColors.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant),
               ),
               Text(
                 '${CurrencyFormatter.format(card.balanceLimit)} limit',
-                style: GoogleFonts.inter(
-                    fontSize: 12, color: AppColors.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant),
               ),
             ],
           ),
@@ -234,9 +233,9 @@ class _UsageSection extends StatelessWidget {
 
 class _CardKillSwitch extends ConsumerStatefulWidget {
   final VirtualCardModel card;
-  final CardRule primaryRule;
+  final List<CardRule> rules;
   
-  const _CardKillSwitch({required this.card, required this.primaryRule});
+  const _CardKillSwitch({required this.card, required this.rules});
 
   @override
   ConsumerState<_CardKillSwitch> createState() => _CardKillSwitchState();
@@ -244,27 +243,69 @@ class _CardKillSwitch extends ConsumerStatefulWidget {
 
 class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
   bool _expanded = false;
+  bool _toggling = false;
+  final Set<String> _loadingRules = {};
+
+  Future<void> _toggleCardStatus() async {
+    if (_toggling) return;
+    final status = widget.card.isBlocked ? 'active' : 'blocked';
+    setState(() => _toggling = true);
+    final success = await ref.read(cardNotifierProvider.notifier).updateCardStatus(
+      cardId: widget.card.id,
+      status: status,
+    );
+    if (mounted) {
+      setState(() => _toggling = false);
+      if (!success) {
+        GkToast.show(context,
+            message: 'Failed to update card status. Try again.',
+            type: ToastType.error);
+      }
+    }
+  }
 
   Future<void> _toggleRule(String subType, bool newValue) async {
+    if (subType == 'block_if_amount_changes') {
+      final user = ref.read(userProfileProvider).valueOrNull;
+      if (user != null && user.planTier != 'premium' && user.planTier != 'business') {
+         GkToast.show(context,
+            message: '🚀 Gatekeeper Premium Required: Upgrade your plan to unlock AI price locks.',
+            type: ToastType.warning,
+            duration: const Duration(seconds: 4));
+         return;
+      }
+    }
+    if (_loadingRules.contains(subType)) return;
+    setState(() => _loadingRules.add(subType));
     final notifier = ref.read(cardNotifierProvider.notifier);
     final rules = ref.read(cardRulesProvider(widget.card.id)).valueOrNull ?? [];
 
+    bool success;
     if (newValue) {
-      // Enable: create the rule on the backend
-      await notifier.createCardRule(
+      success = await notifier.createCardRule(
         cardId: widget.card.id,
         type: subType == 'night_lockdown' ? 'time' : 'behavior',
         subType: subType,
         value: true,
       );
     } else {
-      // Disable: delete the matching rule from Firestore
       final existing = rules.where((r) => r.subType == subType).firstOrNull;
       if (existing != null) {
-        await notifier.deleteCardRule(ruleId: existing.id);
+        success = await notifier.deleteCardRule(ruleId: existing.id);
+      } else {
+        success = true;
+      }
+    }
+    if (mounted) {
+      setState(() => _loadingRules.remove(subType));
+      if (!success) {
+        GkToast.show(context,
+            message: 'Failed to update rule. Try again.',
+            type: ToastType.error);
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -299,34 +340,33 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                     children: [
                       Text(
                         widget.card.isBlocked ? 'Card Blocked' : 'Emergency Kill Switch',
-                        style: GoogleFonts.manrope(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
+                          fontSize: 15,),
                       ),
                       Text(
                         widget.card.isBlocked
                             ? 'Tap to unblock this card'
                             : 'Block all incoming charges',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.onSurfaceVariant,
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
+                          color: AppColors.onSurfaceVariant,),
                       ),
                     ],
                   ),
                 ),
                 Switch(
-                  value: widget.card.isBlocked,
-                  activeThumbColor: AppColors.error,
-                  onChanged: (_) async {
-                    final status = widget.card.isBlocked ? 'active' : 'blocked';
-                    await ref.read(cardNotifierProvider.notifier).updateCardStatus(
-                          cardId: widget.card.id,
-                          status: status,
-                        );
-                  },
-                ),
+                    value: widget.card.isBlocked,
+                    activeThumbColor: AppColors.error,
+                    onChanged: _toggling ? null : (_) => _toggleCardStatus(),
+                  ),
+                  if (_toggling)
+                    const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.error,
+                      ),
+                    ),
                 IconButton(
                   icon: Icon(
                     _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
@@ -348,31 +388,32 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                 children: [
                   Text(
                     'Guard Rules',
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w800,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                       fontSize: 14,
-                      color: AppColors.onSurface,
-                    ),
+                      color: AppColors.onSurface,),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   _buildSubToggle(
                     'Block if amount changes',
                     'Prevents sneaky subscription increases.',
-                    widget.primaryRule.blockIfAmountChanges,
+                    widget.rules.any((r) => r.subType == 'block_if_amount_changes'),
+                    'block_if_amount_changes',
                     (val) => _toggleRule('block_if_amount_changes', val),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   _buildSubToggle(
                     'Breach Alerts',
                     'Notify me instantly if a charge is blocked.',
-                    widget.primaryRule.instantBreachAlert,
+                    widget.rules.any((r) => r.subType == 'instant_breach_alert'),
+                    'instant_breach_alert',
                     (val) => _toggleRule('instant_breach_alert', val),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   _buildSubToggle(
                     'Night Lockdown',
                     'Automatically block transactions between 12 AM and 6 AM.',
-                    widget.primaryRule.nightLockdown,
+                    widget.rules.any((r) => r.subType == 'night_lockdown'),
+                    'night_lockdown',
                     (val) => _toggleRule('night_lockdown', val),
                   ),
                 ],
@@ -384,26 +425,38 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
     );
   }
 
-  Widget _buildSubToggle(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSubToggle(
+      String title, String subtitle, bool value, String subTypeKey, ValueChanged<bool> onChanged) {
+    final isLoading = _loadingRules.contains(subTypeKey);
     return Row(
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700)),
-              Text(subtitle, style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
+              Text(title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w700)),
+              Text(subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
             ],
           ),
         ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: AppColors.primary,
-        ),
+        if (isLoading)
+          const SizedBox(
+            height: 24,
+            width: 24,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: AppColors.primary),
+          )
+        else
+          Switch(
+            value: value,
+            onChanged: onChanged,
+          ),
       ],
     );
   }
+
 }
 
 
@@ -438,29 +491,25 @@ class _TxRow extends StatelessWidget {
               color: tx.isBlocked ? AppColors.error : AppColors.tertiary,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(tx.merchant,
-                    style: GoogleFonts.inter(
-                        fontSize: 13, fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 Text(DateFormatter.formatDateTime(tx.timestamp),
-                    style: GoogleFonts.inter(
-                        fontSize: 11, color: AppColors.outline)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline)),
               ],
             ),
           ),
           Text(
             '-${CurrencyFormatter.format(tx.amount)}',
-            style: GoogleFonts.manrope(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: tx.isBlocked ? AppColors.error : AppColors.onSurface,
-            ),
+              color: tx.isBlocked ? AppColors.error : AppColors.onSurface,),
           ),
         ],
       ),
@@ -476,11 +525,9 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: GoogleFonts.manrope(
-        fontSize: 18,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
         fontWeight: FontWeight.w800,
-        color: AppColors.onSurface,
-      ),
+        color: AppColors.onSurface,),
     );
   }
 }
@@ -493,7 +540,7 @@ class _EmptyTxState extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Text(
           'No transactions for this card yet',
-          style: GoogleFonts.inter(color: AppColors.outline, fontSize: 14),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.outline, fontSize: 14),
         ),
       ),
     );
@@ -572,12 +619,11 @@ class _RenameCardSheetState extends ConsumerState<_RenameCardSheet> {
                 ),
               ),
               Text('Rename Card',
-                  style: GoogleFonts.manrope(
-                      fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
-              const SizedBox(height: 8),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
+              const SizedBox(height: AppSpacing.xs),
               Text('Give your card a memorable name.',
-                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant)),
-              const SizedBox(height: 24),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant)),
+              const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: _ctrl,
                 autofocus: true,
@@ -590,7 +636,7 @@ class _RenameCardSheetState extends ConsumerState<_RenameCardSheet> {
                 ),
                 onSubmitted: (_) => _submit(),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -604,11 +650,213 @@ class _RenameCardSheetState extends ConsumerState<_RenameCardSheet> {
                       ? const SizedBox(
                           height: 20, width: 20,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Save Name',
-                          style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 16)),
+                      : const Text('Save Name',
+                          style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16)),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Transaction OTP Action Panel ──────────────────────────────────────────────
+class _OtpActionPanel extends StatelessWidget {
+  final VirtualCardModel card;
+  const _OtpActionPanel({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    if (card.bridgecardCardId == null) return const SizedBox.shrink();
+    
+    return FilledButton.icon(
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          useRootNavigator: true,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _TransactionOtpModal(card: card),
+        );
+      },
+      icon: const Icon(Icons.password_rounded, size: 20),
+      label: const Text('Get 3D Secure OTP', style: TextStyle(fontWeight: FontWeight.w700)),
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.primaryContainer,
+        foregroundColor: AppColors.onPrimaryContainer,
+        minimumSize: const Size(double.infinity, 52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+}
+
+// ── Transaction OTP Input Modal ───────────────────────────────────────────────
+class _TransactionOtpModal extends ConsumerStatefulWidget {
+  final VirtualCardModel card;
+  const _TransactionOtpModal({required this.card});
+
+  @override
+  ConsumerState<_TransactionOtpModal> createState() => _TransactionOtpModalState();
+}
+
+class _TransactionOtpModalState extends ConsumerState<_TransactionOtpModal> {
+  final _amountCtrl = TextEditingController();
+  bool _loading = false;
+  String? _otp;
+  String? _message;
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchOtp() async {
+    final amountText = _amountCtrl.text.replaceAll(',', '').trim();
+    if (amountText.isEmpty) {
+      GkToast.show(context, message: 'Please enter the transaction amount', type: ToastType.error);
+      return;
+    }
+    
+    final amount = double.tryParse(amountText);
+    if (amount == null || amount <= 0) {
+      GkToast.show(context, message: 'Invalid amount', type: ToastType.error);
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _otp = null;
+      _message = null;
+    });
+    
+    try {
+      final fetchedOtp = await ref.read(cardNotifierProvider.notifier).getCardOtp(
+        cardId: widget.card.id, 
+        amountNgn: amount,
+      );
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _otp = fetchedOtp;
+          if (_otp == null) {
+            _message = 'No pending OTP found for this exact amount.';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _message = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text('Transaction Verification',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
+              const SizedBox(height: AppSpacing.xs),
+              Text('Bridgecard requires the exact spending amount in Naira to authorize the OTP.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant)),
+              
+              if (_otp != null) ...[
+                const SizedBox(height: AppSpacing.xl),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.tertiaryFixed.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.tertiary.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Text('Your Secure OTP', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.tertiary, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
+                      Text(
+                        _otp!,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 32, letterSpacing: 10, fontWeight: FontWeight.w800, color: AppColors.tertiary),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: AppSpacing.lg),
+                TextField(
+                  controller: _amountCtrl,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Expected Checkout Amount (₦)',
+                    hintText: 'e.g. 5000',
+                    prefixIcon: const Icon(Icons.payments_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onSubmitted: (_) => _fetchOtp(),
+                ),
+                if (_message != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(_message!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.error, fontSize: 13)),
+                ],
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _loading ? null : _fetchOtp,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            height: 20, width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Get OTP',
+                            style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16)),
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.xs),
             ],
           ),
         ),

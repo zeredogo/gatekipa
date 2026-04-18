@@ -2,7 +2,9 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
 const { requireAuth, requireFields } = require("../utils/validators");
 
+
 exports.createAccount = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { name, type } = request.data;
@@ -42,7 +44,7 @@ exports.createAccount = onCall({ region: "us-central1", enforceAppCheck: true },
 exports.inviteTeamMember = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
-  const { account_id, target_user_id, role } = request.data;
+  const { account_id, target_user_id, role, spend_limit } = request.data;
 
   requireFields(request.data, ["account_id", "target_user_id", "role"]);
 
@@ -53,6 +55,12 @@ exports.inviteTeamMember = onCall({ region: "us-central1", enforceAppCheck: true
   // Need to ensure the inviter owns the account or is an admin
   const accSnap = await db.collection("accounts").doc(account_id).get();
   if (!accSnap.exists) throw new HttpsError("not-found", "Account not found");
+  
+  // Verify Business Tier
+  const ownerDoc = await db.collection("users").doc(accSnap.data().owner_user_id).get();
+  if (!ownerDoc.exists || ownerDoc.data().planTier !== "business") {
+    throw new HttpsError("permission-denied", "Team access requires the Business Plan upgrade.");
+  }
   
   if (accSnap.data().owner_user_id !== uid) {
     const myTmSnap = await db.collection("team_members").doc(`${account_id}_${uid}`).get();
@@ -100,6 +108,7 @@ exports.inviteTeamMember = onCall({ region: "us-central1", enforceAppCheck: true
     user_email: targetEmail || finalUserId,
     user_name: targetName || 'Team Member',
     role: role,
+    spend_limit: spend_limit ? Number(spend_limit) : null,
     invited_at: Date.now()
   });
 

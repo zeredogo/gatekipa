@@ -1,12 +1,13 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_button.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../../auth/providers/auth_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class PremiumUpgradeScreen extends ConsumerStatefulWidget {
   const PremiumUpgradeScreen({super.key});
@@ -20,27 +21,54 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
 
   Future<void> _upgrade() async {
     setState(() => _isLoading = true);
-    
     try {
-      // Simulate payment gateway delay
-      await Future.delayed(const Duration(seconds: 2));
+      // 1. Ask backend to create a Paystack payment session
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('initiatePremiumUpgrade')
+          .call();
 
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
-        await ref.read(authNotifierProvider.notifier).updateProfile(
-          uid: uid,
-          data: {'isPremium': true},
-        );
-      } else {
-        throw Exception("You must be logged in to upgrade.");
+      final dataMap = result.data as Map<dynamic, dynamic>;
+      final authorizationUrl = dataMap['authorizationUrl'] as String?;
+      final reference = dataMap['reference'] as String?;
+
+      if (authorizationUrl == null || reference == null) {
+        throw Exception('Invalid payment response from server.');
       }
 
       if (!mounted) return;
-      GkToast.show(context, message: 'Welcome to Sentinel Prime!', type: ToastType.success);
+
+      // 2. Open Paystack checkout in an in-app WebView
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => _PaystackWebView(
+            url: authorizationUrl,
+            reference: reference,
+          ),
+        ),
+      );
+
+      // 3. After WebView closes, verify payment on backend
+      if (!mounted) return;
+      setState(() => _isLoading = true);
+
+      await FirebaseFunctions.instance
+          .httpsCallable('verifyPremiumPayment')
+          .call({'reference': reference});
+
+      if (!mounted) return;
+      GkToast.show(context, message: 'Welcome to Sentinel Prime! 🎉', type: ToastType.success);
       context.pop();
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      GkToast.show(
+        context,
+        message: e.message ?? 'Upgrade failed. Please try again.',
+        type: ToastType.error,
+      );
     } catch (e) {
       if (!mounted) return;
-      GkToast.show(context, message: 'Failed to upgrade. Please try again.', type: ToastType.error);
+      GkToast.show(context, message: 'Upgrade failed. Please try again.', type: ToastType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -55,11 +83,9 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
       appBar: AppBar(
         title: Text(
           'Sentinel Prime',
-          style: GoogleFonts.manrope(
-            fontSize: 18,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
+            color: Colors.white,),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -74,7 +100,7 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
         data: (user) {
           if (user == null) return const SizedBox.shrink();
 
-          if (user.isPremium) {
+          if (user.planTier == 'premium') {
             return _buildActivePremiumView();
           }
 
@@ -83,7 +109,7 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(24),
@@ -109,30 +135,26 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: AppSpacing.xxl),
                 Text(
                   'Upgrade to\nSentinel Prime',
-                  style: GoogleFonts.manrope(
-                    fontSize: 32,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 32,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
-                    height: 1.2,
-                  ),
+                    height: 1.2,),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   'Unlock the full power of Gatekipa. Highest tier features, elite limits, and zero boundaries.',
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                     color: Colors.white70,
-                    height: 1.5,
-                  ),
+                    height: 1.5,),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: AppSpacing.xxl),
                 _buildFeatureRow(Icons.card_membership_rounded, 'Unlimited Virtual Cards', 'Create infinite customizable cards.'),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
                 _buildFeatureRow(Icons.flight_takeoff_rounded, 'Worldwide Acceptance', 'No cross-border transaction fees.'),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.lg),
                 _buildFeatureRow(Icons.security_rounded, 'Advanced Geo-Fencing', 'Lock cards to specific countries / regions.'),
               ],
             ),
@@ -145,7 +167,7 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
       ),
       bottomNavigationBar: userAsync.when(
         data: (user) {
-          if (user == null || user.isPremium) return const SizedBox.shrink();
+          if (user == null || user.planTier == 'premium') return const SizedBox.shrink();
           return Container(
             padding: EdgeInsets.fromLTRB(
                 24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
@@ -170,10 +192,8 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
                 const SizedBox(height: 10),
                 Text(
                   'Cancel anytime. No hidden fees.',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: Colors.white54,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                    color: Colors.white54,),
                 ),
               ],
             ),
@@ -197,26 +217,22 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
           ),
           child: Icon(icon, color: const Color(0xFFEAB308), size: 24),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: GoogleFonts.inter(
-                  fontSize: 16,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+                  color: Colors.white,),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xxs),
               Text(
                 subtitle,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.white70,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
+                  color: Colors.white70,),
               ),
             ],
           ),
@@ -231,7 +247,7 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 64),
+          const SizedBox(height: AppSpacing.xxxl),
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -244,26 +260,85 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
               color: Color(0xFFEAB308),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xl),
           Text(
             'You are Sentinel Prime',
-            style: GoogleFonts.manrope(
-              fontSize: 24,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
+              color: Colors.white,),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             'Your gatekipa account is upgraded. You have zero limits on transactions and ultimate control.',
-            style: GoogleFonts.inter(
-              fontSize: 15,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
               color: Colors.white70,
-              height: 1.5,
-            ),
+              height: 1.5,),
             textAlign: TextAlign.center,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Paystack Payment WebView ──────────────────────────────────────────────────
+class _PaystackWebView extends StatefulWidget {
+  final String url;
+  final String reference;
+  const _PaystackWebView({required this.url, required this.reference});
+
+  @override
+  State<_PaystackWebView> createState() => _PaystackWebViewState();
+}
+
+class _PaystackWebViewState extends State<_PaystackWebView> {
+  late final WebViewController _controller;
+  bool _isLoading = true;
+
+  static const _successPattern = 'gatekipa.com/premium/success';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (url) {
+          // Close WebView once Paystack redirects to our callback URL
+          if (url.contains(_successPattern)) {
+            Navigator.of(context).pop();
+          }
+        },
+        onPageFinished: (_) => setState(() => _isLoading = false),
+      ))
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Secure Payment',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Colors.white),
+        ),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
         ],
       ),
     );

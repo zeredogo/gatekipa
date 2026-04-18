@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class BiometricsScreen extends ConsumerStatefulWidget {
   const BiometricsScreen({super.key});
@@ -105,11 +105,9 @@ class _BiometricsScreenState extends ConsumerState<BiometricsScreen> {
       appBar: AppBar(
         title: Text(
           'Biometrics',
-          style: GoogleFonts.manrope(
-            fontSize: 18,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
-          ),
+            color: AppColors.onSurface,),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -138,23 +136,19 @@ class _BiometricsScreenState extends ConsumerState<BiometricsScreen> {
                   color: AppColors.primary,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xl),
               Text(
                 'Hardware Security',
-                style: GoogleFonts.manrope(
-                  fontSize: 24,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                ),
+                  color: AppColors.onSurface,),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 'Use your device\'s FaceID or Fingerprint scanner to securely unlock and authorize transactions in Gatekipa.',
-                style: GoogleFonts.inter(
-                  fontSize: 15,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                   color: AppColors.onSurfaceVariant,
-                  height: 1.5,
-                ),
+                  height: 1.5,),
               ),
               const SizedBox(height: 36),
               Container(
@@ -172,18 +166,14 @@ class _BiometricsScreenState extends ConsumerState<BiometricsScreen> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   title: Text(
                     'Enable Biometric Login',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface,
-                    ),
+                      color: AppColors.onSurface,),
                   ),
                   subtitle: Text(
                     'Bypass PIN entry for faster access',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: AppColors.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                      color: AppColors.onSurfaceVariant,),
                   ),
                 ),
               ),

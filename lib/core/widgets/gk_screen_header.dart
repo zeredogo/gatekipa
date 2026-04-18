@@ -1,7 +1,7 @@
 // lib/core/widgets/gk_screen_header.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_colors.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 /// A unified page hero header widget used across all top-level screens.
 /// Renders a gradient banner with an icon, title, and subtitle.
@@ -46,25 +46,22 @@ class GkScreenHeader extends StatelessWidget {
             ),
             child: Icon(icon, color: Colors.white, size: 26),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.manrope(
-                    color: Colors.white,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    height: 1.2,
-                  ),
+                    height: 1.2,),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(
                   subtitle,
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.75),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.75),
                     fontSize: 13,
                     height: 1.4,
                   ),
@@ -73,7 +70,7 @@ class GkScreenHeader extends StatelessWidget {
             ),
           ),
           if (trailing != null) ...[
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             trailing!,
           ],
         ],
@@ -119,25 +116,21 @@ class GkEmptyState extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               title,
-              style: GoogleFonts.manrope(
-                fontSize: 18,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
-              ),
+                color: AppColors.onSurface,),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               subtitle,
-              style: GoogleFonts.inter(
-                fontSize: 14,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                 color: AppColors.onSurfaceVariant,
-                height: 1.5,
-              ),
+                height: 1.5,),
               textAlign: TextAlign.center,
             ),
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               FilledButton.icon(
                 onPressed: onAction,
                 icon: const Icon(Icons.add_rounded),
@@ -180,23 +173,19 @@ class GkSectionLabel extends StatelessWidget {
         children: [
           Text(
             title,
-            style: GoogleFonts.manrope(
-              fontSize: 17,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 17,
               fontWeight: FontWeight.w800,
               color: AppColors.onSurface,
-              letterSpacing: -0.3,
-            ),
+              letterSpacing: -0.3,),
           ),
           if (actionLabel != null && onAction != null)
             GestureDetector(
               onTap: onAction,
               child: Text(
                 actionLabel!,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
+                  color: AppColors.primary,),
               ),
             ),
         ],

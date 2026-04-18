@@ -1,24 +1,24 @@
-// lib/features/auth/screens/profile_screen.dart
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_button.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../providers/auth_provider.dart';
-import '../models/user_model.dart';
-import '../../profile/screens/kyc_verification_screen.dart';
-import '../../profile/screens/bvn_verification_screen.dart';
-import '../../profile/screens/biometrics_screen.dart';
-import '../../profile/screens/pin_management_screen.dart';
-import '../../profile/screens/premium_upgrade_screen.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/auth/models/user_model.dart';
+import 'package:gatekipa/features/profile/screens/kyc_verification_screen.dart';
+import 'package:gatekipa/features/profile/screens/bvn_verification_screen.dart';
+import 'package:gatekipa/features/profile/screens/biometrics_screen.dart';
+import 'package:gatekipa/features/profile/screens/pin_management_screen.dart';
+import 'package:gatekipa/features/profile/screens/premium_upgrade_screen.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -52,25 +52,28 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           'Profile',
-          style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w800, color: AppColors.primary),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
         ),
         leading: const BackButton(color: AppColors.onSurface),
         actions: [
           TextButton(
             onPressed: () => _handleSignOut(context, ref),
-            child: Text(
+            child: const Text(
               'Sign Out',
-              style: GoogleFonts.inter(
-                color: AppColors.error,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.error,
+                fontWeight: FontWeight.w700,),
             ),
           ),
         ],
       ),
       body: userAsync.when(
-        data: (user) => SingleChildScrollView(
+        data: (user) => RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async {
+            ref.invalidate(userProfileProvider);
+            await Future.delayed(const Duration(milliseconds: 500));
+          },
+          child: SingleChildScrollView(
           child: Column(
             children: [
               // ── Hero Banner ──────────────────────────────────────────
@@ -102,30 +105,25 @@ class ProfileScreen extends ConsumerWidget {
                           user?.displayName?.isNotEmpty == true
                               ? user!.displayName![0].toUpperCase()
                               : 'G',
-                          style: GoogleFonts.manrope(
-                            color: Colors.white,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                             fontSize: 36,
-                            fontWeight: FontWeight.w800,
-                          ),
+                            fontWeight: FontWeight.w800,),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       user?.displayName ?? 'Gatekipa User',
-                      style: GoogleFonts.manrope(
-                        fontSize: 22,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
+                        color: Colors.white,),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xxs),
                     Text(
                       FirebaseAuth.instance.currentUser?.phoneNumber ??
                           FirebaseAuth.instance.currentUser?.email ??
                           '',
-                      style: GoogleFonts.inter(
-                        color: Colors.white.withValues(alpha: 0.75),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.75),
                         fontSize: 14,
                       ),
                     ),
@@ -135,25 +133,23 @@ class ProfileScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        gradient: user?.isPremium == true
+                        gradient: user?.planTier == 'premium'
                             ? const LinearGradient(
                                 colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
                               )
                             : null,
-                        color: user?.isPremium != true
+                        color: user?.planTier != 'premium'
                             ? Colors.white.withValues(alpha: 0.15)
                             : null,
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(
-                        user?.isPremium == true
+                        user?.planTier == 'premium'
                             ? '✦ Sentinel Prime'
                             : 'Free Plan',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                          color: Colors.white,),
                       ),
                     ),
                   ],
@@ -262,7 +258,7 @@ class ProfileScreen extends ConsumerWidget {
                     ]),
                     const SizedBox(height: 20),
                     // Premium upgrade
-                    if (user?.isPremium != true) ...[
+                    if (user?.planTier != 'premium') ...[
                       _SettingsSection(title: 'Subscription', items: [
                         _SettingsItem(
                           icon: Icons.workspace_premium_rounded,
@@ -278,8 +274,7 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                             child: Text(
                               AppConstants.premiumPriceLabel,
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFFFF8C00),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFFFF8C00),
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
                               ),
@@ -302,7 +297,7 @@ class ProfileScreen extends ConsumerWidget {
                         onTap: () => _showDeleteDialog(context, ref),
                       ),
                     ]),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xl),
                     // Sign out
                     GkButton(
                       label: 'Sign Out',
@@ -310,20 +305,20 @@ class ProfileScreen extends ConsumerWidget {
                       variant: GkButtonVariant.secondary,
                       onPressed: () => _handleSignOut(context, ref),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.sm),
                     Center(
                       child: Text(
                         '${AppConstants.appName} v${AppConstants.appVersion} • All rights reserved',
-                        style: GoogleFonts.inter(
-                            fontSize: 11, color: AppColors.outline),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
                       ),
                     ),
-                    SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                    SizedBox(height: 140),
                   ],
                 ),
               ),
             ],
           ),
+        ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('Error loading profile')),
@@ -334,30 +329,7 @@ class ProfileScreen extends ConsumerWidget {
   void _showDeleteDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Delete Account?',
-            style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
-        content: Text(
-          'This action is permanent. All your cards, transactions and data will be deleted.',
-          style: GoogleFonts.inter(color: AppColors.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              GkToast.show(context,
-                  message: 'Account deletion requested.', type: ToastType.info);
-            },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      builder: (ctx) => _DeleteAccountDialog(parentRef: ref),
     );
   }
 }
@@ -383,8 +355,7 @@ class _KycBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.inter(
-            fontSize: 12, fontWeight: FontWeight.w700, color: color),
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: color),
       ),
     );
   }
@@ -414,15 +385,13 @@ class _SettingsSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 title.toUpperCase(),
-                style: GoogleFonts.inter(
-                  fontSize: 11,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: AppColors.onSurfaceVariant,
-                  letterSpacing: 1.2,
-                ),
+                  letterSpacing: 1.2,),
               ),
             ],
           ),
@@ -496,11 +465,9 @@ class _SettingsItem extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600,
                   fontSize: 14,
-                  color: textColor ?? AppColors.onSurface,
-                ),
+                  color: textColor ?? AppColors.onSurface,),
               ),
             ),
             trailing,
@@ -610,11 +577,11 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Edit Profile', style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800)),
+                Text('Edit Profile', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800)),
                 IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             TextField(
               controller: _firstNameCtrl,
               decoration: InputDecoration(
@@ -622,7 +589,7 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: _lastNameCtrl,
               decoration: InputDecoration(
@@ -630,7 +597,7 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
@@ -639,7 +606,7 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
@@ -648,7 +615,7 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             TextField(
               controller: _addressCtrl,
               maxLines: 2,
@@ -657,7 +624,7 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xl),
             GkButton(
               label: 'Save Changes',
               isLoading: _isLoading,
@@ -679,3 +646,83 @@ void _showUpdateProfileSheet(BuildContext context, WidgetRef ref, UserModel user
     builder: (ctx) => _UpdateProfileSheet(user: user),
   );
 }
+
+// ── Delete Account Dialog ─────────────────────────────────────────────────────
+class _DeleteAccountDialog extends ConsumerStatefulWidget {
+  final WidgetRef parentRef;
+  const _DeleteAccountDialog({required this.parentRef});
+
+  @override
+  ConsumerState<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
+  bool _deleting = false;
+
+  Future<void> _confirmDelete() async {
+    setState(() => _deleting = true);
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('deleteUserAccount')
+          .call({'confirm': true});
+
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      // Sign out locally and redirect
+      await widget.parentRef.read(authNotifierProvider.notifier).signOut();
+      if (mounted) context.go(Routes.phoneAuth);
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        GkToast.show(
+          context,
+          message: e.message ?? 'Failed to delete account. Try again.',
+          type: ToastType.error,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        GkToast.show(
+          context,
+          message: 'An unexpected error occurred. Try again.',
+          type: ToastType.error,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      icon: const Icon(Icons.delete_forever_rounded,
+          color: AppColors.error, size: 40),
+      title: Text('Delete Account?',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+      content: Text(
+        'This is permanent and cannot be undone.\n\nAll your cards, rules, wallet balance, and account data will be erased and your account deleted.',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, height: 1.5),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _deleting ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _deleting ? null : _confirmDelete,
+          style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+          child: _deleting
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2),
+                )
+              : const Text('Delete Everything'),
+        ),
+      ],
+    );
+  }
+}
+

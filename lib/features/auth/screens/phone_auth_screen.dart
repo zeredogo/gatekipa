@@ -5,13 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../providers/auth_provider.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class PhoneAuthScreen extends ConsumerStatefulWidget {
   const PhoneAuthScreen({super.key});
@@ -25,6 +25,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
   bool _isLoading = false;
   bool _biometricAvailable = false;
   bool _isBiometricLoading = false;
+  bool _acceptedPrivacy = false;
 
   @override
   void initState() {
@@ -92,6 +93,12 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
 
   Future<void> _sendOtp() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    if (!_acceptedPrivacy) {
+      GkToast.show(context, message: "You must accept the Privacy Policy to proceed.", type: ToastType.warning);
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     final phone = '+234${_controller.text.replaceFirst(RegExp(r'^0'), '')}';
@@ -141,25 +148,21 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                 child: const Icon(Icons.phone_rounded,
                     color: AppColors.primary, size: 28),
               ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 'Enter your\nphone number',
-                style: GoogleFonts.manrope(
-                  fontSize: 32,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 32,
                   fontWeight: FontWeight.w800,
                   color: AppColors.onSurface,
                   height: 1.2,
-                  letterSpacing: -0.5,
-                ),
+                  letterSpacing: -0.5,),
               ).animate().fadeIn(delay: 100.ms),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 "We'll send a verification code. Standard rates may apply.",
-                style: GoogleFonts.inter(
-                  fontSize: 15,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                   color: AppColors.onSurfaceVariant,
-                  height: 1.5,
-                ),
+                  height: 1.5,),
               ).animate().fadeIn(delay: 200.ms),
               const SizedBox(height: 40),
               // Phone input
@@ -170,11 +173,9 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(11),
                 ],
-                style: GoogleFonts.manrope(
-                  fontSize: 20,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                ),
+                  letterSpacing: 1,),
                 decoration: InputDecoration(
                   prefixIcon: Container(
                     margin: const EdgeInsets.only(left: 12, right: 12),
@@ -186,17 +187,14 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                     ),
                     child: Text(
                       '🇳🇬  +234',
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
-                      ),
+                        color: AppColors.onSurface,),
                     ),
                   ),
                   prefixIconConstraints: const BoxConstraints(),
                   hintText: '08012345678',
-                  hintStyle: const TextStyle(
-                      color: AppColors.outline,
+                  hintStyle: const TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.outline,
                       fontWeight: FontWeight.w500,
                       fontSize: 18),
                   border: OutlineInputBorder(
@@ -229,16 +227,22 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                 },
               ).animate().fadeIn(delay: 300.ms),
               const SizedBox(height: 20),
-              Center(
-                child: Text(
-                  'By continuing, you agree to our Terms of Service\nand Privacy Policy.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.outline,
-                    height: 1.6,
+              Row(
+                children: [
+                  Checkbox(
+                    value: _acceptedPrivacy,
+                    onChanged: (val) {
+                      setState(() => _acceptedPrivacy = val ?? false);
+                    },
+                    activeColor: AppColors.primary,
                   ),
-                ),
+                  Expanded(
+                    child: Text(
+                      'I agree to the Gatekipa Privacy Policy and Terms of Service.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant),
+                    ),
+                  ),
+                ],
               ).animate().fadeIn(delay: 400.ms),
             ],
           ),
@@ -281,30 +285,27 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2.5),
                       )
-                    : Row(
+                    : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.send_rounded, size: 18),
-                          const SizedBox(width: 10),
+                          Icon(Icons.send_rounded, size: 18),
+                          SizedBox(width: 10),
                           Text(
                             'Send Verification Code',
-                            style: GoogleFonts.manrope(
-                                fontWeight: FontWeight.w800, fontSize: 15),
+                            style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 15),
                           ),
                         ],
                       ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             TextButton.icon(
               onPressed: () => context.pushReplacement(Routes.emailAuth),
               icon: const Icon(Icons.email_rounded, size: 20),
-              label: Text(
+              label: const Text(
                 'Continue with Email instead',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
+                style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700,
+                  fontSize: 14,),
               ),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
@@ -367,26 +368,22 @@ class _BiometricUnlockButton extends StatelessWidget {
             else
               const Icon(Icons.fingerprint_rounded,
                   color: AppColors.primary, size: 26),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   isLoading ? 'Verifying...' : 'Use Biometrics',
-                  style: GoogleFonts.manrope(
-                    fontSize: 15,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+                    color: AppColors.primary,),
                 ),
                 if (displayName != null && displayName.isNotEmpty)
                   Text(
                     'Continue as $displayName',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                       color: AppColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
+                      fontWeight: FontWeight.w500,),
                   ),
               ],
             ),

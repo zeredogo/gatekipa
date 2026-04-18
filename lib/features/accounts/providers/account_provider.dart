@@ -2,8 +2,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../models/account_model.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/accounts/models/account_model.dart';
 
 import 'package:rxdart/rxdart.dart';
 
@@ -105,7 +105,8 @@ class AccountNotifier extends StateNotifier<AsyncValue<void>> {
       });
 
       state = const AsyncValue.data(null);
-      return result.data['accountId'] as String?;
+      final dataMap = result.data as Map<dynamic, dynamic>;
+      return dataMap['accountId']?.toString();
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
       return null;
@@ -161,6 +162,7 @@ class AccountNotifier extends StateNotifier<AsyncValue<void>> {
     required String accountId,
     required String targetUserId,
     required String role,
+    double? spendLimit,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -168,6 +170,7 @@ class AccountNotifier extends StateNotifier<AsyncValue<void>> {
         'account_id': accountId,
         'target_user_id': targetUserId,
         'role': role,
+        if (spendLimit != null) 'spend_limit': spendLimit,
       });
       state = const AsyncValue.data(null);
       return null;

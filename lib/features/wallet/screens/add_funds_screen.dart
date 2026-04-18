@@ -2,15 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_toast.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../providers/wallet_provider.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
+
 
 class AddFundsScreen extends ConsumerStatefulWidget {
   const AddFundsScreen({super.key});
@@ -60,20 +62,17 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   ),
                   Text(
                     'Card Top-Up',
-                    style: GoogleFonts.manrope(
-                      fontSize: 22,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
+                      color: AppColors.primary,),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     'Secure checkout via Paystack. Funds are credited instantly.',
-                    style: GoogleFonts.inter(
-                        fontSize: 13,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                         color: AppColors.onSurfaceVariant),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Quick-select amount chips
                   Wrap(
@@ -82,8 +81,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                       return ActionChip(
                         label: Text(
                           '₦$preset',
-                          style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w600,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600,
                               fontSize: 13,
                               color: AppColors.primary),
                         ),
@@ -98,7 +96,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
 
                   // Amount input
                   TextField(
@@ -145,10 +143,9 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                     ),
                     onChanged: (_) => setSheetState(() {}),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xs),
                   Text('Minimum: ₦100',
-                      style: GoogleFonts.inter(
-                          fontSize: 12, color: AppColors.outline)),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline)),
                   const SizedBox(height: 28),
 
                   // Proceed button
@@ -189,6 +186,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                                   message: 'Verifying payment…',
                                   type: ToastType.info,
                                 );
+                                final textTheme = Theme.of(context).textTheme;
                                 final success = await ref
                                     .read(walletNotifierProvider.notifier)
                                     .verifyPaystackPayment(
@@ -198,8 +196,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                                     success
                                         ? '₦${amt.toStringAsFixed(0)} added to your vault!'
                                         : 'Verification failed. Contact support.',
-                                    style: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w600),
+                                    style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                                   ),
                                   backgroundColor: success
                                       ? AppColors.primary
@@ -216,16 +213,14 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                       },
                       icon: const Icon(Icons.credit_card_rounded,
                           color: Colors.white),
-                      label: Text(
+                      label: const Text(
                         'Pay with Card',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontSize: 16,
+                          fontWeight: FontWeight.w700,),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
 
                   // Security badge
                   Center(
@@ -237,8 +232,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                         const SizedBox(width: 6),
                         Text(
                           'Secured by Paystack · PCI DSS compliant',
-                          style: GoogleFonts.inter(
-                              fontSize: 12, color: AppColors.outline),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline),
                         ),
                       ],
                     ),
@@ -260,8 +254,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text('Add Funds',
-            style: GoogleFonts.manrope(
-                fontWeight: FontWeight.w800, color: AppColors.primary)),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
         leading: const BackButton(color: AppColors.onSurface),
       ),
       body: SingleChildScrollView(
@@ -270,23 +263,23 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Your Dedicated Vault Account',
-                style: GoogleFonts.manrope(
-                    fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: AppSpacing.xs),
             Text(
-              'Transfer any amount to this account number to automatically fund your vault. Powered by Bridgecard.',
-              style: GoogleFonts.inter(
-                  fontSize: 14, color: AppColors.onSurfaceVariant),
+              'Transfer any amount to this account number to automatically fund your vault. Powered by Paystack & Banking Partners.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: 28),
 
             // Vault NUBAN / generate card
             if (user?.bridgecardNuban == null)
               _GenerateAccountCard(
+                isDisabled: false,
                 onGenerate: () async {
                   final uid = user?.uid;
                   if (uid == null) return;
                   final scaffoldMsg = ScaffoldMessenger.of(context);
+                  final textTheme = Theme.of(context).textTheme;
                   final success = await ref
                       .read(walletNotifierProvider.notifier)
                       .generateVaultAccount(uid);
@@ -295,7 +288,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                       success
                           ? 'Vault Account Generated!'
                           : 'Failed to generate account',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     backgroundColor:
                         success ? AppColors.primary : AppColors.error,
@@ -311,7 +304,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   .fadeIn()
                   .slideY(begin: 0.1, end: 0),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
 
             // Info banner
             Container(
@@ -327,12 +320,11 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                 children: [
                   const Icon(Icons.info_outline_rounded,
                       color: AppColors.secondary),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       'Funds transferred to this account will appear in your Gatekipa Vault balance automatically.',
-                      style: GoogleFonts.inter(
-                          fontSize: 13,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                           color: AppColors.onSurfaceVariant,
                           height: 1.4),
                     ),
@@ -341,19 +333,17 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
               ),
             ).animate().fadeIn(delay: 200.ms),
 
-            const SizedBox(height: 48),
+            const SizedBox(height: AppSpacing.xxl),
 
             // Card top-up section
             Text('Instant Card Top-Up',
-                style: GoogleFonts.manrope(
-                    fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'Top up instantly using any NG debit or credit card via Paystack secure checkout.',
-              style: GoogleFonts.inter(
-                  fontSize: 14, color: AppColors.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.onSurfaceVariant),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -370,9 +360,8 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   _showTopUpBottomSheet(context, email, uid);
                 },
                 icon: const Icon(Icons.credit_card_rounded),
-                label: Text('Top up with Card',
-                    style: GoogleFonts.inter(
-                        fontSize: 16, fontWeight: FontWeight.w700)),
+                label: const Text('Top up with Card',
+                    style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w700)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(
@@ -383,7 +372,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
               ),
             ).animate().fadeIn(delay: 300.ms),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -392,8 +381,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                       size: 14, color: AppColors.outline),
                   const SizedBox(width: 6),
                   Text('Secured by Paystack · PCI DSS compliant',
-                      style: GoogleFonts.inter(
-                          fontSize: 12, color: AppColors.outline)),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline)),
                 ],
               ),
             ).animate().fadeIn(delay: 400.ms),
@@ -565,8 +553,7 @@ class _PaystackCheckoutScreenState
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text('Secure Payment',
-            style: GoogleFonts.manrope(
-                fontWeight: FontWeight.w800, color: AppColors.primary)),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
         leading: const BackButton(color: AppColors.onSurface),
         actions: [
           Padding(
@@ -575,10 +562,9 @@ class _PaystackCheckoutScreenState
               children: [
                 const Icon(Icons.lock_rounded,
                     size: 14, color: AppColors.outline),
-                const SizedBox(width: 4),
+                const SizedBox(width: AppSpacing.xxs),
                 Text('Paystack',
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.outline)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline)),
               ],
             ),
           ),
@@ -593,7 +579,7 @@ class _PaystackCheckoutScreenState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: 16),
+                  SizedBox(height: AppSpacing.md),
                   Text('Loading secure checkout…'),
                 ],
               ),
@@ -637,15 +623,13 @@ class _NubanCard extends StatelessWidget {
             children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('BANK NAME',
-                    style: GoogleFonts.inter(
-                        color: Colors.white60,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1)),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(user.bridgecardBankName ?? 'Moniepoint MFB',
-                    style: GoogleFonts.manrope(
-                        color: Colors.white,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
               ]),
@@ -653,14 +637,13 @@ class _NubanCard extends StatelessWidget {
                   color: Colors.white54, size: 28),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xl),
           Text('ACCOUNT NUMBER',
-              style: GoogleFonts.inter(
-                  color: Colors.white60,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1)),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -683,17 +666,15 @@ class _NubanCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xl),
           Text('ACCOUNT NAME',
-              style: GoogleFonts.inter(
-                  color: Colors.white60,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1)),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           Text(user.bridgecardAccountName ?? 'Gatekipa Vault',
-              style: GoogleFonts.manrope(
-                  color: Colors.white,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700)),
         ],
@@ -705,7 +686,8 @@ class _NubanCard extends StatelessWidget {
 // ── Generate Account Card ─────────────────────────────────────────────────────
 class _GenerateAccountCard extends StatefulWidget {
   final Future<void> Function() onGenerate;
-  const _GenerateAccountCard({required this.onGenerate});
+  final bool isDisabled;
+  const _GenerateAccountCard({required this.onGenerate, this.isDisabled = false});
 
   @override
   State<_GenerateAccountCard> createState() => _GenerateAccountCardState();
@@ -737,25 +719,23 @@ class _GenerateAccountCardState extends State<_GenerateAccountCard> {
         children: [
           const Icon(Icons.account_balance_rounded,
               color: Colors.white, size: 48),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           Text('No Vault Account Yet',
-              style: GoogleFonts.manrope(
-                  color: Colors.white,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             'Generate your dedicated virtual account to start funding your Gatekipa wallet instantly.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-                color: Colors.white70, fontSize: 14, height: 1.5),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, fontSize: 14, height: 1.5),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           SizedBox(
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: _loading
+              onPressed: (_loading || widget.isDisabled)
                   ? null
                   : () async {
                       setState(() => _loading = true);
@@ -775,9 +755,8 @@ class _GenerateAccountCardState extends State<_GenerateAccountCard> {
                       width: 22,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.primary))
-                  : Text('Generate Vault Account',
-                      style: GoogleFonts.inter(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
+                  : Text(widget.isDisabled ? 'Transactions Disabled' : 'Generate Vault Account',
+                      style: const TextStyle(height: 1.2, fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w700)),
             ),
           ),
         ],

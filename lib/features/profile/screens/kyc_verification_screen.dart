@@ -38,7 +38,8 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
           .call({'nin': _ninCtrl.text.trim()});
       
       if (!mounted) return;
-      if (result.data['success'] == true) {
+      final dataMap = result.data as Map<dynamic, dynamic>;
+      if (dataMap['success'] == true) {
         GkToast.show(context, message: 'Identity verified successfully!', type: ToastType.success);
       } else {
         GkToast.show(context, message: 'Verification failed.', type: ToastType.error);

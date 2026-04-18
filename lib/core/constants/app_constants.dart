@@ -12,9 +12,9 @@ class AppConstants {
   static const double premiumPriceMonthly = 999;
   static const String premiumPriceLabel = '₦999/mo';
 
-  // Paystack — replace with your live key before production release
+  // Paystack — live production key
   // Get yours at: https://dashboard.paystack.com/#/settings/developers
-  static const String paystackPublicKey = 'pk_test_3b4998d6346ca09b7ef06f99dd68cf8f514b6e05';
+  static const String paystackPublicKey = 'pk_live_202db48004edd761da323d1d2d8820ed55f3b569';
 
   // Firebase Collections
   static const String usersCollection = 'users';

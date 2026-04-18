@@ -1,12 +1,12 @@
 // lib/features/search/widgets/search_bar_widget.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../accounts/providers/account_provider.dart';
-import '../providers/search_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/search/providers/search_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class DashboardSearchBarWidget extends ConsumerWidget {
   const DashboardSearchBarWidget({super.key});
@@ -21,10 +21,10 @@ class DashboardSearchBarWidget extends ConsumerWidget {
       children: [
         TextField(
           onChanged: (val) => ref.read(searchQueryProvider.notifier).state = val,
-          style: GoogleFonts.inter(fontSize: 15, color: AppColors.onSurface, fontWeight: FontWeight.w500),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15, color: AppColors.onSurface, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: 'Search cards or accounts...',
-            hintStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 14),
+            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.outline, fontSize: 14),
             prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20)
                 .animate(onPlay: (controller) => controller.repeat(reverse: true))
                 .shimmer(duration: 2.seconds, blendMode: BlendMode.srcATop),
@@ -76,7 +76,7 @@ class DashboardSearchBarWidget extends ConsumerWidget {
               ),
               error: (_, __) => Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text('Search failed', style: GoogleFonts.inter(color: AppColors.onSurfaceVariant)),
+                child: Text('Search failed', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
               ),
               data: (results) {
                 final allCards = results.cards;
@@ -92,10 +92,10 @@ class DashboardSearchBarWidget extends ConsumerWidget {
                           const Icon(Icons.search_off_rounded, color: AppColors.outline, size: 40)
                               .animate()
                               .scale(begin: const Offset(0.8, 0.8), curve: Curves.elasticOut),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.sm),
                           Text(
                             'No results found.',
-                            style: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w500),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
@@ -122,10 +122,9 @@ class DashboardSearchBarWidget extends ConsumerWidget {
                           child: const Icon(Icons.credit_card_rounded, color: AppColors.primary, size: 20),
                         ),
                         title: Text(card.name,
-                            style: GoogleFonts.manrope(
-                                color: AppColors.onSurface, fontWeight: FontWeight.bold, fontSize: 14)),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold, fontSize: 14)),
                         subtitle: Text(card.isTrial ? 'Trial Card' : 'Virtual Card',
-                            style: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 12)),
                         trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.outline, size: 20),
                         onTap: () {
                           ref.read(activeAccountIdProvider.notifier).setActiveAccount(card.accountId);
@@ -150,10 +149,9 @@ class DashboardSearchBarWidget extends ConsumerWidget {
                               color: Color(0xFF6366F1), size: 20),
                         ),
                         title: Text(account.name,
-                            style: GoogleFonts.manrope(
-                                color: AppColors.onSurface, fontWeight: FontWeight.bold, fontSize: 14)),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold, fontSize: 14)),
                         subtitle: Text(account.type[0].toUpperCase() + account.type.substring(1),
-                            style: GoogleFonts.inter(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, fontSize: 12)),
                         trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.outline, size: 20),
                         onTap: () {
                           ref.read(activeAccountIdProvider.notifier).setActiveAccount(account.id);

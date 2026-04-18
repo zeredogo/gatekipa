@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

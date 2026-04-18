@@ -3,9 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/virtual_card_model.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../../accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
 
 // ── Rules Stream for a single card ─────────────────────────────────────────────
 final cardRulesProvider = StreamProvider.family<List<CardRule>, String>((ref, cardId) {
@@ -24,7 +24,8 @@ final cardsProvider = StreamProvider<List<VirtualCardModel>>((ref) {
   final accounts = accountsAsync.valueOrNull ?? [];
   if (accounts.isEmpty) return Stream.value([]);
 
-  final accountIds = accounts.map((a) => a.id).take(10).toList();
+  // Firestore whereIn supports up to 30 values
+  final accountIds = accounts.map((a) => a.id).take(30).toList();
 
   return FirebaseFirestore.instance
       .collection('cards')
@@ -73,7 +74,8 @@ final transactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
   final accounts = accountsAsync.valueOrNull ?? [];
   if (accounts.isEmpty) return Stream.value([]);
 
-  final accountIds = accounts.map((a) => a.id).take(10).toList();
+  // Firestore whereIn supports up to 30 values
+  final accountIds = accounts.map((a) => a.id).take(30).toList();
 
   return FirebaseFirestore.instance
       .collection('transactions')
@@ -98,12 +100,53 @@ final activeCardsProvider = Provider<List<VirtualCardModel>>((ref) {
 class CardNotifier extends StateNotifier<AsyncValue<void>> {
   CardNotifier() : super(const AsyncValue.data(null));
 
+  Future<bool> registerCardholder({
+    required String firstName,
+    required String lastName,
+    required String phone,
+    required String address,
+    required String city,
+    required String regionState,
+    required String postalCode,
+    required String houseNumber,
+    String? idType,
+    String? idNo,
+    String? idImage,
+    String? selfieImage,
+    String? country,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      await FirebaseFunctions.instance.httpsCallable('registerCardholder').call({
+        'first_name': firstName,
+        'last_name': lastName,
+        'phone': phone,
+        'address': address,
+        'city': city,
+        'state': regionState,
+        'postal_code': postalCode,
+        'house_no': houseNumber,
+        if (idType != null) 'id_type': idType,
+        if (idNo != null) 'id_no': idNo,
+        if (idImage != null) 'id_image': idImage,
+        if (selfieImage != null) 'selfie_image': selfieImage,
+        if (country != null) 'country': country,
+      });
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      return false;
+    }
+  }
+
   Future<String?> createCard({
     required String accountId,
     required String name,
     required bool isTrial,
     String category = 'personal',
     double balanceLimit = 50000,
+    String currency = 'NGN',
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -113,12 +156,34 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
         'is_trial': isTrial,
         'category': category,
         'balance_limit': balanceLimit,
+        'currency': currency,
       });
       state = const AsyncValue.data(null);
-      return result.data['cardId'] as String?;
+      final dataMap = result.data as Map<dynamic, dynamic>;
+      return dataMap['cardId']?.toString();
     } catch (e) {
       state = AsyncValue.error(e.toString(), StackTrace.current);
       return null;
+    }
+  }
+
+  Future<bool> createBridgecard({
+    required String cardId,
+    required String pin,
+    String? cardCurrency,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      await FirebaseFunctions.instance.httpsCallable('createBridgecard').call({
+        'card_id': cardId,
+        'pin': pin,
+        if (cardCurrency != null) 'card_currency': cardCurrency,
+      });
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e) {
+      state = AsyncValue.error(e.toString(), StackTrace.current);
+      return false;
     }
   }
 
@@ -195,15 +260,59 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Blocks all active cards belonging to the current user's accounts.
-  Future<bool> activateKillSwitch(String uid) async {
+  Future<String?> activateKillSwitch(String uid) async {
     state = const AsyncValue.loading();
     try {
       await FirebaseFunctions.instance.httpsCallable('activateKillSwitch').call();
       state = const AsyncValue.data(null);
-      return true;
+      return null;
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
-      return false;
+      if (e is FirebaseFunctionsException) {
+        return e.message;
+      }
+      return 'An unexpected error occurred. Please try again.';
+    }
+  }
+
+  /// Securely proxies Bridgecard's PCI-DSS endpoint to map raw card bytes locally.
+  /// Never persists results natively!
+  Future<Map<String, dynamic>?> revealCardDetails({required String cardId}) async {
+    state = const AsyncValue.loading();
+    try {
+      final res = await FirebaseFunctions.instance.httpsCallable('revealCardDetails').call({
+        'card_id': cardId,
+      });
+      state = const AsyncValue.data(null);
+      if (res.data != null && res.data['success'] == true) {
+        return Map<String, dynamic>.from(res.data);
+      }
+      return null;
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      return null;
+    }
+  }
+
+  /// Fetches the live 3D Secure OTP tied to the explicit Naira transaction amount.
+  Future<String?> getCardOtp({required String cardId, required double amountNgn}) async {
+    state = const AsyncValue.loading();
+    try {
+      final res = await FirebaseFunctions.instance.httpsCallable('getCardOtp').call({
+        'card_id': cardId,
+        'amount_ngn': amountNgn,
+      });
+      state = const AsyncValue.data(null);
+      if (res.data != null && res.data['success'] == true && res.data['otp'] != null) {
+        return res.data['otp'].toString();
+      }
+      return null;
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      if (e is FirebaseFunctionsException) {
+        throw Exception(e.message ?? 'Failed to get OTP');
+      }
+      throw Exception('Failed to get OTP from the server');
     }
   }
 }

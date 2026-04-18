@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_button.dart';
-import '../../../core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class PinManagementScreen extends ConsumerStatefulWidget {
   const PinManagementScreen({super.key});
@@ -85,11 +85,9 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
       appBar: AppBar(
         title: Text(
           'Transaction PIN',
-          style: GoogleFonts.manrope(
-            fontSize: 18,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
-          ),
+            color: AppColors.onSurface,),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -107,52 +105,44 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 _hasExistingPin ? 'Update Security PIN' : 'Set Security PIN',
-                style: GoogleFonts.manrope(
-                  fontSize: 24,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                ),
+                  color: AppColors.onSurface,),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 'This 4-digit PIN protects your virtual cards, wire transfers, and account settings.',
-                style: GoogleFonts.inter(
-                  fontSize: 15,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                   color: AppColors.onSurfaceVariant,
-                  height: 1.5,
-                ),
+                  height: 1.5,),
               ),
               const SizedBox(height: 36),
               Text(
                 'New PIN',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.onSurfaceVariant,
-                ),
+                  color: AppColors.onSurfaceVariant,),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
               TextFormField(
                 controller: _pinCtrl,
                 keyboardType: TextInputType.number,
                 obscureText: true,
                 obscuringCharacter: '●',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 24,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
                   letterSpacing: 16,
-                  fontWeight: FontWeight.w800,
-                ),
+                  fontWeight: FontWeight.w800,),
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(4),
                 ],
                 decoration: InputDecoration(
                   hintText: '●●●●',
-                  hintStyle: const TextStyle(letterSpacing: 16),
+                  hintStyle: const TextStyle(height: 1.2, fontFamily: 'Manrope', letterSpacing: 16),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -179,7 +169,7 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -190,15 +180,13 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.shield_rounded, color: AppColors.primary, size: 20),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         'Your PIN is securely hashed and never stored locally in plain text.',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                           color: AppColors.primary,
-                          height: 1.4,
-                        ),
+                          height: 1.4,),
                       ),
                     ),
                   ],

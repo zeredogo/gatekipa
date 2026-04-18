@@ -68,7 +68,7 @@ class VirtualCardModel {
   final String id;
   final String accountId;  // -> accounts.id
   final String name;
-  final String status;     // active | blocked | expired
+  final String status;     // active | blocked | expired | pending_issuance | frozen
   final bool isTrial;
   final String category;   // personal | business
   final int createdAt;     // epoch ms

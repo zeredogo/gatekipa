@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/date_formatter.dart';
-import '../models/notification_model.dart';
-import '../providers/notification_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/date_formatter.dart';
+import 'package:gatekipa/features/notifications/models/notification_model.dart';
+import 'package:gatekipa/features/notifications/providers/notification_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class NotificationCenterScreen extends ConsumerWidget {
   const NotificationCenterScreen({super.key});
@@ -23,8 +23,7 @@ class NotificationCenterScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           'Notifications',
-          style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w800, color: AppColors.primary),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
         ),
         leading: const BackButton(color: AppColors.onSurface),
         actions: [
@@ -37,13 +36,11 @@ class NotificationCenterScreen extends ConsumerWidget {
                     .markAllRead(uid);
               }
             },
-            child: Text(
+            child: const Text(
               'Mark all read',
-              style: GoogleFonts.inter(
-                color: AppColors.primary,
+              style: TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.primary,
                 fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
+                fontSize: 13,),
             ),
           ),
         ],
@@ -83,7 +80,7 @@ class NotificationCenterScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           // Notifications list
           Expanded(
             child: RefreshIndicator(
@@ -135,10 +132,8 @@ class _FilterChip extends StatelessWidget {
       child: FilterChip(
         label: Text(
           label,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+            fontWeight: FontWeight.w600,),
         ),
         selected: isSelected,
         onSelected: (_) => ref.read(notifFilterProvider.notifier).state = value,
@@ -221,30 +216,24 @@ class _NotifCard extends ConsumerWidget {
                 children: [
                   Text(
                     notif.title,
-                    style: GoogleFonts.inter(
-                      fontWeight:
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight:
                           notif.isRead ? FontWeight.w500 : FontWeight.w700,
-                      fontSize: 14,
-                    ),
+                      fontSize: 14,),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     notif.body,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                       color: AppColors.onSurfaceVariant,
-                      height: 1.4,
-                    ),
+                      height: 1.4,),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
                   Text(
                     DateFormatter.timeAgo(notif.timestamp),
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: AppColors.outline,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11,
+                      color: AppColors.outline,),
                   ),
                 ],
               ),
@@ -277,19 +266,17 @@ class _EmptyNotifState extends StatelessWidget {
         children: [
           const Icon(Icons.notifications_none_rounded,
               size: 64, color: AppColors.outline),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           Text(
             'No notifications',
-            style: GoogleFonts.manrope(
-              fontSize: 20,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurfaceVariant,
-            ),
+              color: AppColors.onSurfaceVariant,),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             "You're all caught up!",
-            style: GoogleFonts.inter(color: AppColors.outline, fontSize: 14),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.outline, fontSize: 14),
           ),
         ],
       ),

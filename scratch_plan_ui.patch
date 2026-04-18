@@ -1,0 +1,20 @@
+--- lib/features/cards/screens/card_creation_screen.dart
++++ lib/features/cards/screens/card_creation_screen.dart
+@@ -311,6 +311,17 @@
+     final user = userAsync.valueOrNull;
+     final needsRegistration = user != null && user.bridgecardCardholderId == null;
+ 
++    if (user != null && (user.planTier == 'none' || user.planTier.isEmpty)) {
++      return Scaffold(
++        backgroundColor: AppColors.surface,
++        appBar: AppBar(
++          title: Text('Select a Plan', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 20)),
++          backgroundColor: AppColors.surface,
++        ),
++        body: _PlanSelectionView(user: user),
++      );
++    }
++
+     return Scaffold(
+       backgroundColor: AppColors.surface,
+       appBar: AppBar(

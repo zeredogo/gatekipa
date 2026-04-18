@@ -1,9 +1,15 @@
 // functions/services/paystackService.js
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
 const { requireAuth, requireFields } = require("../utils/validators");
 const { FieldValue } = require("firebase-admin/firestore");
+const { defineSecret } = require("firebase-functions/params");
+const { getMessaging } = require("firebase-admin/messaging");
 const axios = require("axios");
+const logger = require("firebase-functions/logger");
+
+const PAYSTACK_SECRET_KEY = defineSecret("PAYSTACK_SECRET_KEY");
+
 
 /**
  * verifyPaystackPayment
@@ -21,9 +27,10 @@ exports.verifyPaystackPayment = onCall(
   {
     region: "us-central1",
     enforceAppCheck: true,
-    // secrets: ["PAYSTACK_SECRET_KEY"],
+    secrets: [PAYSTACK_SECRET_KEY]
   },
   async (request) => {
+
     requireAuth(request.auth);
     const uid = request.auth.uid;
     const { reference } = request.data;
@@ -31,9 +38,7 @@ exports.verifyPaystackPayment = onCall(
     requireFields(request.data, ["reference"]);
 
     // ── Verify with Paystack ───────────────────────────────────────────────────
-    const secretKey =
-      process.env.PAYSTACK_SECRET_KEY ||
-      (request.app ? process.env.PAYSTACK_SECRET_KEY : null);
+    const secretKey = PAYSTACK_SECRET_KEY.value();
 
     if (!secretKey) {
       throw new HttpsError(
@@ -128,8 +133,22 @@ exports.verifyPaystackPayment = onCall(
 
         // Credit the wallet
         t.set(walletRef, { balance: FieldValue.increment(verifiedAmount) }, { merge: true });
+
+        // Immutable Ledger Log
+        const ledgerRef = db.collection("users").doc(uid).collection("wallet_transactions").doc(reference);
+        t.set(ledgerRef, {
+          id: reference,
+          type: "credit",
+          amount: verifiedAmount,
+          method: "paystack",
+          status: "completed",
+          timestamp: Date.now()
+        });
+        
+        logger.info(`[Paystack] verifyPaystackPayment: Successfully credited ${verifiedAmount} to UID ${uid}`);
       });
     } catch (e) {
+      logger.error(`[Paystack] verifyPaystackPayment transaction failed: ${e.message}`, e);
       if (e.message === "ALREADY_PROCESSED") {
         throw new HttpsError("already-exists", "This payment has already been processed.");
       }
@@ -147,8 +166,11 @@ exports.verifyPaystackPayment = onCall(
  * This guarantees the user's wallet is funded even if their connection
  * drops immediately after paying via the Paystack frontend overlay.
  */
-exports.paystackWebhook = require("firebase-functions/v2/https").onRequest(
-  { region: "us-central1" },
+exports.paystackWebhook = onRequest(
+  {
+    region: "us-central1",
+    secrets: [PAYSTACK_SECRET_KEY]
+  },
   async (req, res) => {
     // Only accept POST requests
     if (req.method !== "POST") {
@@ -156,7 +178,7 @@ exports.paystackWebhook = require("firebase-functions/v2/https").onRequest(
     }
 
     const crypto = require("crypto");
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    const secretKey = PAYSTACK_SECRET_KEY.value();
 
     if (!secretKey) {
       console.error("PAYSTACK_SECRET_KEY is not configured.");
@@ -177,20 +199,78 @@ exports.paystackWebhook = require("firebase-functions/v2/https").onRequest(
     const event = req.body;
     console.info(`[Paystack Webhook] Processed event: ${event.event}`);
 
-    // We only care about successful charges
-    if (event.event === "charge.success") {
+    // Route by payment type
+      if (event.event === "charge.success") {
       const data = event.data;
       const reference = data.reference;
       const amountKobo = data.amount;
-      const verifiedAmount = amountKobo / 100;
-      
       const uid = data.metadata?.uid;
+      const plan = data.metadata?.plan; // set when purchasing a plan
 
-      // Without a target UID, we cannot route the funds
       if (!uid) {
         console.warn(`[Paystack Webhook] Missing metadata.uid for ref: ${reference}`);
         return res.status(200).json({ status: "ignored_missing_uid" });
       }
+
+      if (plan && ["free", "activation", "premium", "business"].includes(plan)) {
+        // ── Plan purchase webhook failsafe ─────────────────────────────────────
+        const planConfig = {
+          free:       { price: 700,  cards: 1 },
+          activation: { price: 1400, cards: 2 },
+          premium:    { price: 2000, cards: 3 },
+          business:   { price: 5000, cards: 5 },
+        };
+
+        const userRef        = db.collection("users").doc(uid);
+        const idempotencyRef = db.collection("users").doc(uid).collection("plan_purchases").doc(reference);
+
+        try {
+          await db.runTransaction(async (t) => {
+            const existing = await t.get(idempotencyRef);
+            if (existing.exists) throw new Error("ALREADY_PROCESSED");
+
+            t.set(idempotencyRef, {
+              reference, plan,
+              amountKobo,
+              status: "success",
+              timestamp: Date.now(),
+              source: "webhook",
+            });
+
+            t.set(userRef, {
+              planTier: plan,
+              cardsIncluded: planConfig[plan].cards,
+            }, { merge: true });
+          });
+
+          logger.info(`[Paystack Webhook] Plan '${plan}' activated for UID ${uid} via ref ${reference}`);
+
+          // Push notification
+          try {
+            const uDoc = await db.collection("users").doc(uid).get();
+            const fcmToken = uDoc.data()?.fcm_token;
+            if (fcmToken) {
+              await getMessaging().send({
+                token: fcmToken,
+                notification: {
+                  title: `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan Activated! 🎉`,
+                  body: `Your Gatekipa ${plan} plan is now active.`,
+                },
+                data: { type: "plan_activated", plan },
+              });
+            }
+          } catch (_) { /* non-critical */ }
+
+        } catch (e) {
+          if (e.message !== "ALREADY_PROCESSED") {
+            logger.error(`[Paystack Webhook] Plan activation failed for ${reference}:`, e);
+            return res.status(500).json({ error: "Internal processing error" });
+          }
+        }
+
+      } else {
+        // ── Standard wallet top-up ─────────────────────────────────────────────
+        const verifiedAmount = amountKobo / 100;
 
       // ── Record & credit atomically ─────────────────────────────────────────────
       const walletRef = db
@@ -227,14 +307,49 @@ exports.paystackWebhook = require("firebase-functions/v2/https").onRequest(
             { balance: FieldValue.increment(verifiedAmount) },
             { merge: true }
           );
+
+          // Immutable Ledger Log
+          const ledgerRef = db.collection("users").doc(uid).collection("wallet_transactions").doc(reference);
+          t.set(ledgerRef, {
+            id: reference,
+            type: "credit",
+            amount: verifiedAmount,
+            method: "paystack_webhook",
+            status: "completed",
+            timestamp: Date.now()
+          });
+
+          logger.info(`[Paystack Webhook] Successfully credited ${verifiedAmount} to UID ${uid}`);
+          logger.info(`[Paystack Webhook] Successfully credited ${verifiedAmount} to UID ${uid}`);
         });
+
+        // Outside atomic lock - trigger Push Notification
+        try {
+          const uDoc = await db.collection("users").doc(uid).get();
+          const fcmToken = uDoc.data()?.fcm_token;
+          if (fcmToken) {
+            await getMessaging().send({
+              token: fcmToken,
+              notification: {
+                title: `₦${verifiedAmount.toLocaleString()} Added!`,
+                body: `Your wallet was successfully credited.`
+              },
+              data: { type: "wallet_funded", amount: String(verifiedAmount) }
+            });
+            logger.info(`[FCM] Sent wallet funding alert to UID ${uid}`);
+          }
+        } catch (fcmErr) {
+          logger.error(`[FCM] Failed to send funding push alert to ${uid}:`, fcmErr);
+        }
+
       } catch (e) {
         if (e.message !== "ALREADY_PROCESSED") {
-          console.error(`[Paystack Webhook] Transaction failed for ${reference}:`, e);
+          logger.error(`[Paystack Webhook] Transaction failed for ${reference}:`, e);
           return res.status(500).json({ error: "Internal processing error" });
         }
       }
-    }
+      } // end wallet top-up
+    } // end charge.success
 
     return res.status(200).json({ received: true });
   }

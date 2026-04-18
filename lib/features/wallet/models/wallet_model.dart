@@ -1,5 +1,6 @@
 // lib/features/wallet/models/wallet_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class WalletModel {
   final String userId;
@@ -27,7 +28,7 @@ class WalletModel {
       isLocked: data['isLocked'] ?? false,
     );
     } catch (e) {
-      print('[DataBoundary] Failed to parse WalletModel for document ${doc.id}. Error: $e');
+      debugPrint('[DataBoundary] Failed to parse WalletModel for document ${doc.id}. Error: $e');
       rethrow;
     }
   }

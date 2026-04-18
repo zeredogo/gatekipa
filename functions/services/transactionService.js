@@ -1,16 +1,22 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
-const { requireAuth } = require("../utils/validators");
+const { requireAdmin } = require("../utils/validators");
 const { evaluateTransaction } = require("../engines/ruleEngine");
 const { disableCard } = require("./cardService");
 const { sendNotification } = require("./notificationService");
 const { FieldValue } = require("firebase-admin/firestore");
+const { getMessaging } = require("firebase-admin/messaging");
+const logger = require("firebase-functions/logger");
+
 
 /**
- * Endpoint to process a transaction securely.
+ * processTransaction — Admin-only dry-run tool for testing the rule engine
+ * against a specific card without triggering a real Bridgecard authorization.
+ * Real-world card transactions arrive automatically via bridgecardWebhook.
  */
 exports.processTransaction = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
-  requireAuth(request.auth);
+
+  requireAdmin(request.auth);
   const { cardId, amount, merchantName } = request.data;
   
   if (!cardId || !Number.isFinite(amount) || amount <= 0 || !merchantName) {
@@ -35,10 +41,6 @@ exports.processTransaction = onCall({ region: "us-central1", enforceAppCheck: tr
     return { approved: false, reason: "Account closed or invalid" };
   }
   const ownerUid = accountSnap.data().owner_user_id;
-
-  if (ownerUid !== request.auth.uid) {
-    throw new HttpsError("permission-denied", "You can only process simulated transactions for your own accounts.");
-  }
 
   // 4. Engine execution - strict PRD alignment
   const result = await evaluateTransaction(cardId, amount, merchantName);
@@ -96,9 +98,28 @@ exports.processTransaction = onCall({ region: "us-central1", enforceAppCheck: tr
     await sendNotification(card.account_id, "Trial Card auto-disabled after successful transaction.");
   }
 
-  // 7. Post-Processing: Notifications for blocked
+  // 7. Post-Processing: FCM push + Firestore notification for blocked transactions
   if (!result.approved) {
     await sendNotification(card.account_id, `Transaction blocked at ${merchantName} for ${amount}. Reason: ${result.reason}`);
+    
+    // Fire FCM push to owner
+    try {
+      const ownerDoc = await db.collection("users").doc(ownerUid).get();
+      const fcmToken = ownerDoc.data()?.fcm_token;
+      if (fcmToken) {
+        await getMessaging().send({
+          token: fcmToken,
+          notification: {
+            title: `Charge Blocked!`,
+            body: `We blocked a charge at ${merchantName}. Reason: ${result.reason}`
+          },
+          data: { type: "transaction_blocked", amount: String(amount), merchant: merchantName }
+        });
+        logger.info(`[FCM] Block push dispatched to ${ownerUid}`);
+      }
+    } catch (fcmErr) {
+      logger.error(`[FCM] Failed to dispatch block push:`, fcmErr);
+    }
   }
 
   return result;

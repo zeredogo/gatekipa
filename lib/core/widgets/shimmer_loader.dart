@@ -1,7 +1,8 @@
 // lib/core/widgets/shimmer_loader.dart
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import '../theme/app_colors.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class ShimmerLoader extends StatelessWidget {
   final double width;
@@ -98,7 +99,7 @@ class ShimmerTransactionList extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.md),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -110,7 +111,7 @@ class ShimmerTransactionList extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.xs),
                     Container(
                       width: 80,
                       height: 12,

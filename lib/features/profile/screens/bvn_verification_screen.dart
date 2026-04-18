@@ -37,7 +37,8 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
           .call({'bvn': _bvnCtrl.text.trim()});
 
       if (!mounted) return;
-      final success = result.data['success'] == true;
+      final dataMap = result.data as Map<dynamic, dynamic>;
+      final success = dataMap['success'] == true;
       if (success) {
         GkToast.show(context,
             message: 'BVN successfully verified and linked!',

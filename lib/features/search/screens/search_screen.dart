@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../accounts/providers/account_provider.dart';
-import '../providers/search_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/search/providers/search_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class GlobalSearchView extends ConsumerWidget {
   final VoidCallback onClear;
@@ -24,7 +24,7 @@ class GlobalSearchView extends ConsumerWidget {
             loading: () =>
                 const Center(child: CircularProgressIndicator(color: AppColors.primary)),
             error: (_, __) => Center(
-              child: Text('Search failed', style: GoogleFonts.inter(color: AppColors.outline)),
+              child: Text('Search failed', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.outline)),
             ),
             data: (results) {
               final cards = results.cards;
@@ -36,18 +36,17 @@ class GlobalSearchView extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.search_off_rounded, size: 52, color: AppColors.outline),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         'No results for "$query"',
-                        style: GoogleFonts.manrope(
-                            fontWeight: FontWeight.w600,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600,
                             fontSize: 16,
                             color: AppColors.onSurfaceVariant),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'Try a different card name or account name.',
-                        style: GoogleFonts.inter(fontSize: 13, color: AppColors.outline),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.outline),
                       ),
                     ],
                   ).animate().fadeIn(duration: 300.ms),
@@ -60,7 +59,7 @@ class GlobalSearchView extends ConsumerWidget {
                   // ── Cards section ─────────────────────────────
                   if (cards.isNotEmpty) ...[
                     const _SectionHeader('Cards'),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.xs),
                     ...cards.asMap().entries.map((e) {
                       final card = e.value;
                       final accountsAsyncVal = ref.watch(accountsStreamProvider).valueOrNull ?? [];
@@ -86,13 +85,13 @@ class GlobalSearchView extends ConsumerWidget {
                         ).animate(delay: (e.key * 40).ms).fadeIn().slideX(begin: 0.04, end: 0),
                       );
                     }),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                   ],
 
                   // ── Accounts section ──────────────────────────
                   if (accounts.isNotEmpty) ...[
                     const _SectionHeader('Accounts'),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.xs),
                     ...accounts.asMap().entries.map((e) {
                       final account = e.value;
                       return Padding(
@@ -124,16 +123,15 @@ class GlobalSearchView extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(Icons.manage_search_rounded, size: 60, color: AppColors.outline),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   'Search your cards & accounts',
-                  style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.onSurfaceVariant),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Type a card name, account name, or keyword.',
-                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.outline),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.outline),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -150,8 +148,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         title,
-        style: GoogleFonts.manrope(
-            fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.onSurface),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.onSurface),
       );
 }
 
@@ -192,17 +189,16 @@ class _SearchCardTile extends StatelessWidget {
               ),
               child: const Icon(Icons.credit_card_rounded, color: AppColors.primary, size: 20),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(cardName,
-                      style: GoogleFonts.manrope(
-                          fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onSurface)),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onSurface)),
                   const SizedBox(height: 2),
                   Text(accountName,
-                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                 ],
@@ -216,8 +212,7 @@ class _SearchCardTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text('Blocked',
-                    style: GoogleFonts.inter(
-                        fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.error)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.error)),
               )
             else
               const Icon(Icons.chevron_right_rounded, color: AppColors.outline, size: 20),
@@ -263,17 +258,16 @@ class _SearchAccountTile extends StatelessWidget {
                 size: 20,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name,
-                      style: GoogleFonts.manrope(
-                          fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onSurface)),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onSurface)),
                   const SizedBox(height: 2),
                   Text(type[0].toUpperCase() + type.substring(1),
-                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
                 ],
               ),
             ),

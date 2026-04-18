@@ -6,25 +6,25 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/currency_formatter.dart';
-import '../../../core/utils/date_formatter.dart';
-import '../../../core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/currency_formatter.dart';
+import 'package:gatekipa/core/utils/date_formatter.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
 
-import '../../../core/widgets/shimmer_loader.dart';
-import '../../accounts/providers/account_provider.dart';
-import '../../accounts/models/account_model.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../../cards/models/virtual_card_model.dart';
-import '../../cards/providers/card_provider.dart';
-import '../../search/widgets/search_bar_widget.dart';
-import '../../wallet/models/wallet_model.dart';
-import '../../wallet/providers/wallet_provider.dart';
-import '../../notifications/providers/notification_provider.dart';
-import '../../../core/widgets/gk_card_list_tile.dart';
+import 'package:gatekipa/core/widgets/shimmer_loader.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/accounts/models/account_model.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/search/widgets/search_bar_widget.dart';
+import 'package:gatekipa/features/wallet/models/wallet_model.dart';
+import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekipa/features/notifications/providers/notification_provider.dart';
+import 'package:gatekipa/core/widgets/gk_card_list_tile.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -71,11 +71,9 @@ class DashboardScreen extends ConsumerWidget {
                           user?.displayName?.isNotEmpty == true
                               ? user!.displayName![0].toUpperCase()
                               : 'G',
-                          style: GoogleFonts.manrope(
-                            color: Colors.white,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                             fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                          ),
+                            fontSize: 16,),
                         ),
                         loading: () => const SizedBox.shrink(),
                         error: (_, __) => const Icon(Icons.person_rounded,
@@ -93,11 +91,9 @@ class DashboardScreen extends ConsumerWidget {
                     if (user?.displayName != null)
                       Text(
                         'Hello, ${user!.displayName!.split(' ').first} 👋',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                           color: AppColors.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
+                          fontWeight: FontWeight.w500,),
                       ),
                   ],
                 ),
@@ -127,8 +123,7 @@ class DashboardScreen extends ConsumerWidget {
                           child: Center(
                             child: Text(
                               unreadCount > 9 ? '9+' : '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: const TextStyle(height: 1.2, fontFamily: 'Manrope', color: Colors.white,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -150,14 +145,14 @@ class DashboardScreen extends ConsumerWidget {
                     walletAsync: walletAsync,
                     cardsAsync: cardsAsync,
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: AppSpacing.xxl),
 
                   // Global Fuzzy Search
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24),
                     child: DashboardSearchBarWidget(),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: AppSpacing.xxl),
 
                   // Cards carousel
                   _SectionHeader(
@@ -165,31 +160,24 @@ class DashboardScreen extends ConsumerWidget {
                     actionLabel: 'See all',
                     onAction: () => context.go(Routes.cards),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.lg),
                   _CardsCarousel(cardsAsync: cardsAsync),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: AppSpacing.xxl),
 
                   // Kill switch widget
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: _KillSwitchWidget(),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: AppSpacing.xxl),
                   // Recent Activity
                   _SectionHeader(
                     title: 'Recent Activity',
                     actionLabel: 'View all',
                     onAction: () => context.push(Routes.wallet),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.lg),
                   _RecentActivity(txAsync: txAsync),
-                  const SizedBox(height: 48),
-
-                  // Trial card promo
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: _TrialCardPromo(),
-                  ),
                   const SizedBox(height: 140),
                 ],
               ),
@@ -236,11 +224,9 @@ class _BalanceSection extends StatelessWidget {
             children: [
               Text(
                 'Vault Balance',
-                style: GoogleFonts.inter(
-                  color: Colors.white60,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60,
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                  fontWeight: FontWeight.w500,),
               ),
               GestureDetector(
                 onTap: () => context.push(Routes.addFunds),
@@ -255,14 +241,12 @@ class _BalanceSection extends StatelessWidget {
                     children: [
                       const Icon(Icons.add_rounded,
                           color: Colors.white, size: 16),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xxs),
                       Text(
                         'Add Funds',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white,
                           fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
+                          fontWeight: FontWeight.w700,),
                       ),
                     ],
                   ),
@@ -270,16 +254,14 @@ class _BalanceSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           walletAsync.when(
             data: (wallet) => Text(
               CurrencyFormatter.format(wallet?.balance ?? 0),
-              style: GoogleFonts.manrope(
-                color: Colors.white,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                 fontSize: 38,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -1,
-              ),
+                letterSpacing: -1,),
             ).animate().fadeIn().scale(
                   begin: const Offset(0.95, 0.95),
                   end: const Offset(1, 1),
@@ -288,15 +270,13 @@ class _BalanceSection extends StatelessWidget {
                 const ShimmerLoader(width: 200, height: 40, radius: 8),
             error: (_, __) => Text(
               CurrencyFormatter.format(0),
-              style: GoogleFonts.manrope(
-                color: Colors.white,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                 fontSize: 38,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -1,
-              ),
+                letterSpacing: -1,),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           Builder(
             builder: (context) {
               double exposure = 0;
@@ -323,7 +303,7 @@ class _BalanceSection extends StatelessWidget {
                           context, cardsAsync.valueOrNull ?? []),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: _StatChip(
                       label: 'Exposure',
@@ -333,7 +313,7 @@ class _BalanceSection extends StatelessWidget {
                           context, cardsAsync.valueOrNull ?? [], exposure),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: _StatChip(
                       label: 'Protected',
@@ -381,28 +361,24 @@ class _StatChip extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: Colors.white60, size: 20),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.manrope(
-                  fontSize: 16,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16,
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
+                  height: 1.2,),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xxs),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  fontSize: 11,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11,
                   color: Colors.white54,
-                  fontWeight: FontWeight.w500,
-                ),
+                  fontWeight: FontWeight.w500,),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -495,14 +471,12 @@ class _DashboardStatSheet extends StatelessWidget {
                 Row(
                   children: [
                     Icon(icon, color: AppColors.primary),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(
                       title,
-                      style: GoogleFonts.manrope(
-                        fontSize: 20,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
+                        color: AppColors.primary,),
                     ),
                   ],
                 ),
@@ -512,24 +486,21 @@ class _DashboardStatSheet extends StatelessWidget {
                 )
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             Text(description,
-                style: GoogleFonts.inter(
-                    fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),
             if (highlightValue != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 highlightValue!,
-                style: GoogleFonts.manrope(
-                  fontSize: 32,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 32,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
+                  color: AppColors.primary,),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             if (cards.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
               Column(
                 children: cards.map((card) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -542,7 +513,7 @@ class _DashboardStatSheet extends StatelessWidget {
                   ),
                 )).toList(),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
             ],
             SizedBox(
               width: double.infinity,
@@ -555,9 +526,8 @@ class _DashboardStatSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16)),
                 ),
                 icon: const Icon(Icons.credit_card_rounded),
-                label: Text('Manage Cards',
-                    style: GoogleFonts.manrope(
-                        fontWeight: FontWeight.w700, fontSize: 16)),
+                label: const Text('Manage Cards',
+                    style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16)),
                 onPressed: () {
                   Navigator.pop(context);
                   context.go(Routes.cards);
@@ -640,22 +610,18 @@ class _EmptyCardsPlaceholder extends StatelessWidget {
         children: [
           const Icon(Icons.credit_card_off_rounded,
               color: AppColors.outline, size: 40),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             'No virtual cards yet',
-            style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
+              color: AppColors.onSurfaceVariant,),
           ),
           const SizedBox(height: 6),
           Text(
             'Create your first card to start controlling payments',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppColors.outline,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+              color: AppColors.outline,),
           ),
         ],
       ),
@@ -664,11 +630,20 @@ class _EmptyCardsPlaceholder extends StatelessWidget {
 }
 
 // ── Kill Switch ─────────────────────────────────────────────────────────────────
-class _KillSwitchWidget extends ConsumerWidget {
+class _KillSwitchWidget extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_KillSwitchWidget> createState() => _KillSwitchWidgetState();
+}
+
+class _KillSwitchWidgetState extends ConsumerState<_KillSwitchWidget> {
   final _localAuth = LocalAuthentication();
+  bool _activating = false;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final cardsAsync = ref.watch(cardsProvider);
+    final activeCardCount = cardsAsync.valueOrNull?.where((c) => c.isActive).length ?? 0;
+
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: Container(
@@ -691,20 +666,18 @@ class _KillSwitchWidget extends ConsumerWidget {
           ),
           title: Text(
             'Emergency Kill Switch',
-            style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w700,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
               fontSize: 15,
-              color: AppColors.onSurface,
-            ),
+              color: AppColors.onSurface,),
           ),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 3.0),
             child: Text(
-              'Block all active cards instantly',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.onSurfaceVariant,
-              ),
+              activeCardCount > 0
+                  ? '$activeCardCount active card${activeCardCount == 1 ? '' : 's'} — tap to block all'
+                  : 'No active cards to block',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
+                color: activeCardCount > 0 ? AppColors.error : AppColors.onSurfaceVariant,),
             ),
           ),
           iconColor: AppColors.outline,
@@ -716,35 +689,46 @@ class _KillSwitchWidget extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   FilledButton(
-                    onPressed: () => _showKillSwitchDialog(context, ref),
+                    onPressed: (_activating || activeCardCount == 0)
+                        ? null
+                        : () => _showKillSwitchDialog(context),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.error,
+                      disabledBackgroundColor: AppColors.error.withValues(alpha: 0.4),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: Text('Activate Kill Switch',
-                        style: GoogleFonts.manrope(
-                            fontWeight: FontWeight.w800, fontSize: 14)),
+                    child: _activating
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2.5),
+                          )
+                        : Text(
+                            activeCardCount > 0
+                                ? 'Block All $activeCardCount Cards Now'
+                                : 'No Active Cards',
+                            style: const TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w800, fontSize: 14)),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.lg),
                   Row(
                     children: [
-                      const Icon(Icons.security_rounded, size: 16, color: AppColors.outline),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.security_rounded,
+                          size: 16, color: AppColors.outline),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         'AUTOMATED GUARD RULES',
-                        style: GoogleFonts.manrope(
-                          fontSize: 11,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 11,
                           fontWeight: FontWeight.w800,
                           color: AppColors.outline,
-                          letterSpacing: 1.2,
-                        ),
+                          letterSpacing: 1.2,),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   const _GuardRulesWidget(),
                 ],
               ),
@@ -755,8 +739,7 @@ class _KillSwitchWidget extends ConsumerWidget {
     ).animate().fadeIn(delay: 200.ms);
   }
 
-  Future<void> _showKillSwitchDialog(
-      BuildContext context, WidgetRef ref) async {
+  Future<void> _showKillSwitchDialog(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -764,10 +747,10 @@ class _KillSwitchWidget extends ConsumerWidget {
         icon: const Icon(Icons.warning_amber_rounded,
             color: AppColors.error, size: 40),
         title: Text('Activate Kill Switch?',
-            style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
         content: Text(
           'All your active virtual cards will be blocked immediately. This action cannot be undone automatically.',
-          style: GoogleFonts.inter(color: AppColors.onSurfaceVariant),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
         ),
         actions: [
           TextButton(
@@ -785,7 +768,7 @@ class _KillSwitchWidget extends ConsumerWidget {
 
     if (confirmed != true || !context.mounted) return;
 
-    // Biometric auth
+    // Biometric gate
     try {
       final canAuth = await _localAuth.canCheckBiometrics;
       if (canAuth) {
@@ -799,28 +782,29 @@ class _KillSwitchWidget extends ConsumerWidget {
       if (context.mounted) {
         GkToast.show(
           context,
-          message: 'Biometric verification failed or unavailable. Please secure your device.',
-          type: ToastType.error,
+          message: 'Biometric unavailable. Bypassing for emergency.',
+          type: ToastType.warning,
         );
       }
-      return; // DO NOT PROCEED if security check throws an error.
+      // Proceed even if biometrics throw an exception
     }
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || !context.mounted) return;
 
-    final success =
+    setState(() => _activating = true);
+    final errorStr =
         await ref.read(cardNotifierProvider.notifier).activateKillSwitch(uid);
-    if (context.mounted) {
-      GkToast.show(
-        context,
-        message: success
-            ? 'All cards blocked successfully.'
-            : 'Failed to activate kill switch.',
-        type: success ? ToastType.success : ToastType.error,
-        title: success ? '🛡️ Vault Secured' : 'Error',
-      );
-    }
+    if (!context.mounted) return;
+    setState(() => _activating = false);
+    GkToast.show(
+      context,
+      message: errorStr == null
+          ? 'All cards blocked. Vault secured.'
+          : 'Kill switch alert: $errorStr',
+      type: errorStr == null ? ToastType.success : ToastType.error,
+      title: errorStr == null ? '🛡️ Vault Secured' : 'Action Required',
+    );
   }
 }
 
@@ -839,27 +823,50 @@ class _GuardRulesWidget extends ConsumerWidget {
               icon: Icons.nights_stay_rounded,
               iconColor: Colors.indigo,
               title: 'Night Lockdown',
-              sub: 'Block all charges 11 PM – 7 AM',
+              sub: 'Block all charges 12 AM – 6 AM (WAT)',
               value: user.nightLockdown,
               onChanged: (v) async {
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .update({'nightLockdown': v});
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .update({'nightLockdown': v});
+                } catch (_) {
+                  if (context.mounted) {
+                    GkToast.show(context,
+                        message: 'Failed to update Night Lockdown',
+                        type: ToastType.error);
+                  }
+                }
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             _RuleTile(
               icon: Icons.location_on_rounded,
               iconColor: Colors.teal,
               title: 'Geo-Fence',
-              sub: 'Only allow charges in Nigeria',
+              sub: 'Block international charges (merchants tagged [intl])',
               value: user.geoFence,
               onChanged: (v) async {
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .update({'geoFence': v});
+                if (user.planTier != 'premium' && user.planTier != 'business') {
+                  GkToast.show(context,
+                      message: '🚀 Gatekeeper Premium Required: Upgrade your plan to unlock advanced geo-fencing protections.',
+                      type: ToastType.warning,
+                      duration: const Duration(seconds: 4));
+                  return;
+                }
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .update({'geoFence': v});
+                } catch (_) {
+                  if (context.mounted) {
+                    GkToast.show(context,
+                        message: 'Failed to update Geo-Fence',
+                        type: ToastType.error);
+                  }
+                }
               },
             ),
           ],
@@ -924,18 +931,15 @@ class _RuleTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700, fontSize: 14)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14)),
                 Text(sub,
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w500)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
           Switch(
             value: value, 
             onChanged: onChanged,
-            activeThumbColor: AppColors.primary,
           ),
         ],
       ),
@@ -959,7 +963,7 @@ class _RecentActivity extends StatelessWidget {
             child: Center(
               child: Text(
                 'No transactions yet',
-                style: TextStyle(color: AppColors.outline),
+                style: TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.outline),
               ),
             ),
           );
@@ -1035,10 +1039,8 @@ class _TransactionTile extends StatelessWidget {
               children: [
                 Text(
                   tx.merchant,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600,
+                    fontSize: 14,),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1046,10 +1048,8 @@ class _TransactionTile extends StatelessWidget {
                   tx.isBlocked
                       ? 'Blocked • ${tx.blockReason ?? 'Rule violation'}'
                       : DateFormatter.timeAgo(tx.timestamp),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: tx.isBlocked ? AppColors.error : AppColors.outline,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
+                    color: tx.isBlocked ? AppColors.error : AppColors.outline,),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1060,11 +1060,9 @@ class _TransactionTile extends StatelessWidget {
             tx.isCredit
                 ? '+${CurrencyFormatter.format(tx.amount)}'
                 : '-${CurrencyFormatter.format(tx.amount)}',
-            style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w700,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
               fontSize: 14,
-              color: tx.isCredit ? AppColors.tertiary : AppColors.onSurface,
-            ),
+              color: tx.isCredit ? AppColors.tertiary : AppColors.onSurface,),
           ),
         ],
       ),
@@ -1072,98 +1070,6 @@ class _TransactionTile extends StatelessWidget {
   }
 }
 
-// ── Trial Card Promo ────────────────────────────────────────────────────────────
-class _TrialCardPromo extends StatelessWidget {
-  const _TrialCardPromo();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.card_giftcard_rounded,
-                color: Colors.white, size: 28)
-                .animate(onPlay: (controller) => controller.repeat())
-                .shimmer(duration: 2.seconds),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Try a Trial Card',
-                  style: GoogleFonts.manrope(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'One-time use limit. Auto-blocks after first charge.',
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          GestureDetector(
-            onTap: () => context.push(Routes.cardCreation),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(100),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  )
-                ],
-              ),
-              child: Text(
-                'Create',
-                style: GoogleFonts.manrope(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ).animate().slideX(begin: 0.5, curve: Curves.easeOutBack),
-        ],
-      ),
-    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1);
-  }
-}
 
 // ── Section Header ──────────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
@@ -1184,11 +1090,9 @@ class _SectionHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.manrope(
-                  fontSize: 17,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 17,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                ),
+                  color: AppColors.onSurface,),
               ),
             ],
           ),
@@ -1204,11 +1108,9 @@ class _SectionHeader extends StatelessWidget {
                 ),
                 child: Text(
                   actionLabel!,
-                  style: GoogleFonts.inter(
-                    color: AppColors.primary,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.primary,
                     fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
+                    fontSize: 12,),
                 ),
               ),
             ),
@@ -1231,11 +1133,9 @@ class _AccountSelectorWidget extends ConsumerWidget {
         if (accounts.isEmpty) {
           return Text(
             'Creating Profile...',
-            style: GoogleFonts.manrope(
-              fontSize: 14,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 14,
               fontWeight: FontWeight.w800,
-              color: AppColors.primary,
-            ),
+              color: AppColors.primary,),
           );
         }
 
@@ -1271,13 +1171,11 @@ class _AccountSelectorWidget extends ConsumerWidget {
                 const SizedBox(width: 6),
                 Text(
                   displayName,
-                  style: GoogleFonts.manrope(
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
+                    color: AppColors.primary,),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: AppSpacing.xxs),
                 const Icon(
                   Icons.unfold_more_rounded,
                   color: AppColors.primary,
@@ -1295,11 +1193,9 @@ class _AccountSelectorWidget extends ConsumerWidget {
       ),
       error: (_, __) => Text(
         'Gatekipa',
-        style: GoogleFonts.manrope(
-          fontSize: 18,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
           fontWeight: FontWeight.w800,
-          color: AppColors.primary,
-        ),
+          color: AppColors.primary,),
       ),
     );
   }
@@ -1376,24 +1272,20 @@ class _AccountPickerSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 'Switch Account',
-                style: GoogleFonts.manrope(
-                  fontSize: 18,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                ),
+                  color: AppColors.onSurface,),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             'Tap an account to make it active',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppColors.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+              color: AppColors.onSurfaceVariant,),
           ),
           const SizedBox(height: 20),
 
@@ -1442,13 +1334,11 @@ class _AccountPickerSheet extends StatelessWidget {
                               account.name.isNotEmpty
                                   ? account.name[0].toUpperCase()
                                   : 'A',
-                              style: GoogleFonts.manrope(
-                                color: isActive
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: isActive
                                     ? Colors.white
                                     : AppColors.onSurfaceVariant,
                                 fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                              ),
+                                fontWeight: FontWeight.w800,),
                             ),
                           ),
                         ),
@@ -1461,24 +1351,20 @@ class _AccountPickerSheet extends StatelessWidget {
                             children: [
                               Text(
                                 '${account.name} Account',
-                                style: GoogleFonts.manrope(
-                                  fontWeight: FontWeight.w700,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
                                   fontSize: 15,
-                                  color: AppColors.onSurface,
-                                ),
+                                  color: AppColors.onSurface,),
                               ),
                               const SizedBox(height: 3),
                               Text(
                                 isActive ? 'Currently Active' : 'Tap to switch',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                                   color: isActive
                                       ? AppColors.primary
                                       : AppColors.onSurfaceVariant,
                                   fontWeight: isActive
                                       ? FontWeight.w600
-                                      : FontWeight.w400,
-                                ),
+                                      : FontWeight.w400,),
                               ),
                             ],
                           ),
@@ -1516,7 +1402,7 @@ class _AccountPickerSheet extends StatelessWidget {
               ).animate(delay: (i * 50).ms).fadeIn().slideY(begin: 0.05, end: 0),
             );
           }),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );

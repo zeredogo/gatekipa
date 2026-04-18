@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../../core/constants/routes.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/gk_button.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../providers/analytics_provider.dart';
-import '../../profile/screens/premium_upgrade_screen.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/analytics/providers/analytics_provider.dart';
+import 'package:gatekipa/features/profile/screens/premium_upgrade_screen.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class AnalyticsHubScreen extends ConsumerWidget {
   const AnalyticsHubScreen({super.key});
@@ -23,18 +23,24 @@ class AnalyticsHubScreen extends ConsumerWidget {
 
     return userAsync.when(
       data: (user) {
-        final isPremium = user?.isPremium ?? false;
+        final isPremium = user?.planTier == 'premium';
         return Scaffold(
           backgroundColor: AppColors.surface,
-          body: CustomScrollView(
-            slivers: [
+          body: RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              ref.invalidate(analyticsProvider);
+              ref.invalidate(userProfileProvider);
+              await Future.delayed(const Duration(milliseconds: 800));
+            },
+            child: CustomScrollView(
+              slivers: [
               SliverAppBar(
                 backgroundColor: AppColors.surface,
                 floating: true,
                 title: Text(
                   'Insights',
-                  style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w800,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                       color: AppColors.primary,
                       fontSize: 22),
                 ),
@@ -52,12 +58,10 @@ class AnalyticsHubScreen extends ConsumerWidget {
                       ),
                       child: Text(
                         '✦ PREMIUM',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
-                          letterSpacing: 1,
-                        ),
+                          letterSpacing: 1,),
                       ),
                     ),
                 ],
@@ -107,21 +111,17 @@ class _PremiumGate extends StatelessWidget {
                 const SizedBox(height: 20),
                 Text(
                   'Sentinel Prime',
-                  style: GoogleFonts.manrope(
-                    color: Colors.white,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                     fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
+                    fontWeight: FontWeight.w800,),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   'Unlock full insights: savings analytics, efficiency portfolio, and spending intelligence.',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    color: Colors.white60,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60,
                     fontSize: 14,
-                    height: 1.6,
-                  ),
+                    height: 1.6,),
                 ),
                 const SizedBox(height: 28),
                 // Feature list
@@ -140,10 +140,8 @@ class _PremiumGate extends StatelessWidget {
                           const SizedBox(width: 10),
                           Text(
                             f,
-                            style: GoogleFonts.inter(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70,
+                              fontSize: 14,),
                           ),
                         ],
                       ),
@@ -173,12 +171,10 @@ class _PremiumGate extends StatelessWidget {
           const SizedBox(height: 28),
           Text(
             'Preview (Premium)',
-            style: GoogleFonts.manrope(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
+              fontWeight: FontWeight.w800,),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           const ImageFiltered(
             imageFilter: ColorFilter.mode(
               Colors.white54,
@@ -234,10 +230,9 @@ class _AnalyticsContent extends ConsumerWidget {
                           const SizedBox(height: 40),
                           Text(
                             'Portfolio Diagnostics',
-                            style: GoogleFonts.manrope(
-                                fontSize: 18, fontWeight: FontWeight.w800),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.sm),
                           _RecommendationCard(rec: recommendation),
                           const SizedBox(height: 40),
                           _FeatureCard(
@@ -247,7 +242,7 @@ class _AnalyticsContent extends ConsumerWidget {
                             color: AppColors.secondary,
                             onTap: () => context.push(Routes.efficiencyPortfolio),
                           ).animate().fadeIn(delay: 100.ms),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: AppSpacing.lg),
                           _PremiumGradientCard(
                             title: 'Savings Deep Dive',
                             subtitle: 'Examine cost-per-use and subscription bloat',
@@ -271,7 +266,7 @@ class _AnalyticsContent extends ConsumerWidget {
           child: Text(
             'We encountered an issue preparing your insights.\nEnsure all accounts are synced.\n\n$e',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+            style: const TextStyle(height: 1.2, fontFamily: 'Manrope', color: Colors.redAccent, fontSize: 13),
           ),
         ),
       ),
@@ -307,23 +302,19 @@ class _EmptyAnalyticsState extends StatelessWidget {
                 duration: 500.ms,
                 curve: Curves.elasticOut,
               ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             'No data yet',
-            style: GoogleFonts.manrope(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 22,
+              fontWeight: FontWeight.w800,),
           ),
           const SizedBox(height: 10),
           Text(
             'Create virtual cards and start using them.\nYour spending intelligence will appear here.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 14,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
               color: AppColors.onSurfaceVariant,
-              height: 1.6,
-            ),
+              height: 1.6,),
           ),
         ],
       ),
@@ -364,11 +355,9 @@ class _RecommendationCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Smart Insight',
-                    style: GoogleFonts.inter(
-                        fontSize: 13, fontWeight: FontWeight.w700)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, fontWeight: FontWeight.w700)),
                 Text(rec,
-                    style: GoogleFonts.inter(
-                        fontSize: 12,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                         color: AppColors.onSurfaceVariant,
                         height: 1.4)),
               ],
@@ -412,19 +401,16 @@ class _AnalyticsSavingsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Total Spend (This Month)',
-              style: GoogleFonts.inter(color: Colors.white60, fontSize: 14)),
-          const SizedBox(height: 8),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60, fontSize: 14)),
+          const SizedBox(height: AppSpacing.xs),
           Text('₦${totalSpend.toStringAsFixed(0)}',
-              style: GoogleFonts.manrope(
-                color: Colors.white,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                 fontSize: 40,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -1,
-              )),
-          const SizedBox(height: 4),
+                letterSpacing: -1,)),
+          const SizedBox(height: AppSpacing.xxs),
           Text('Tracked across all virtual cards',
-              style: GoogleFonts.inter(
-                  color: AppColors.primaryFixed,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.primaryFixed,
                   fontSize: 13,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 20),
@@ -434,7 +420,7 @@ class _AnalyticsSavingsCard extends StatelessWidget {
                   child: _StatPill(
                       label: 'Charges Blocked',
                       value: blockedCount.toString())),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                   child: _StatPill(
                       label: 'Transactions', value: txCount.toString())),
@@ -463,10 +449,9 @@ class _StatPill extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: GoogleFonts.inter(color: Colors.white54, fontSize: 11)),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white54, fontSize: 11)),
           Text(value,
-              style: GoogleFonts.manrope(
-                  color: Colors.white,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.w800)),
         ],
@@ -499,9 +484,8 @@ class _MonthlyBarChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Recent Activity Trend',
-              style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w800, fontSize: 16)),
-          const SizedBox(height: 16),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 16)),
+          const SizedBox(height: AppSpacing.md),
           SizedBox(
             height: 160,
             child: BarChart(
@@ -527,8 +511,7 @@ class _MonthlyBarChart extends StatelessWidget {
                         }
                         return Text(
                           months[idx],
-                          style: GoogleFonts.inter(
-                              fontSize: 11, color: AppColors.outline),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
                         );
                       },
                     ),
@@ -586,22 +569,19 @@ class _ProjectionCard extends StatelessWidget {
             child: const Icon(Icons.trending_up_rounded,
                 color: AppColors.tertiary, size: 28),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Projected Annual Savings',
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.onSurfaceVariant)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
                 Text(projectedAmount,
-                    style: GoogleFonts.manrope(
-                        fontSize: 24,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
                         fontWeight: FontWeight.w800,
                         color: AppColors.tertiary)),
                 Text('Based on last 90 days',
-                    style: GoogleFonts.inter(
-                        fontSize: 11, color: AppColors.outline)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline)),
               ],
             ),
           ),
@@ -656,23 +636,21 @@ class _PremiumGradientCard extends StatelessWidget {
               ),
               child: Icon(icon, color: Colors.white, size: 28),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.manrope(
-                        fontSize: 16,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: Colors.white),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     subtitle,
-                    style: GoogleFonts.inter(
-                        fontSize: 12,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                         color: Colors.white.withValues(alpha: 0.8)),
                   ),
                 ],
@@ -722,21 +700,19 @@ class _FeatureCard extends StatelessWidget {
               ),
               child: Icon(icon, color: color, size: 28),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.manrope(
-                        fontWeight: FontWeight.w800, fontSize: 16, color: color),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 16, color: color),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     subtitle,
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant),
                   ),
                 ],
               ),

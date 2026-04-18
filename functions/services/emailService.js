@@ -1,8 +1,8 @@
 const { Resend } = require("resend");
 require("dotenv").config();
+const { defineSecret } = require("firebase-functions/params");
 
-// Initialize Resend
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
 
 /**
  * Helper to send transactional emails via Resend
@@ -15,10 +15,14 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
  * @returns {Promise<Object>} Response from Resend API or null if disabled
  */
 async function sendEmail({ to, subject, html, from = "Gatekipa <hello@gatekipa.com>" }) {
-  if (!resend) {
+  const secretValue = RESEND_API_KEY.value();
+  
+  if (!secretValue) {
     console.warn("sendEmail: RESEND_API_KEY is not configured. Email will not be sent.");
     return null;
   }
+
+  const resend = new Resend(secretValue);
 
   try {
     const response = await resend.emails.send({
