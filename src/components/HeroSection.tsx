@@ -93,13 +93,7 @@ const HeroSection = () => {
              </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold tracking-wider uppercase animate-fade-in -mt-4">
-            <span className="relative flex size-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full size-2 bg-primary"></span>
-            </span>
-            Join {totalCount.toLocaleString()}+ others
-          </div>
+
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-foreground leading-[1.05] tracking-tighter">
             Stop Paying for Things You Didn&rsquo;t Approve.
