@@ -68,7 +68,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    'Secure checkout via Paystack. Funds are credited instantly.',
+                    'Secure checkout via Westgate Stratagem. Funds are credited instantly.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                         color: AppColors.onSurfaceVariant),
                   ),
@@ -231,7 +231,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                             size: 14, color: AppColors.outline),
                         const SizedBox(width: 6),
                         Text(
-                          'Secured by Paystack · PCI DSS compliant',
+                          'Secured by Westgate Stratagem · PCI DSS compliant',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline),
                         ),
                       ],
@@ -266,7 +266,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Transfer any amount to this account number to automatically fund your vault. Powered by Paystack & Banking Partners.',
+              'Transfer any amount to this account number to automatically fund your vault. Powered by Westgate Stratagem & Banking Partners.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: 28),
@@ -340,7 +340,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Top up instantly using any NG debit or credit card via Paystack secure checkout.',
+              'Top up instantly using any NG debit or credit card via Westgate Stratagem secure checkout.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -380,7 +380,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   const Icon(Icons.lock_rounded,
                       size: 14, color: AppColors.outline),
                   const SizedBox(width: 6),
-                  Text('Secured by Paystack · PCI DSS compliant',
+                  Text('Secured by Westgate Stratagem · PCI DSS compliant',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline)),
                 ],
               ),
@@ -515,7 +515,7 @@ class _PaystackCheckoutScreenState
     <div class="amount">₦${(amountInKobo / 100).toStringAsFixed(0)}</div>
     <p style="font-size:13px;color:#4b5563">$email</p>
     <button class="btn" onclick="payWithPaystack()">Pay Securely</button>
-    <div class="lock">🔒 Secured by Paystack · PCI DSS compliant</div>
+    <div class="lock">🔒 Secured by Westgate Stratagem · PCI DSS compliant</div>
   </div>
 
   <script>
@@ -563,7 +563,7 @@ class _PaystackCheckoutScreenState
                 const Icon(Icons.lock_rounded,
                     size: 14, color: AppColors.outline),
                 const SizedBox(width: AppSpacing.xxs),
-                Text('Paystack',
+                Text('Westgate Stratagem',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline)),
               ],
             ),

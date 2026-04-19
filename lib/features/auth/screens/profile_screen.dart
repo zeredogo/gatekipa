@@ -312,7 +312,7 @@ class ProfileScreen extends ConsumerWidget {
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
                       ),
                     ),
-                    SizedBox(height: 140),
+                    const SizedBox(height: 140),
                   ],
                 ),
               ),

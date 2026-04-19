@@ -22,7 +22,7 @@ const PAYSTACK_SECRET_KEY = defineSecret("PAYSTACK_SECRET_KEY");
  * The caller must send { confirm: true } to prevent accidental deletions.
  */
 exports.deleteUserAccount = onCall(
-  { region: "us-central1", enforceAppCheck: true },
+  { region: "us-central1" },
   async (request) => {
     requireVerifiedEmail(request.auth);
     const uid = request.auth.uid;
@@ -127,7 +127,7 @@ exports.deleteUserAccount = onCall(
  * calls verifyPremiumPayment with the reference to activate the plan.
  */
 exports.initiatePremiumUpgrade = onCall(
-  { region: "us-central1", enforceAppCheck: true, secrets: [PAYSTACK_SECRET_KEY] },
+  { region: "us-central1", secrets: [PAYSTACK_SECRET_KEY] },
   async (request) => {
     requireVerifiedEmail(request.auth);
     const uid = request.auth.uid;
@@ -196,7 +196,7 @@ exports.initiatePremiumUpgrade = onCall(
  * verifyPremiumPayment — verifies a Paystack reference and activates isPremium.
  */
 exports.verifyPremiumPayment = onCall(
-  { region: "us-central1", enforceAppCheck: true, secrets: [PAYSTACK_SECRET_KEY] },
+  { region: "us-central1", secrets: [PAYSTACK_SECRET_KEY] },
   async (request) => {
     requireVerifiedEmail(request.auth);
     const uid = request.auth.uid;

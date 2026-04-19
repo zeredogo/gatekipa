@@ -1,0 +1,50 @@
+Starting Gatekeeper Schema & Index Diagnostic...
+
+🔍 ================== CHECKING SCHEMA PROPERTIES (UNDEFINED FIELDS) ==================
+  📊 users (Checked 3 docs):
+     ❌ Missing 'createdAt': 1 | Missing 'updatedAt': 3
+  ➖ cards: Collection is currently empty or doesn't exist yet.
+  ➖ wallets: Collection is currently empty or doesn't exist yet.
+  ➖ transactions: Collection is currently empty or doesn't exist yet.
+  ➖ accounts: Collection is currently empty or doesn't exist yet.
+  ➖ rules: Collection is currently empty or doesn't exist yet.
+  ➖ notifications: Collection is currently empty or doesn't exist yet.
+
+🔍 ================== CHECKING MISSING COMPOSITE INDEXES ==================
+  ❌ MISSING INDEX: cards -> [userId == test-user, orderBy createdAt desc]
+  ❌ MISSING INDEX: cards -> [status == active, orderBy cardType asc]
+  ❌ MISSING INDEX: transactions -> [userId == test-user, orderBy timestamp desc]
+  ❌ MISSING INDEX: transactions -> [status == pending, orderBy createdAt desc]
+  ❌ MISSING INDEX: notifications -> [userId == test-user, orderBy createdAt desc]
+  ❌ MISSING INDEX: notifications -> [read == false, orderBy createdAt desc]
+  ❌ MISSING INDEX: rules -> [cardId == test-card, orderBy createdAt desc]
+
+🚨 ACTION REQUIRED: Click the following links to create the composite indexes:
+
+Collection: cards
+Query: where(userId == test-user).orderBy(createdAt desc)
+Create URL -> https://console.firebase.google.com/v1/r/project/gatekeeper-15331/firestore/indexes?create_composite=Ck5wcm9qZWN0cy9nYXRla2VlcGVyLTE1MzMxL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9jYXJkcy9pbmRleGVzL18QARoKCgZ1c2VySWQQARoNCgljcmVhdGVkQXQQAhoMCghfX25hbWVfXxAC
+
+Collection: cards
+Query: where(status == active).orderBy(cardType asc)
+Create URL -> https://console.firebase.google.com/v1/r/project/gatekeeper-15331/firestore/indexes?create_composite=Ck5wcm9qZWN0cy9nYXRla2VlcGVyLTE1MzMxL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9jYXJkcy9pbmRleGVzL18QARoKCgZzdGF0dXMQARoMCghjYXJkVHlwZRABGgwKCF9fbmFtZV9fEAE
+
+Collection: transactions
+Query: where(userId == test-user).orderBy(timestamp desc)
+Create URL -> https://console.firebase.google.com/v1/r/project/gatekeeper-15331/firestore/indexes?create_composite=ClVwcm9qZWN0cy9nYXRla2VlcGVyLTE1MzMxL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy90cmFuc2FjdGlvbnMvaW5kZXhlcy9fEAEaCgoGdXNlcklkEAEaDQoJdGltZXN0YW1wEAIaDAoIX19uYW1lX18QAg
+
+Collection: transactions
+Query: where(status == pending).orderBy(createdAt desc)
+Create URL -> https://console.firebase.google.com/v1/r/project/gatekeeper-15331/firestore/indexes?create_composite=ClVwcm9qZWN0cy9nYXRla2VlcGVyLTE1MzMxL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy90cmFuc2FjdGlvbnMvaW5kZXhlcy9fEAEaCgoGc3RhdHVzEAEaDQoJY3JlYXRlZEF0EAIaDAoIX19uYW1lX18QAg
+
+Collection: notifications
+Query: where(userId == test-user).orderBy(createdAt desc)
+Create URL -> https://console.firebase.google.com/v1/r/project/gatekeeper-15331/firestore/indexes?create_composite=ClZwcm9qZWN0cy9nYXRla2VlcGVyLTE1MzMxL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9ub3RpZmljYXRpb25zL2luZGV4ZXMvXxABGgoKBnVzZXJJZBABGg0KCWNyZWF0ZWRBdBACGgwKCF9fbmFtZV9fEAI
+
+Collection: notifications
+Query: where(read == false).orderBy(createdAt desc)
+Create URL -> https://console.firebase.google.com/v1/r/project/gatekeeper-15331/firestore/indexes?create_composite=ClZwcm9qZWN0cy9nYXRla2VlcGVyLTE1MzMxL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9ub3RpZmljYXRpb25zL2luZGV4ZXMvXxABGggKBHJlYWQQARoNCgljcmVhdGVkQXQQAhoMCghfX25hbWVfXxAC
+
+Collection: rules
+Query: where(cardId == test-card).orderBy(createdAt desc)
+Create URL -> https://console.firebase.google.com/v1/r/project/gatekeeper-15331/firestore/indexes?create_composite=Ck5wcm9qZWN0cy9nYXRla2VlcGVyLTE1MzMxL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9ydWxlcy9pbmRleGVzL18QARoKCgZjYXJkSWQQARoNCgljcmVhdGVkQXQQAhoMCghfX25hbWVfXxAC

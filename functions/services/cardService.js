@@ -19,7 +19,7 @@ function generatePlaceholderDetails() {
   };
 }
 
-exports.createVirtualCard = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) => {
 
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
@@ -99,7 +99,7 @@ exports.createVirtualCard = onCall({ region: "us-central1", enforceAppCheck: tru
   return { success: true, cardId: cardRef.id, card };
 });
 
-exports.toggleCardStatus = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.toggleCardStatus = onCall({ region: "us-central1" }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const { card_id, status } = request.data;
@@ -130,7 +130,7 @@ exports.toggleCardStatus = onCall({ region: "us-central1", enforceAppCheck: true
   return { success: true };
 });
 
-exports.renameCard = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.renameCard = onCall({ region: "us-central1" }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const { card_id, new_name } = request.data;
@@ -169,7 +169,7 @@ exports.disableCard = async function(cardId) {
  * activateKillSwitch — blocks all active cards across all accounts owned by the caller.
  * Called via httpsCallable('activateKillSwitch') from the Flutter app (biometric-gated).
  */
-exports.activateKillSwitch = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.activateKillSwitch = onCall({ region: "us-central1" }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
 
@@ -266,7 +266,7 @@ exports.activateKillSwitch = onCall({ region: "us-central1", enforceAppCheck: tr
  * adminGlobalKillSwitch — blocks ALL active cards across the absolute entire platform.
  * Protected by strict `requireAdmin` custom claim validation.
  */
-exports.adminGlobalKillSwitch = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.adminGlobalKillSwitch = onCall({ region: "us-central1" }, async (request) => {
   requireAdmin(request.auth);
 
   const cardsSnap = await db.collection("cards")
@@ -330,7 +330,7 @@ exports.adminGlobalKillSwitch = onCall({ region: "us-central1", enforceAppCheck:
  * dispatch a server-side in-app notification without any direct Firestore writes
  * from the client. Keeps the entire notification pipeline on the backend.
  */
-exports.sendCardNotification = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.sendCardNotification = onCall({ region: "us-central1" }, async (request) => {
   requireVerifiedEmail(request.auth);
   const { cardId, title, body, type = "alert" } = request.data;
 

@@ -1193,7 +1193,7 @@ class _PlanPaystackCheckoutState extends State<_PlanPaystackCheckout> {
     <div class="amount">₦$amountNgn</div>
     <p style="font-size:13px;color:#4b5563">${widget.email}</p>
     <button class="btn" onclick="payWithPaystack()">Pay Securely</button>
-    <div class="lock">🔒 Secured by Paystack · PCI DSS compliant</div>
+    <div class="lock">🔒 Secured by Westgate Stratagem · PCI DSS compliant</div>
   </div>
 
   <script>
@@ -1245,7 +1245,7 @@ class _PlanPaystackCheckoutState extends State<_PlanPaystackCheckout> {
             child: Row(children: [
               const Icon(Icons.lock_rounded, size: 14, color: AppColors.outline),
               const SizedBox(width: 4),
-              Text('Paystack',
+              Text('Westgate Stratagem',
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium

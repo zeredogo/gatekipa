@@ -99,7 +99,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
  *   business   — ₦5,000
  */
 exports.purchasePlan = onCall(
-  { region: "us-central1", enforceAppCheck: true, secrets: [PAYSTACK_SECRET_KEY] },
+  { region: "us-central1", secrets: [PAYSTACK_SECRET_KEY] },
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "User must be authenticated.");

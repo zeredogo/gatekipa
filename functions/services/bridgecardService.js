@@ -58,7 +58,7 @@ function encryptPin(pin) {
 // using BVN verification (synchronous endpoint).
 // Stores the returned cardholder_id on the Firestore user doc.
 // ─────────────────────────────────────────────────────────────────────────────
-exports.registerCardholder = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
+exports.registerCardholder = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const data = request.data;
@@ -149,7 +149,7 @@ exports.registerCardholder = onCall({ region: "us-central1", enforceAppCheck: tr
 // Issues a real NGN Mastercard virtual card for a registered cardholder.
 // Stores the returned bridgecard card_id on the Firestore card doc.
 // ─────────────────────────────────────────────────────────────────────────────
-exports.createBridgecard = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [BRIDGECARD_ACCESS_TOKEN, BRIDGECARD_SECRET_KEY] }, async (request) => {
+exports.createBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN, BRIDGECARD_SECRET_KEY] }, async (request) => {
 
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
@@ -307,7 +307,7 @@ exports.createBridgecard = onCall({ region: "us-central1", enforceAppCheck: true
 // Tops up a Bridgecard NGN card from the NGN issuing wallet.
 // amount should be in Naira (we convert to kobo internally).
 // ─────────────────────────────────────────────────────────────────────────────
-exports.fundBridgecard = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
+exports.fundBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const data = request.data;
@@ -423,7 +423,7 @@ async function internalFreezeBridgecard(bridgecardCardId, freeze = true) {
 }
 exports.internalFreezeBridgecard = internalFreezeBridgecard;
 
-exports.freezeBridgecard = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
+exports.freezeBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const data = request.data;
@@ -470,7 +470,7 @@ exports.freezeBridgecard = onCall({ region: "us-central1", enforceAppCheck: true
 // Privileged endpoint used exclusively by the Next.js Admin Control Center.
 // Bypasses isOwner checks and forcefully alters card state globally.
 // ─────────────────────────────────────────────────────────────────────────────
-exports.adminFreezeCard = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
+exports.adminFreezeCard = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
   requireAdmin(request.auth);
   
   const { card_id, freeze } = request.data;
@@ -747,7 +747,7 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
 // Securely proxies Bridgecard's PCI-DSS endpoint to map raw card bytes locally.
 // Never persists results natively!
 // ─────────────────────────────────────────────────────────────────────────────
-exports.revealCardDetails = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
+exports.revealCardDetails = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const data = request.data;
@@ -796,7 +796,7 @@ exports.revealCardDetails = onCall({ region: "us-central1", enforceAppCheck: tru
 // 7. getCardOtp
 // Fetches the live 3D Secure OTP tied to the explicit Naira transaction amount.
 // ─────────────────────────────────────────────────────────────────────────────
-exports.getCardOtp = onCall({ region: "us-central1", enforceAppCheck: true, secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
+exports.getCardOtp = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
   const data = request.data;

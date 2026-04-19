@@ -12,7 +12,7 @@ const { FieldValue } = require("firebase-admin/firestore");
  * The function stores the result on the user document regardless of outcome
  * so the client can always rely on Firestore as the source of truth.
  */
-exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.verifyBvn = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { bvn } = request.data;
@@ -92,7 +92,7 @@ exports.verifyBvn = onCall({ region: "us-central1", enforceAppCheck: true }, asy
  * Input: { nin: string }
  * Output: { success: boolean, message: string }
  */
-exports.verifyKyc = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.verifyKyc = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { nin } = request.data;

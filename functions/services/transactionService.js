@@ -14,7 +14,7 @@ const logger = require("firebase-functions/logger");
  * against a specific card without triggering a real Bridgecard authorization.
  * Real-world card transactions arrive automatically via bridgecardWebhook.
  */
-exports.processTransaction = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.processTransaction = onCall({ region: "us-central1" }, async (request) => {
 
   requireAdmin(request.auth);
   const { cardId, amount, merchantName } = request.data;

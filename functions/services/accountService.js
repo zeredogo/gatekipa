@@ -3,7 +3,7 @@ const { db } = require("../utils/firebase");
 const { requireAuth, requireFields } = require("../utils/validators");
 
 
-exports.createAccount = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.createAccount = onCall({ region: "us-central1" }, async (request) => {
 
   requireAuth(request.auth);
   const uid = request.auth.uid;
@@ -41,7 +41,7 @@ exports.createAccount = onCall({ region: "us-central1", enforceAppCheck: true },
   return { success: true, accountId: accountRef.id, account };
 });
 
-exports.inviteTeamMember = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.inviteTeamMember = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { account_id, target_user_id, role, spend_limit } = request.data;
@@ -115,7 +115,7 @@ exports.inviteTeamMember = onCall({ region: "us-central1", enforceAppCheck: true
   return { success: true };
 });
 
-exports.removeTeamMember = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.removeTeamMember = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { account_id, target_user_id } = request.data;
@@ -141,7 +141,7 @@ exports.removeTeamMember = onCall({ region: "us-central1", enforceAppCheck: true
   return { success: true };
 });
 
-exports.renameAccount = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.renameAccount = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { account_id, new_name } = request.data;
@@ -161,7 +161,7 @@ exports.renameAccount = onCall({ region: "us-central1", enforceAppCheck: true },
   return { success: true };
 });
 
-exports.deleteAccount = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.deleteAccount = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { account_id, confirm_delete } = request.data;
@@ -217,7 +217,7 @@ exports.deleteAccount = onCall({ region: "us-central1", enforceAppCheck: true },
   return { success: true };
 });
 
-exports.switchActiveAccount = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.switchActiveAccount = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { account_id } = request.data;

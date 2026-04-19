@@ -9,7 +9,7 @@ const { requireAuth } = require("../utils/validators");
  * Input:  { messages: string[] }
  * Output: { count: number, subscriptions: { name, amount, currency }[] }
  */
-exports.detectSubscriptions = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.detectSubscriptions = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const { messages = [] } = request.data;
   const uid = request.auth.uid;

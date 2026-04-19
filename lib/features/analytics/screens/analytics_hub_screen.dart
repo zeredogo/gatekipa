@@ -74,6 +74,7 @@ class AnalyticsHubScreen extends ConsumerWidget {
               const SliverToBoxAdapter(child: SizedBox(height: 140)),
             ],
           ),
+          ),
         );
       },
       loading: () =>

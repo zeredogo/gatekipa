@@ -2,7 +2,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
 const { requireAuth, requireFields } = require("../utils/validators");
 
-exports.searchEntities = onCall({ region: "us-central1", enforceAppCheck: true }, async (request) => {
+exports.searchEntities = onCall({ region: "us-central1" }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const { query } = request.data;

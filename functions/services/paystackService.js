@@ -26,7 +26,6 @@ const PAYSTACK_SECRET_KEY = defineSecret("PAYSTACK_SECRET_KEY");
 exports.verifyPaystackPayment = onCall(
   {
     region: "us-central1",
-    enforceAppCheck: true,
     secrets: [PAYSTACK_SECRET_KEY]
   },
   async (request) => {

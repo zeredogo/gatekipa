@@ -159,6 +159,7 @@ class DetectionSetupScreen extends ConsumerWidget {
           ],
         ),
       ),
+      ), // Close RefreshIndicator
       // ── Sticky dual-button bottom bar ──────────────────────────────────
       bottomNavigationBar: Container(
         padding: EdgeInsets.fromLTRB(
