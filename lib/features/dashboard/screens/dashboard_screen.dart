@@ -826,6 +826,13 @@ class _GuardRulesWidget extends ConsumerWidget {
               sub: 'Block all charges 12 AM – 6 AM (WAT)',
               value: user.nightLockdown,
               onChanged: (v) async {
+                if (user.planTier != 'premium' && user.planTier != 'business') {
+                  GkToast.show(context,
+                      message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock Night Lockdown.',
+                      type: ToastType.warning,
+                      duration: const Duration(seconds: 4));
+                  return;
+                }
                 try {
                   await FirebaseFirestore.instance
                       .collection('users')
@@ -850,7 +857,7 @@ class _GuardRulesWidget extends ConsumerWidget {
               onChanged: (v) async {
                 if (user.planTier != 'premium' && user.planTier != 'business') {
                   GkToast.show(context,
-                      message: '🚀 Gatekeeper Premium Required: Upgrade your plan to unlock advanced geo-fencing protections.',
+                      message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock advanced geo-fencing protections.',
                       type: ToastType.warning,
                       duration: const Duration(seconds: 4));
                   return;

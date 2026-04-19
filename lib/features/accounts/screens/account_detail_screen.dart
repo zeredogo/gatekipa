@@ -42,7 +42,14 @@ class AccountDetailScreen extends ConsumerWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             onSelected: (val) {
               if (val == 'rename') _showRenameSheet(context, ref);
-              if (val == 'team') context.push('/home/accounts/${account.id}/team', extra: account);
+              if (val == 'team') {
+                final user = ref.read(userProfileProvider).valueOrNull;
+                if (user != null && !user.isSentinelPrime) {
+                  GkToast.show(context, message: '🚀 Sentinel Prime Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
+                  return;
+                }
+                context.push('/home/accounts/${account.id}/team', extra: account);
+              }
               if (val == 'delete') _confirmDelete(context, ref);
             },
             itemBuilder: (_) => [
@@ -119,6 +126,11 @@ class AccountDetailScreen extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                         ),
                         onPressed: () {
+                          final user = ref.read(userProfileProvider).valueOrNull;
+                          if (user != null && !user.isSentinelPrime) {
+                            GkToast.show(context, message: '🚀 Sentinel Prime Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
+                            return;
+                          }
                           Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
                             builder: (_) => TeamMembersScreen(account: account),
                           ));

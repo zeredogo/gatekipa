@@ -265,11 +265,11 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
   }
 
   Future<void> _toggleRule(String subType, bool newValue) async {
-    if (subType == 'block_if_amount_changes') {
+    if (subType == 'block_if_amount_changes' || subType == 'night_lockdown' || subType == 'instant_breach_alert') {
       final user = ref.read(userProfileProvider).valueOrNull;
       if (user != null && !user.isSentinelPrime) {
          GkToast.show(context,
-            message: '🚀 Gatekeeper Premium Required: Upgrade your plan to unlock AI price locks.',
+            message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock advanced card protections.',
             type: ToastType.warning,
             duration: const Duration(seconds: 4));
          return;

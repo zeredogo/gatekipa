@@ -587,7 +587,14 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                     }
                     return const Icon(Icons.close, color: AppColors.surface);
                   }),
-                  onChanged: (v) => setState(() => _nightLockdown = v),
+                  onChanged: (v) {
+                    final user = ref.read(userProfileProvider).valueOrNull;
+                    if (user != null && !user.isSentinelPrime) {
+                      GkToast.show(context, message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock Night Lockdown.', type: ToastType.warning);
+                      return;
+                    }
+                    setState(() => _nightLockdown = v);
+                  },
                 ),
               ),
               const _Divider(),
@@ -604,7 +611,14 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                     }
                     return const Icon(Icons.close, color: AppColors.surface);
                   }),
-                  onChanged: (v) => setState(() => _instantBreachAlert = v),
+                  onChanged: (v) {
+                    final user = ref.read(userProfileProvider).valueOrNull;
+                    if (user != null && !user.isSentinelPrime) {
+                      GkToast.show(context, message: '🚀 Sentinel Prime Required: Upgrade your plan for Instant Breach Alerts.', type: ToastType.warning);
+                      return;
+                    }
+                    setState(() => _instantBreachAlert = v);
+                  },
                 ),
               ),
 

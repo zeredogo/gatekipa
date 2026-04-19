@@ -10,6 +10,7 @@ import '../../../core/widgets/gk_toast.dart';
 import '../../cards/providers/card_provider.dart';
 import '../models/account_model.dart';
 import '../providers/account_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class AccountsScreen extends ConsumerWidget {
   const AccountsScreen({super.key});
@@ -93,7 +94,14 @@ class AccountsScreen extends ConsumerWidget {
                     context.push('/home/accounts/${account.id}', extra: account);
                   },
                   onRename: () => _showRenameSheet(context, ref, account),
-                  onManageTeam: () => context.push('/home/accounts/${account.id}/team', extra: account),
+                  onManageTeam: () {
+                    final user = ref.read(userProfileProvider).valueOrNull;
+                    if (user != null && !user.isSentinelPrime) {
+                      GkToast.show(context, message: '🚀 Sentinel Prime Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
+                      return;
+                    }
+                    context.push('/home/accounts/${account.id}/team', extra: account);
+                  },
                   onDelete: () => _confirmDelete(context, ref, account),
                 ).animate(delay: (i * 40).ms).fadeIn().slideY(begin: 0.05, end: 0);
               },
