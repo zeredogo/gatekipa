@@ -44,8 +44,8 @@ class AccountDetailScreen extends ConsumerWidget {
               if (val == 'rename') _showRenameSheet(context, ref);
               if (val == 'team') {
                 final user = ref.read(userProfileProvider).valueOrNull;
-                if (user != null && !user.isSentinelPrime) {
-                  GkToast.show(context, message: '🚀 Sentinel Prime Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
+                if (user != null && user.planTier != 'business') {
+                  GkToast.show(context, message: '🏢 Business Plan Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
                   return;
                 }
                 context.push('/home/accounts/${account.id}/team', extra: account);
@@ -127,8 +127,8 @@ class AccountDetailScreen extends ConsumerWidget {
                         ),
                         onPressed: () {
                           final user = ref.read(userProfileProvider).valueOrNull;
-                          if (user != null && !user.isSentinelPrime) {
-                            GkToast.show(context, message: '🚀 Sentinel Prime Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
+                          if (user != null && user.planTier != 'business') {
+                            GkToast.show(context, message: '🏢 Business Plan Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
                             return;
                           }
                           Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(

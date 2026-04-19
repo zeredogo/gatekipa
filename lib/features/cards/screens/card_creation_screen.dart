@@ -1150,12 +1150,9 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
           _buildPlanCard('Sentinel Prime', 'premium', 2000, [
             'Smart Alert (breach, activity)',
             'Savings insight',
-            'Team Access',
-            'Client Profile management',
             'Night blocks',
             'Geofencing',
             'Advanced Rules',
-            'Priority Protection',
             'Scan for subscription patterns',
           ], true),
           const SizedBox(height: 16),
