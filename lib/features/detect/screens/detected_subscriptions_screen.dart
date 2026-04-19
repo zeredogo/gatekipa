@@ -98,6 +98,7 @@ class DetectedSubscriptionsScreen extends ConsumerWidget {
 
           final totalExposure = subs.fold<double>(
               0.0, (sum, sub) => sum + parseAmount(sub['amount']));
+          final annualBurn = totalExposure * 12;
 
           return Column(
             children: [
@@ -111,25 +112,51 @@ class DetectedSubscriptionsScreen extends ConsumerWidget {
                   border:
                       Border.all(color: AppColors.error.withValues(alpha: 0.2)),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        color: AppColors.error, size: 24),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            color: AppColors.error, size: 24),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${subs.length} Unprotected Subscriptions',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: AppColors.error,),
+                              ),
+                              Text(
+                                'Total exposure: ₦${totalExposure.toStringAsFixed(0)}/month',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
+                                  color: AppColors.onSurfaceVariant,),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.error.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${subs.length} Unprotected Subscriptions',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: AppColors.error,),
+                            'Annual Burn Rate',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.onSurface),
                           ),
                           Text(
-                            'Total exposure: ₦${totalExposure.toStringAsFixed(0)}/month',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
-                              color: AppColors.onSurfaceVariant,),
+                            '₦${annualBurn.toStringAsFixed(0)} / yr',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.error),
                           ),
                         ],
                       ),

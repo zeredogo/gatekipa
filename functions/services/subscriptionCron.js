@@ -49,10 +49,11 @@ exports.scanSubscriptionPatterns = onSchedule("0 0 * * 0", async (event) => { //
             return time >= sixtyDaysAgo;
          });
          
-      // Group by merchant and amount
+      // Group ONLY by merchant
       const groups = {};
       for (const txn of transactions) {
-         const key = `${txn.merchant_name}_${txn.amount}`;
+         const key = txn.merchant_name;
+         if (!key) continue;
          if (!groups[key]) {
              groups[key] = [];
          }
@@ -76,29 +77,85 @@ exports.scanSubscriptionPatterns = onSchedule("0 0 * * 0", async (event) => { //
              if (latest - earliest >= 25 * 24 * 60 * 60 * 1000) {
                  // Solid chance this is a subscription!
                  const merchantName = groupTxns[0].merchant_name;
-                 const amount = groupTxns[0].amount;
+                 const oldestAmount = groupTxns[0].amount;
+                 const latestAmount = groupTxns[groupTxns.length - 1].amount;
                  
-                 // Check if it's already detected
+                 // PRICE HIKE DETECTION
+                 let isPriceHike = false;
+                 if (latestAmount > oldestAmount) {
+                     isPriceHike = true;
+                 }
+                 
+                 // Check if it's already detected for this specific EXACT merchant
                  const existingSnap = await db.collection("users").doc(uid).collection("detected_subscriptions")
                     .where("name", "==", merchantName)
-                    .where("amount", "==", Math.round(amount * 100))
                     .limit(1).get();
                     
                  if (existingSnap.empty) {
                      const subDoc = {
                        name: merchantName,
-                       amount: Math.round(amount * 100),
+                       amount: Math.round(latestAmount * 100),
                        currency: "NGN",
                        category: 'Service',
                        cycle: 'monthly',
-                       color_hex: '#1E40AF',
+                       color_hex: isPriceHike ? '#DC2626' : '#1E40AF',
                        icon: 'receipt_long_rounded',
-                       raw_message: `Auto-detected from ${groupTxns.length} identical card charges`,
+                       raw_message: isPriceHike ? `PRICE HIKE! Increased from ₦${oldestAmount}` : `Auto-detected from ${groupTxns.length} card charges`,
                        detectedAt: new Date().toISOString()
                      };
                      
                      await db.collection("users").doc(uid).collection("detected_subscriptions").add(subDoc);
                      totalDetected++;
+                     
+                     if (isPriceHike) {
+                        try {
+                           const uDoc = await db.collection("users").doc(uid).get();
+                           const fcmToken = uDoc.data()?.fcm_token;
+                           if (fcmToken) {
+                               const { getMessaging } = require("firebase-admin/messaging");
+                               await getMessaging().send({
+                                  token: fcmToken,
+                                  notification: {
+                                    title: "Price Hike Alert!",
+                                    body: `${merchantName} just increased your bill from ₦${oldestAmount} to ₦${latestAmount}.`
+                                  }
+                               });
+                           }
+                           
+                           // In app notification
+                           await uDoc.ref.collection("notifications").add({
+                             title: "Price Hike Detected",
+                             body: `${merchantName} increased their standard price. Do you want to freeze the card?`,
+                             timestamp: new Date(),
+                             isRead: false,
+                             type: "alert",
+                           });
+                        } catch (err) {
+                           console.error("FCM dispatch failed", err);
+                        }
+                     }
+                 } else if (isPriceHike && existingSnap.docs[0].data().amount < Math.round(latestAmount * 100)) {
+                     // Upgrade existing record
+                     await existingSnap.docs[0].ref.update({
+                        amount: Math.round(latestAmount * 100),
+                        raw_message: `PRICE HIKE! Increased from ₦${oldestAmount}`,
+                        color_hex: '#DC2626'
+                     });
+                     
+                     try {
+                           const uDoc = await db.collection("users").doc(uid).get();
+                           const fcmToken = uDoc.data()?.fcm_token;
+                           if (fcmToken) {
+                               const { getMessaging } = require("firebase-admin/messaging");
+                               await getMessaging().send({
+                                  token: fcmToken,
+                                  notification: {
+                                    title: "Price Hike Alert!",
+                                    body: `${merchantName} just increased your bill from ₦${oldestAmount} to ₦${latestAmount}.`
+                                  }
+                               });
+                           }
+                     } catch (err) { }
                  }
              }
          }
