@@ -30,6 +30,7 @@ const {
   getCardOtp,
 } = require("./services/bridgecardService");
 const { integritySweep } = require("./services/reconciliationCron");
+const { scanSubscriptionPatterns } = require("./services/subscriptionCron");
 
 
 // 1. Auth / User Lifecycle
@@ -69,6 +70,7 @@ exports.detectSubscriptions = detectSubscriptions;
 
 // 8. CRON & Automations
 exports.integritySweep = integritySweep;
+exports.scanSubscriptionPatterns = scanSubscriptionPatterns;
 
 // 8. Wallet Operations
 exports.createVaultAccount = createVaultAccount;

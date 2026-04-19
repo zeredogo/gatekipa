@@ -133,6 +133,11 @@ exports.removeTeamMember = onCall({ region: "us-central1" }, async (request) => 
     if (!myTmSnap.exists || myTmSnap.data().role !== "admin") {
       throw new HttpsError("permission-denied", "You don't have permission to remove members.");
     }
+    
+    // An admin cannot remove the owner
+    if (target_user_id === accSnap.data().owner_user_id) {
+      throw new HttpsError("permission-denied", "Admins cannot remove the account owner.");
+    }
   }
 
   const tmId = `${account_id}_${target_user_id}`;

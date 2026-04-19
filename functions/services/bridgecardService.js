@@ -653,7 +653,19 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
               const uDoc = await db.collection("users").doc(ownerUid).get();
               const fcmToken = uDoc.data()?.fcm_token;
               
-              if (fcmToken) {
+              let shouldSendPush = true;
+              if (!approved) {
+                const ruleSnap = await db.collection("rules")
+                  .where("card_id", "==", cardDoc.id)
+                  .where("sub_type", "==", "instant_breach_alert")
+                  .limit(1)
+                  .get();
+                if (ruleSnap.empty) {
+                  shouldSendPush = false;
+                }
+              }
+              
+              if (fcmToken && shouldSendPush) {
                 await getMessaging().send({
                   token: fcmToken,
                   notification: {
@@ -669,6 +681,8 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
                   }
                 });
                 logger.info(`[FCM] Push Notification dispatched to ${ownerUid} for ${approved ? 'approval' : 'block'}`);
+              } else if (!approved) {
+                 logger.info(`[FCM] Push notification suppressed for blocked charge on ${cardDoc.id} (no breach rule)`);
               }
             } catch (fcmErr) {
               logger.error(`[FCM] Failed to dispatch push notification to ${ownerUid}:`, fcmErr);
