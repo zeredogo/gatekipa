@@ -110,7 +110,7 @@ const FeaturesSection = () => {
                src="/vault_balance.png"
                alt="Gatekipa Built to Control - Vault Balance"
                fill
-               className="object-contain p-4 drop-shadow-2xl mix-blend-multiply"
+               className="object-contain p-4 drop-shadow-2xl"
              />
           </div>
         </div>
