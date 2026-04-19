@@ -95,7 +95,7 @@ const HowItWorksSection = () => {
                src="/create_card_screen.png"
                alt="Gatekipa App - Create a card interface"
                fill
-               className="object-contain p-4 drop-shadow-2xl"
+               className="object-contain p-4 drop-shadow-2xl mix-blend-multiply"
              />
           </div>
         </div>

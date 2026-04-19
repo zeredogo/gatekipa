@@ -64,7 +64,7 @@ const SecuritySection = () => {
                src="/detect_screen.png"
                alt="Gatekipa Protected Money Vault - Detect Screen"
                fill
-               className="object-contain p-4 drop-shadow-2xl"
+               className="object-contain p-4 drop-shadow-2xl mix-blend-multiply"
              />
           </div>
 
