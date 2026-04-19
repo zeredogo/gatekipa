@@ -32,6 +32,8 @@ class UserModel {
   final bool blockAlerts;
   final bool subscriptionReminders;
 
+  bool get isSentinelPrime => planTier == 'premium' || planTier == 'business';
+
   const UserModel({
     required this.uid,
     this.firstName,

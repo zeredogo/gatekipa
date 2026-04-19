@@ -212,3 +212,84 @@ exports.purchasePlan = onCall(
     return { success: true, newTier: plan, cardsIncluded: cardsToAllocate };
   }
 );
+
+/**
+ * purchasePlanFromVault
+ *
+ * Atomically deducts the plan cost from the user's wallet balance and activates the plan.
+ */
+exports.purchasePlanFromVault = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "User must be authenticated.");
+
+    const { plan } = request.data;
+    if (!["free", "activation", "premium", "business"].includes(plan)) {
+      throw new HttpsError("invalid-argument", "Invalid plan type requested.");
+    }
+
+    const planConfig = {
+      free:       { price: 700,  cards: 1 },
+      activation: { price: 1400, cards: 2 },
+      premium:    { price: 2000, cards: 3 },
+      business:   { price: 5000, cards: 5 },
+    };
+
+    const costAmountStr = planConfig[plan].price;
+    const cardsToAllocate = planConfig[plan].cards;
+
+    const userRef = db.collection("users").doc(uid);
+    const walletRef = db.collection("users").doc(uid).collection("wallet").doc("balance");
+    const reference = `GTK-PLAN-VAULT-${Date.now()}`;
+    const ledgerRef = db.collection("users").doc(uid)
+                         .collection("wallet_transactions")
+                         .doc(`plan_${plan}_${reference}`);
+
+    try {
+      await db.runTransaction(async (t) => {
+        const walletDoc = await t.get(walletRef);
+        if (!walletDoc.exists) {
+          throw new HttpsError("failed-precondition", "Wallet not found.");
+        }
+
+        const currentBalance = walletDoc.data().balance || 0;
+        if (currentBalance < costAmountStr) {
+          throw new HttpsError("failed-precondition", "Insufficient funds in vault.");
+        }
+
+        // Deduct balance
+        t.update(walletRef, {
+          balance: FieldValue.increment(-costAmountStr),
+          updated_at: FieldValue.serverTimestamp(),
+        });
+
+        // Ledger entry
+        t.set(ledgerRef, {
+          type: "debit",
+          amount: costAmountStr,
+          status: "successful",
+          context: "plan_purchase",
+          method: "vault",
+          metadata: plan,
+          reference: reference,
+          created_at: Date.now(),
+        });
+
+        // Activate plan
+        t.set(userRef, {
+          planTier: plan,
+          cardsIncluded: cardsToAllocate,
+        }, { merge: true });
+      });
+
+      logger.info(`[purchasePlanFromVault] UID ${uid} activated '${plan}' from vault.`);
+      return { success: true, newTier: plan, cardsIncluded: cardsToAllocate };
+
+    } catch (err) {
+      if (err instanceof HttpsError) throw err;
+      logger.error("[purchasePlanFromVault] Transaction failed:", err);
+      throw new HttpsError("internal", "Failed to process vault payment.");
+    }
+  }
+);

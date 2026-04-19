@@ -231,7 +231,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 40),
                 Center(
                   child: Text(
-                    '${AppConstants.appName} v${AppConstants.appVersion} — Built with ❤️ in Nigeria',
+                    '${AppConstants.appName} — Built with ❤️ in Nigeria',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
                   ),
                 ),
@@ -351,8 +351,13 @@ class _ToggleItem extends StatelessWidget {
           ),
           Switch(
             value: value,
+            thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
+                return const Icon(Icons.check, color: AppColors.primary);
+              }
+              return const Icon(Icons.close, color: AppColors.surface);
+            }),
             onChanged: onChanged,
-            activeThumbColor: AppColors.primary,
           ),
         ],
       ),

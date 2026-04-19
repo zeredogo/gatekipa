@@ -100,7 +100,7 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
         data: (user) {
           if (user == null) return const SizedBox.shrink();
 
-          if (user.planTier == 'premium') {
+          if (user.isSentinelPrime) {
             return _buildActivePremiumView();
           }
 
@@ -167,7 +167,7 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
       ),
       bottomNavigationBar: userAsync.when(
         data: (user) {
-          if (user == null || user.planTier == 'premium') return const SizedBox.shrink();
+          if (user == null || user.isSentinelPrime) return const SizedBox.shrink();
           return Container(
             padding: EdgeInsets.fromLTRB(
                 24, 16, 24, MediaQuery.of(context).padding.bottom + 16),

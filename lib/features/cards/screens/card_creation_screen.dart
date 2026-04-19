@@ -354,7 +354,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const _FieldLabel('Account'),
+                        const _FieldLabel('Client Profile'),
                         const SizedBox(height: AppSpacing.xs),
                         TextFormField(
                           initialValue: acc?.name ?? 'Loading...',
@@ -384,8 +384,8 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
               ] else ...[
-                // Wireframe ④ — Select Account dropdown
-                const _FieldLabel('Select Account'),
+                // Wireframe ④ — Select Profile dropdown
+                const _FieldLabel('Select Client Profile'),
                 const SizedBox(height: AppSpacing.xs),
                 accountsAsync.when(
                   data: (accounts) {
@@ -398,7 +398,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                           border: Border.all(color: AppColors.outlineVariant),
                         ),
                         child: Text(
-                          'No accounts found. Create an account first.',
+                          'No client profiles found. Create a profile first.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
                         ),
                       );
@@ -426,7 +426,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                               children: [
                                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.outlineVariant, borderRadius: BorderRadius.circular(2)))),
                                 const SizedBox(height: AppSpacing.lg),
-                                Text('Select Account', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
+                                Text('Select Client Profile', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
                                 const SizedBox(height: AppSpacing.md),
                                 ...accounts.map((acc) => ListTile(
                                   onTap: () {
@@ -464,7 +464,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                     );
                   },
                   loading: () => const SizedBox(height: 56, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
-                  error: (e, _) => Text('Error loading accounts', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.error)),
+                  error: (e, _) => Text('Error loading profiles', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.error)),
                 ),
                 const SizedBox(height: AppSpacing.lg),
               ],
@@ -581,6 +581,12 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 subtitle: 'Block 12:00 AM – 6:00 AM',
                 child: Switch(
                   value: _nightLockdown,
+                  thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return const Icon(Icons.check, color: AppColors.primary);
+                    }
+                    return const Icon(Icons.close, color: AppColors.surface);
+                  }),
                   onChanged: (v) => setState(() => _nightLockdown = v),
                 ),
               ),
@@ -592,6 +598,12 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 subtitle: 'Push notification on breach',
                 child: Switch(
                   value: _instantBreachAlert,
+                  thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return const Icon(Icons.check, color: AppColors.primary);
+                    }
+                    return const Icon(Icons.close, color: AppColors.surface);
+                  }),
                   onChanged: (v) => setState(() => _instantBreachAlert = v),
                 ),
               ),
@@ -932,12 +944,158 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
       return;
     }
 
-    // Open Paystack checkout — the user pays first.
-    // On success the callback triggers server-side verification.
-    final reference = 'GTK-PLAN-${uid.substring(0, 6)}-${DateTime.now().millisecondsSinceEpoch}';
-    final amountInKobo = cost * 100;
+    final wallet = ref.read(walletProvider).valueOrNull;
+    final hasEnoughVaultBalance = wallet != null && wallet.balance >= cost;
 
-    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      useRootNavigator: true,
+      builder: (sheetContext) => Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Select Payment Method',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'How would you like to pay ₦$cost?',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 32),
+            
+            // Vault Option
+            InkWell(
+              onTap: hasEnoughVaultBalance ? () {
+                Navigator.pop(sheetContext);
+                _executeVaultPayment(planId, cost);
+              } : null,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: hasEnoughVaultBalance ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  color: hasEnoughVaultBalance ? AppColors.primary.withValues(alpha: 0.05) : AppColors.surfaceContainerLowest,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: hasEnoughVaultBalance ? AppColors.primary.withValues(alpha: 0.1) : AppColors.outlineVariant.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.account_balance_wallet, color: hasEnoughVaultBalance ? AppColors.primary : AppColors.outline),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Pay from Vault', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700, color: hasEnoughVaultBalance ? AppColors.onSurface : AppColors.outline)),
+                          Text(
+                            hasEnoughVaultBalance ? 'Instant activation' : 'Insufficient balance (₦${wallet?.balance.toStringAsFixed(2) ?? '0.00'})',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: hasEnoughVaultBalance ? AppColors.onSurfaceVariant : AppColors.error),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (hasEnoughVaultBalance)
+                      const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primary),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Paystack Option
+            InkWell(
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _executePaystackPayment(planId, cost, uid, email);
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.outlineVariant),
+                  borderRadius: BorderRadius.circular(16),
+                  color: AppColors.surfaceContainerLowest,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.credit_card, color: AppColors.onSurface),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Pay with Bank / Card', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)),
+                          Text('Via Paystack Secure Checkout', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.outline),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _executeVaultPayment(String planId, int cost) async {
+    setState(() => _isLoading = true);
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('purchasePlanFromVault');
+      await callable.call({'plan': planId});
+      if (mounted) {
+        GkToast.show(context, message: '${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated! 🎉', type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) {
+        GkToast.show(context, message: 'Activation failed. $e', type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _executePaystackPayment(String planId, int cost, String uid, String email) async {
+    final reference = 'GTK-PLAN-${uid.substring(0, 6)}-${DateTime.now().millisecondsSinceEpoch}';
+    
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -995,11 +1153,21 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
-          _buildPlanCard('Free Plan', 'free', 700, ['1 Card Included', 'Basic Rules'], false),
+          _buildPlanCard('Instant Plan', 'free', 700, ['1 Card Included', 'Basic Rules'], false),
           const SizedBox(height: 16),
           _buildPlanCard('Activation Plan', 'activation', 1400, ['2 Cards Included', 'Basic Rules', 'No limits on top-ups'], false),
           const SizedBox(height: 16),
-          _buildPlanCard('Premium Plan', 'premium', 2000, ['3 Cards Included', 'Advanced Rules & Automation', 'Geofencing'], true),
+          _buildPlanCard('Sentinel Prime', 'premium', 2000, [
+            'Smart Alert (breach, activity)',
+            'Savings insight',
+            'Team Access',
+            'Client Profile management',
+            'Night blocks',
+            'Geofencing',
+            'Advanced Rules',
+            'Priority Protection',
+            'Scan for subscription patterns'
+          ], true),
           const SizedBox(height: 16),
           _buildPlanCard('Business Plan', 'business', 5000, ['5 Cards Included', 'Priority Protection', 'Team Access'], false),
         ],

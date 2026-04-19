@@ -845,7 +845,7 @@ class _GuardRulesWidget extends ConsumerWidget {
               icon: Icons.location_on_rounded,
               iconColor: Colors.teal,
               title: 'Geo-Fence',
-              sub: 'Block international charges (merchants tagged [intl])',
+              sub: 'Block international charges',
               value: user.geoFence,
               onChanged: (v) async {
                 if (user.planTier != 'premium' && user.planTier != 'business') {
@@ -939,6 +939,12 @@ class _RuleTile extends StatelessWidget {
           ),
           Switch(
             value: value, 
+            thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
+                return const Icon(Icons.check, color: AppColors.primary);
+              }
+              return const Icon(Icons.close, color: AppColors.surface);
+            }),
             onChanged: onChanged,
           ),
         ],

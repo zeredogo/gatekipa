@@ -159,10 +159,7 @@ class _BiometricsScreenState extends ConsumerState<BiometricsScreen> {
                     color: AppColors.outlineVariant.withValues(alpha: 0.3),
                   ),
                 ),
-                child: SwitchListTile(
-                  value: _useBiometrics,
-                  onChanged: _toggleBiometrics,
-                  activeThumbColor: AppColors.primary,
+                child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   title: Text(
                     'Enable Biometric Login',
@@ -174,6 +171,16 @@ class _BiometricsScreenState extends ConsumerState<BiometricsScreen> {
                     'Bypass PIN entry for faster access',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                       color: AppColors.onSurfaceVariant,),
+                  ),
+                  trailing: Switch(
+                    value: _useBiometrics,
+                    thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return const Icon(Icons.check, color: AppColors.primary);
+                      }
+                      return const Icon(Icons.close, color: AppColors.surface);
+                    }),
+                    onChanged: _toggleBiometrics,
                   ),
                 ),
               ),

@@ -8,7 +8,7 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 // Setting cpu to 0.16 to prevent exceeding regions total allowable CPU quota during multi-function deployment
 setGlobalOptions({ maxInstances: 1, memory: "256MiB", cpu: 0.16 });
 
-const { onUserCreated, purchasePlan } = require("./services/authService");
+const { onUserCreated, purchasePlan, purchasePlanFromVault } = require("./services/authService");
 const { createAccount, inviteTeamMember, renameAccount, deleteAccount, switchActiveAccount, removeTeamMember } = require("./services/accountService");
 const { createVirtualCard, toggleCardStatus, activateKillSwitch, renameCard, adminGlobalKillSwitch, sendCardNotification } = require("./services/cardService");
 const { createRule, deleteRule, adminSimulateRuleEngine } = require("./services/ruleService");
@@ -35,6 +35,7 @@ const { integritySweep } = require("./services/reconciliationCron");
 // 1. Auth / User Lifecycle
 exports.onUserCreated = onUserCreated;
 exports.purchasePlan  = purchasePlan;
+exports.purchasePlanFromVault = purchasePlanFromVault;
 
 // 2. Account Management
 exports.createAccount = createAccount;

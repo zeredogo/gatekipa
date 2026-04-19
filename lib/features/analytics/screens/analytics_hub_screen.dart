@@ -23,7 +23,7 @@ class AnalyticsHubScreen extends ConsumerWidget {
 
     return userAsync.when(
       data: (user) {
-        final isPremium = user?.planTier == 'premium';
+        final isPremium = user?.isSentinelPrime == true;
         return Scaffold(
           backgroundColor: AppColors.surface,
           body: RefreshIndicator(

@@ -267,7 +267,7 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
   Future<void> _toggleRule(String subType, bool newValue) async {
     if (subType == 'block_if_amount_changes') {
       final user = ref.read(userProfileProvider).valueOrNull;
-      if (user != null && user.planTier != 'premium' && user.planTier != 'business') {
+      if (user != null && !user.isSentinelPrime) {
          GkToast.show(context,
             message: '🚀 Gatekeeper Premium Required: Upgrade your plan to unlock AI price locks.',
             type: ToastType.warning,
@@ -356,6 +356,12 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                 Switch(
                     value: widget.card.isBlocked,
                     activeThumbColor: AppColors.error,
+                    thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return const Icon(Icons.check, color: AppColors.error);
+                      }
+                      return const Icon(Icons.close, color: AppColors.surface);
+                    }),
                     onChanged: _toggling ? null : (_) => _toggleCardStatus(),
                   ),
                   if (_toggling)
@@ -451,6 +457,12 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
         else
           Switch(
             value: value,
+            thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
+                return const Icon(Icons.check, color: AppColors.primary);
+              }
+              return const Icon(Icons.close, color: AppColors.surface);
+            }),
             onChanged: onChanged,
           ),
       ],

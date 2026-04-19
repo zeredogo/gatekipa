@@ -1,4 +1,4 @@
-package com.gatekeeper.gatekeeper
+package com.gatekipa.gatekeeper
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

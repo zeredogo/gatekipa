@@ -133,20 +133,20 @@ class ProfileScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        gradient: user?.planTier == 'premium'
+                        gradient: user?.isSentinelPrime == true
                             ? const LinearGradient(
                                 colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
                               )
                             : null,
-                        color: user?.planTier != 'premium'
+                        color: user?.isSentinelPrime != true
                             ? Colors.white.withValues(alpha: 0.15)
                             : null,
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(
-                        user?.planTier == 'premium'
+                        user?.isSentinelPrime == true
                             ? '✦ Sentinel Prime'
-                            : 'Free Plan',
+                            : 'Instant Plan',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,),
@@ -218,6 +218,12 @@ class ProfileScreen extends ConsumerWidget {
                         label: 'Block Alerts',
                         trailing: Switch(
                           value: user?.blockAlerts ?? false,
+                          thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return const Icon(Icons.check, color: AppColors.primary);
+                            }
+                            return const Icon(Icons.close, color: AppColors.surface);
+                          }),
                           onChanged: (v) {
                             if (user != null) {
                               ref.read(authNotifierProvider.notifier).updateProfile(uid: user.uid, data: {'blockAlerts': v});
@@ -239,6 +245,12 @@ class ProfileScreen extends ConsumerWidget {
                         label: 'Subscription Reminders',
                         trailing: Switch(
                           value: user?.subscriptionReminders ?? false,
+                          thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return const Icon(Icons.check, color: AppColors.primary);
+                            }
+                            return const Icon(Icons.close, color: AppColors.surface);
+                          }),
                           onChanged: (v) {
                             if (user != null) {
                               ref.read(authNotifierProvider.notifier).updateProfile(uid: user.uid, data: {'subscriptionReminders': v});
@@ -258,7 +270,7 @@ class ProfileScreen extends ConsumerWidget {
                     ]),
                     const SizedBox(height: 20),
                     // Premium upgrade
-                    if (user?.planTier != 'premium') ...[
+                    if (user?.isSentinelPrime != true) ...[
                       _SettingsSection(title: 'Subscription', items: [
                         _SettingsItem(
                           icon: Icons.workspace_premium_rounded,
@@ -308,7 +320,7 @@ class ProfileScreen extends ConsumerWidget {
                     const SizedBox(height: AppSpacing.sm),
                     Center(
                       child: Text(
-                        '${AppConstants.appName} v${AppConstants.appVersion} • All rights reserved',
+                        '${AppConstants.appName} • All rights reserved',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
                       ),
                     ),
