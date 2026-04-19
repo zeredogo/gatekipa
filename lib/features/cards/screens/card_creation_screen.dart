@@ -232,8 +232,9 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         _cardNameCtrl.text.trim().isNotEmpty ? _cardNameCtrl.text.trim() : 'New Virtual Card';
 
     final fixedAmt =
-        double.tryParse(_fixedAmountCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
-    final maxCharges = int.tryParse(_maxChargesCtrl.text.trim()) ?? 0;
+        double.tryParse(_fixedAmountCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+    final maxCharges = 
+        int.tryParse(_maxChargesCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
 
     final accounts = ref.read(accountsStreamProvider).valueOrNull ?? [];
     final selectedAcc = accounts.where((a) => a.id == _selectedAccountId).firstOrNull;

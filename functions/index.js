@@ -6,7 +6,7 @@
 const { setGlobalOptions } = require("firebase-functions/v2");
 // Allows standard Cloud Run scaling on the Blaze plan up to a sustainable cap
 // Setting cpu to 0.16 to prevent exceeding regions total allowable CPU quota during multi-function deployment
-setGlobalOptions({ maxInstances: 1, memory: "256MiB", cpu: 0.16 });
+setGlobalOptions({ maxInstances: 1, memory: "256MiB", cpu: 0.16, enforceAppCheck: true });
 
 const { onUserCreated, purchasePlan, purchasePlanFromVault } = require("./services/authService");
 const { createAccount, inviteTeamMember, renameAccount, deleteAccount, switchActiveAccount, removeTeamMember } = require("./services/accountService");
@@ -31,6 +31,7 @@ const {
 } = require("./services/bridgecardService");
 const { integritySweep } = require("./services/reconciliationCron");
 const { scanSubscriptionPatterns } = require("./services/subscriptionCron");
+const { expirationCron } = require("./services/expirationCron");
 
 
 // 1. Auth / User Lifecycle
@@ -71,6 +72,7 @@ exports.detectSubscriptions = detectSubscriptions;
 // 8. CRON & Automations
 exports.integritySweep = integritySweep;
 exports.scanSubscriptionPatterns = scanSubscriptionPatterns;
+exports.expirationCron = expirationCron;
 
 // 8. Wallet Operations
 exports.createVaultAccount = createVaultAccount;

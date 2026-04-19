@@ -117,7 +117,7 @@ exports.purchasePlan = onCall(
       free:       { price: 700,  cards: 1 },
       activation: { price: 1400, cards: 2 },
       premium:    { price: 2000, cards: 3 },
-      business:   { price: 5000, cards: 5 },
+      business:   { price: 2000, cards: 5 }, // Standardized ₦2000 recurring fee
     };
 
     const expectedAmountKobo = planConfig[plan].price * 100;
@@ -193,10 +193,12 @@ exports.purchasePlan = onCall(
           created_at: Date.now(),
         });
 
-        // Activate the plan
+        // Activate the plan (30 days validity)
+        const expiryDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
         t.set(userRef, {
           planTier: plan,
           cardsIncluded: cardsToAllocate,
+          subscription_expiry_date: expiryDate,
         }, { merge: true });
       });
     } catch (err) {
@@ -233,7 +235,7 @@ exports.purchasePlanFromVault = onCall(
       free:       { price: 700,  cards: 1 },
       activation: { price: 1400, cards: 2 },
       premium:    { price: 2000, cards: 3 },
-      business:   { price: 5000, cards: 5 },
+      business:   { price: 2000, cards: 5 }, // Standardized ₦2000 recurring fee
     };
 
     const cost = planConfig[plan].price;
@@ -269,10 +271,12 @@ exports.purchasePlanFromVault = onCall(
           created_at: Date.now(),
         });
 
-        // 2. Activate the plan
+        // 2. Activate the plan (30 days validity)
+        const expiryDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
         t.set(userRef, {
           planTier: plan,
           cardsIncluded: cardsToAllocate,
+          subscription_expiry_date: expiryDate,
         }, { merge: true });
       });
     } catch (err) {
