@@ -216,7 +216,7 @@ exports.purchasePlan = onCall(
 /**
  * purchasePlanFromVault
  *
- * Atomically deducts the plan cost from the user's wallet balance and activates the plan.
+ * Activates a plan by directly deducting from the user's wallet balance.
  */
 exports.purchasePlanFromVault = onCall(
   { region: "us-central1" },
@@ -236,60 +236,54 @@ exports.purchasePlanFromVault = onCall(
       business:   { price: 5000, cards: 5 },
     };
 
-    const costAmountStr = planConfig[plan].price;
+    const cost = planConfig[plan].price;
     const cardsToAllocate = planConfig[plan].cards;
 
-    const userRef = db.collection("users").doc(uid);
-    const walletRef = db.collection("users").doc(uid).collection("wallet").doc("balance");
-    const reference = `GTK-PLAN-VAULT-${Date.now()}`;
-    const ledgerRef = db.collection("users").doc(uid)
-                         .collection("wallet_transactions")
-                         .doc(`plan_${plan}_${reference}`);
+    const userRef    = db.collection("users").doc(uid);
+    const walletRef  = userRef.collection("wallet").doc("balance");
+    const reference  = `VAULT-PLAN-${Date.now()}`;
+    const ledgerRef  = userRef.collection("wallet_transactions").doc(`plan_${plan}_${reference}`);
 
     try {
       await db.runTransaction(async (t) => {
-        const walletDoc = await t.get(walletRef);
-        if (!walletDoc.exists) {
-          throw new HttpsError("failed-precondition", "Wallet not found.");
-        }
+        const walletSnap = await t.get(walletRef);
+        if (!walletSnap.exists) throw new Error("NO_WALLET");
+        
+        const currentBalance = walletSnap.data().balance || 0;
+        if (currentBalance < cost) throw new Error("INSUFFICIENT_FUNDS");
 
-        const currentBalance = walletDoc.data().balance || 0;
-        if (currentBalance < costAmountStr) {
-          throw new HttpsError("failed-precondition", "Insufficient funds in vault.");
-        }
-
-        // Deduct balance
-        t.update(walletRef, {
-          balance: FieldValue.increment(-costAmountStr),
-          updated_at: FieldValue.serverTimestamp(),
+        // Deduct from wallet
+        t.update(walletRef, { 
+          balance: FieldValue.increment(-cost) 
         });
 
-        // Ledger entry
+        // 1. Immutable ledger entry
         t.set(ledgerRef, {
           type: "debit",
-          amount: costAmountStr,
+          amount: cost,
           status: "successful",
           context: "plan_purchase",
           method: "vault",
           metadata: plan,
-          reference: reference,
+          reference,
           created_at: Date.now(),
         });
 
-        // Activate plan
+        // 2. Activate the plan
         t.set(userRef, {
           planTier: plan,
           cardsIncluded: cardsToAllocate,
         }, { merge: true });
       });
-
-      logger.info(`[purchasePlanFromVault] UID ${uid} activated '${plan}' from vault.`);
-      return { success: true, newTier: plan, cardsIncluded: cardsToAllocate };
-
     } catch (err) {
-      if (err instanceof HttpsError) throw err;
+      if (err.message === "INSUFFICIENT_FUNDS") {
+        throw new HttpsError("failed-precondition", "Insufficient funds in your vault.");
+      }
       logger.error("[purchasePlanFromVault] Transaction failed:", err);
-      throw new HttpsError("internal", "Failed to process vault payment.");
+      throw new HttpsError("internal", "Failed to activate plan from vault.");
     }
+
+    logger.info(`[purchasePlanFromVault] UID ${uid} activated '${plan}' from vault`);
+    return { success: true, newTier: plan, cardsIncluded: cardsToAllocate };
   }
 );

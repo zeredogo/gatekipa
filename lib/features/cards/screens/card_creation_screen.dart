@@ -378,13 +378,13 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                       color: AppColors.primary.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text('Loading account...', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.primary)),
+                    child: Text('Loading profile...', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.primary)),
                   ),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: AppSpacing.lg),
               ] else ...[
-                // Wireframe ④ — Select Profile dropdown
+                // Wireframe ④ — Select Account dropdown
                 const _FieldLabel('Select Client Profile'),
                 const SizedBox(height: AppSpacing.xs),
                 accountsAsync.when(
@@ -398,7 +398,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                           border: Border.all(color: AppColors.outlineVariant),
                         ),
                         child: Text(
-                          'No client profiles found. Create a profile first.',
+                          'No profiles found. Create a client profile first.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
                         ),
                       );
@@ -464,7 +464,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                     );
                   },
                   loading: () => const SizedBox(height: 56, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
-                  error: (e, _) => Text('Error loading profiles', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.error)),
+                  error: (e, _) => Text('Error loading accounts', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.error)),
                 ),
                 const SizedBox(height: AppSpacing.lg),
               ],
@@ -945,157 +945,133 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
     }
 
     final wallet = ref.read(walletProvider).valueOrNull;
-    final hasEnoughVaultBalance = wallet != null && wallet.balance >= cost;
+    final currentBalance = wallet?.balance ?? 0.0;
+    final canPayFromVault = currentBalance >= cost;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      useRootNavigator: true,
-      builder: (sheetContext) => Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Select Payment Method',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'How would you like to pay ₦$cost?',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
-            ),
-            const SizedBox(height: 32),
-            
-            // Vault Option
-            InkWell(
-              onTap: hasEnoughVaultBalance ? () {
-                Navigator.pop(sheetContext);
-                _executeVaultPayment(planId, cost);
-              } : null,
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: hasEnoughVaultBalance ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.5),
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.outlineVariant, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 24),
+              Text('Select Payment Method', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              Text('How would you like to pay for this plan?', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
+              const SizedBox(height: 24),
+
+              // Vault Option
+              InkWell(
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  if (canPayFromVault) {
+                    _payFromVault(planId);
+                  } else {
+                    GkToast.show(context, message: 'Insufficient funds in vault.', type: ToastType.error);
+                  }
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: canPayFromVault ? AppColors.primary : AppColors.outlineVariant),
+                    borderRadius: BorderRadius.circular(16),
+                    color: canPayFromVault ? AppColors.primaryContainer.withValues(alpha: 0.1) : AppColors.surfaceContainerLowest,
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  color: hasEnoughVaultBalance ? AppColors.primary.withValues(alpha: 0.05) : AppColors.surfaceContainerLowest,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: hasEnoughVaultBalance ? AppColors.primary.withValues(alpha: 0.1) : AppColors.outlineVariant.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_balance_wallet_rounded, color: canPayFromVault ? AppColors.primary : AppColors.outline, size: 28),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Pay from Vault', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: canPayFromVault ? AppColors.onSurface : AppColors.outline)),
+                            Text('Balance: ₦${currentBalance.toStringAsFixed(2)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
+                          ],
+                        ),
                       ),
-                      child: Icon(Icons.account_balance_wallet, color: hasEnoughVaultBalance ? AppColors.primary : AppColors.outline),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Pay from Vault', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700, color: hasEnoughVaultBalance ? AppColors.onSurface : AppColors.outline)),
-                          Text(
-                            hasEnoughVaultBalance ? 'Instant activation' : 'Insufficient balance (₦${wallet?.balance.toStringAsFixed(2) ?? '0.00'})',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: hasEnoughVaultBalance ? AppColors.onSurfaceVariant : AppColors.error),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (hasEnoughVaultBalance)
-                      const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primary),
-                  ],
+                      if (!canPayFromVault)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: AppColors.errorContainer, borderRadius: BorderRadius.circular(8)),
+                          child: Text('Insufficient', style: TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.bold)),
+                        )
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Paystack Option
-            InkWell(
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _executePaystackPayment(planId, cost, uid, email);
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.outlineVariant),
-                  borderRadius: BorderRadius.circular(16),
-                  color: AppColors.surfaceContainerLowest,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
+              const SizedBox(height: 16),
+
+              // Bank / Paystack Option
+              InkWell(
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _payWithPaystack(planId, cost, uid, email);
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.outlineVariant),
+                    borderRadius: BorderRadius.circular(16),
+                    color: AppColors.surfaceContainerLowest,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.credit_card_rounded, color: AppColors.primary, size: 28),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Pay with Bank / Card', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                            Text('Via secure checkout', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
+                          ],
+                        ),
                       ),
-                      child: const Icon(Icons.credit_card, color: AppColors.onSurface),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Pay with Bank / Card', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)),
-                          Text('Via Paystack Secure Checkout', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.outline),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _executeVaultPayment(String planId, int cost) async {
+  Future<void> _payFromVault(String planId) async {
     setState(() => _isLoading = true);
     try {
       final callable = FirebaseFunctions.instance.httpsCallable('purchasePlanFromVault');
       await callable.call({'plan': planId});
       if (mounted) {
-        GkToast.show(context, message: '${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated! 🎉', type: ToastType.success);
+        GkToast.show(context,
+            message: '${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated! 🎉',
+            type: ToastType.success);
       }
     } catch (e) {
       if (mounted) {
-        GkToast.show(context, message: 'Activation failed. $e', type: ToastType.error);
+        GkToast.show(context, message: 'Activation failed: $e', type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _executePaystackPayment(String planId, int cost, String uid, String email) async {
+  Future<void> _payWithPaystack(String planId, int cost, String uid, String email) async {
     final reference = 'GTK-PLAN-${uid.substring(0, 6)}-${DateTime.now().millisecondsSinceEpoch}';
-    
+    final amountInKobo = cost * 100;
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1166,7 +1142,7 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
             'Geofencing',
             'Advanced Rules',
             'Priority Protection',
-            'Scan for subscription patterns'
+            'Scan for subscription patterns',
           ], true),
           const SizedBox(height: 16),
           _buildPlanCard('Business Plan', 'business', 5000, ['5 Cards Included', 'Priority Protection', 'Team Access'], false),
