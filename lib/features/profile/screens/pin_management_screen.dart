@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_button.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_button.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class PinManagementScreen extends ConsumerStatefulWidget {
   const PinManagementScreen({super.key});

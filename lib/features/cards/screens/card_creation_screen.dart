@@ -1,25 +1,54 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
 // lib/features/cards/screens/card_creation_screen.dart
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import 'package:gatekipa/core/constants/app_constants.dart';
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_button.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/features/accounts/providers/account_provider.dart';
-import 'package:gatekipa/features/cards/providers/card_provider.dart';
-import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/constants/app_constants.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_button.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
+import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
+import 'package:gatekeepeer/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/providers/system_state_provider.dart';
 
+// ── Comprehensive country list for global users ──
+const List<String> _kCardCountries = [
+  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Rwanda',
+  'Tanzania', 'Egypt', 'Ethiopia', 'Cameroon', 'Senegal', 'Ivory Coast',
+  'United States', 'United Kingdom', 'Canada', 'Germany', 'France',
+  'India', 'Brazil', 'Australia', 'Japan', 'China', 'UAE',
+  'Saudi Arabia', 'Netherlands', 'Italy', 'Spain', 'Mexico',
+  'Argentina', 'Colombia', 'Turkey', 'Indonesia', 'Philippines',
+  'Malaysia', 'Singapore', 'South Korea', 'Poland', 'Sweden',
+  'Norway', 'Denmark', 'Switzerland', 'Austria', 'Belgium',
+  'Portugal', 'Ireland', 'New Zealand', 'Other',
+];
+
+const Map<String, List<String>> _kCardStates = {
+  'Nigeria': [
+    'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa',
+    'Benue', 'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo',
+    'Ekiti', 'Enugu', 'FCT Abuja', 'Gombe', 'Imo', 'Jigawa',
+    'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara',
+    'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun',
+    'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
+  ],
+  'Ghana': ['Greater Accra', 'Ashanti', 'Central', 'Eastern', 'Northern', 'Western', 'Volta', 'Upper East', 'Upper West', 'Brong-Ahafo'],
+  'Kenya': ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Kiambu', 'Machakos', 'Kajiado', 'Uasin Gishu', 'Nyeri'],
+  'South Africa': ['Gauteng', 'Western Cape', 'KwaZulu-Natal', 'Eastern Cape', 'Free State', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape'],
+  'United States': ['California', 'Texas', 'Florida', 'New York', 'Illinois', 'Pennsylvania', 'Ohio', 'Georgia', 'Michigan', 'North Carolina', 'New Jersey', 'Virginia', 'Washington', 'Arizona', 'Massachusetts', 'Other'],
+  'United Kingdom': ['England', 'Scotland', 'Wales', 'Northern Ireland'],
+  'Canada': ['Ontario', 'Quebec', 'British Columbia', 'Alberta', 'Manitoba', 'Saskatchewan', 'Nova Scotia', 'New Brunswick', 'Newfoundland', 'Prince Edward Island'],
+  'India': ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Delhi', 'Uttar Pradesh', 'Gujarat', 'West Bengal', 'Telangana', 'Rajasthan', 'Kerala', 'Other'],
+};
 
 class CardCreationScreen extends ConsumerStatefulWidget {
   final Map<String, String>? prefillMerchant;
@@ -50,12 +79,9 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
 
   String _cardCurrency = 'NGN';
   String _country = 'Nigeria';
-  String _idType = 'Passport';
-  final _idNumberCtrl = TextEditingController();
-  File? _idImageFile;
-  File? _selfieImageFile;
 
   String? _selectedAccountId;
+  String? _selectedState;
 
   // ── locked mode: accountId was passed from Account Detail ─────────────────
   bool get _isLocked => widget.accountId != null;
@@ -89,39 +115,80 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     _stateCtrl.dispose();
     _postalCodeCtrl.dispose();
     _houseNumberCtrl.dispose();
-    _idNumberCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage(bool isSelfie) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
-    if (pickedFile != null) {
-      setState(() {
-        if (isSelfie) {
-          _selfieImageFile = File(pickedFile.path);
-        } else {
-          _idImageFile = File(pickedFile.path);
-        }
-      });
-    }
-  }
-
-  Future<String?> _uploadImage(File file, String path) async {
-    try {
-      final ref = FirebaseStorage.instance.ref().child(path);
-      await ref.putFile(file);
-      return await ref.getDownloadURL();
-    } catch (e) {
-      debugPrint('Upload error: $e');
-      return null;
-    }
+  Future<String?> _collectCardPin() async {
+    String pin = '';
+    return await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text(
+            'Set Card PIN',
+            style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter a 4-digit PIN for your new card. You will need this for ATM or POS transactions.',
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                onChanged: (val) => pin = val,
+                decoration: InputDecoration(
+                  hintText: '****',
+                  counterText: '',
+                  filled: true,
+                  fillColor: AppColors.surfaceContainerLowest,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                style: const TextStyle(letterSpacing: 8, fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.outline)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (pin.length == 4) {
+                  Navigator.pop(ctx, pin);
+                } else {
+                  GkToast.show(ctx, message: 'PIN must be exactly 4 digits', type: ToastType.error);
+                }
+              },
+              child: const Text('Set PIN', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _createCard() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedAccountId == null) {
-      GkToast.show(context, message: 'Please select an account', type: ToastType.error);
+
+    final user = ref.read(userProfileProvider).valueOrNull;
+    final isFreePlan = user != null && user.planTier == 'free';
+    
+    // All non-free plans require a client profile (account) to map the card.
+    if (_selectedAccountId == null && !isFreePlan) {
+      GkToast.show(context, message: 'Please create a client profile first to map your card.', type: ToastType.error);
       return;
     }
 
@@ -163,7 +230,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         builder: (ctx) => AlertDialog(
           backgroundColor: AppColors.surface,
           title: Text('Insufficient Funds for USD Card', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-          content: Text('Bridgecard requires a minimum \\\$5 (approx ₦8,000) pre-fund to cover USD card creation and maintenance.', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
+          content: Text('Bridgecard requires a minimum \$5 (approx ₦8,000) pre-fund to cover USD card creation and maintenance.', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
           actions: [
              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.outline))),
              TextButton(onPressed: () {
@@ -178,32 +245,13 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
 
     setState(() => _isLoading = true);
 
-    final user = ref.read(userProfileProvider).valueOrNull;
     if (user != null && user.bridgecardCardholderId == null) {
-      if (_country == 'Nigeria' && !user.hasBvn) {
+      if (user.kycStatus != 'verified') {
         setState(() => _isLoading = false);
-        GkToast.show(context, message: 'Please complete your BVN registration first.', type: ToastType.error);
-        return;
-      }
-      
-      if (_country != 'Nigeria' && (_idImageFile == null || _selfieImageFile == null || _idNumberCtrl.text.isEmpty)) {
-        setState(() => _isLoading = false);
-        GkToast.show(context, message: 'Global KYC requires an ID number, ID photo, and Selfie.', type: ToastType.error);
+        GkToast.show(context, message: 'Please complete your identity verification in Profile first.', type: ToastType.error);
         return;
       }
 
-      String? uploadedIdUrl;
-      String? uploadedSelfieUrl;
-      
-      if (_country != 'Nigeria') {
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        if (_idImageFile != null) {
-          uploadedIdUrl = await _uploadImage(_idImageFile!, 'kyc/${user.uid}/id_$timestamp.jpg');
-        }
-        if (_selfieImageFile != null) {
-          uploadedSelfieUrl = await _uploadImage(_selfieImageFile!, 'kyc/${user.uid}/selfie_$timestamp.jpg');
-        }
-      }
       final regSuccess = await ref.read(cardNotifierProvider.notifier).registerCardholder(
         firstName: user.firstName ?? '',
         lastName: user.lastName ?? '',
@@ -214,10 +262,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         postalCode: _postalCodeCtrl.text.trim(),
         houseNumber: _houseNumberCtrl.text.trim(),
         country: _country,
-        idType: _country != 'Nigeria' ? _idType : null,
-        idNo: _country != 'Nigeria' ? _idNumberCtrl.text.trim() : null,
-        idImage: uploadedIdUrl,
-        selfieImage: uploadedSelfieUrl,
       );
 
       if (!regSuccess) {
@@ -239,9 +283,12 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     final accounts = ref.read(accountsStreamProvider).valueOrNull ?? [];
     final selectedAcc = accounts.where((a) => a.id == _selectedAccountId).firstOrNull;
     final derivedCategory = selectedAcc?.type ?? 'personal';
+    
+    // Use selected account ID, fallback to first account, or use UID directly for free plan users
+    final resolvedAccountId = selectedAcc?.id ?? (accounts.isNotEmpty ? accounts.first.id : user?.uid);
 
     final cardId = await ref.read(cardNotifierProvider.notifier).createCard(
-          accountId: selectedAcc?.id ?? accounts.first.id,
+          accountId: resolvedAccountId,
           name: cardName,
           category: derivedCategory,
           isTrial: _cardType == 'trial',
@@ -250,6 +297,38 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         );
 
     if (cardId != null) {
+      if (mounted) {
+        GkToast.show(context, message: 'Setting up your card...', type: ToastType.info);
+      }
+
+      final pin = await _collectCardPin();
+      if (pin == null) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        GkToast.show(context,
+            message: 'Card created but not yet activated. Open it from your cards list to set a PIN and activate.',
+            type: ToastType.warning);
+        context.pop();
+        return;
+      }
+
+      final bridgecardSuccess = await ref.read(cardNotifierProvider.notifier).createBridgecard(
+        cardId: cardId,
+        pin: pin,
+        cardCurrency: _cardCurrency,
+      );
+
+      if (!bridgecardSuccess) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        GkToast.show(context,
+            message: 'Card registered but activation failed. Please try again from your cards list or contact support.',
+            type: ToastType.error);
+        context.pop();
+        return;
+      }
+
+      // ── Step 3: Apply rules ────────────────────────────────────────────
       if (fixedAmt > 0) {
         await ref.read(cardNotifierProvider.notifier).createCardRule(
               cardId: cardId,
@@ -262,7 +341,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         await ref.read(cardNotifierProvider.notifier).createCardRule(
               cardId: cardId,
               type: 'behavior',
-              subType: 'max_charges', // matches ruleEngine.js 'max_charges' case
+              subType: 'max_charges',
               value: maxCharges,
             );
       }
@@ -270,7 +349,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         await ref.read(cardNotifierProvider.notifier).createCardRule(
               cardId: cardId,
               type: 'time',
-              subType: 'night_lockdown', // matches ruleEngine.js 'night_lockdown' case
+              subType: 'night_lockdown',
               value: true,
             );
       }
@@ -282,8 +361,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               value: true,
             );
 
-        // Notify the backend to dispatch the confirmation push — keeps all
-        // notification writes server-side through the established pipeline.
         try {
           await FirebaseFunctions.instance
               .httpsCallable('sendCardNotification')
@@ -294,7 +371,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
             'type': 'alert',
           });
         } catch (_) {
-          // Non-critical: card was created successfully; notification failure is silent
         }
       }
     }
@@ -303,7 +379,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     setState(() => _isLoading = false);
 
     if (cardId != null) {
-      GkToast.show(context, message: 'Card created successfully!', type: ToastType.success);
+      GkToast.show(context, message: 'Card created and activated successfully! 🎉', type: ToastType.success);
       context.pop();
     } else {
       GkToast.show(context, message: 'Failed to create card. Please try again.', type: ToastType.error);
@@ -312,13 +388,19 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(walletProvider); // keeps the wallet fresh
+    ref.watch(walletProvider);
     final accountsAsync = ref.watch(accountsStreamProvider);
     final userAsync = ref.watch(userProfileProvider);
     final user = userAsync.valueOrNull;
     final needsRegistration = user != null && user.bridgecardCardholderId == null;
+    final sysState = ref.watch(systemStateProvider).valueOrNull ?? SystemState.normal;
 
-    if (user != null && (user.planTier == 'none' || user.planTier.isEmpty)) {
+    final accounts = accountsAsync.valueOrNull;
+    final isFreePlan = user != null && user.planTier == 'free';
+
+    final hasNoPlan = user != null && (user.planTier == 'none' || user.planTier.isEmpty || user.planTier == 'activation');
+
+    if (hasNoPlan) {
       return Scaffold(
         backgroundColor: AppColors.surface,
         appBar: AppBar(
@@ -326,6 +408,56 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
           backgroundColor: AppColors.surface,
         ),
         body: _PlanSelectionView(user: user),
+      );
+    }
+
+    if (accounts != null && accounts.isEmpty && !isFreePlan) {
+      return Scaffold(
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
+          title: Text('Create Client Profile', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 20)),
+          backgroundColor: AppColors.surface,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary, size: 36),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Create a Client Profile First',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Premium and Business plans require you to map your cards to a specific Client Profile for advanced tracking.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                GkButton(
+                  label: 'Create Profile Now',
+                  icon: Icons.add,
+                  onPressed: () => context.pushReplacement(Routes.accounts),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -346,9 +478,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Account selector / locked banner ────────────────────────
               if (_isLocked) ...[
-                // Wireframe ③ — Green locked banner
                 accountsAsync.when(
                   data: (accounts) {
                     final acc = accounts.where((a) => a.id == widget.accountId).firstOrNull;
@@ -385,25 +515,11 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
               ] else ...[
-                // Wireframe ④ — Select Account dropdown
                 const _FieldLabel('Select Client Profile'),
                 const SizedBox(height: AppSpacing.xs),
                 accountsAsync.when(
                   data: (accounts) {
-                    if (accounts.isEmpty) {
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerLowest,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.outlineVariant),
-                        ),
-                        child: Text(
-                          'No profiles found. Create a client profile first.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
-                        ),
-                      );
-                    }
+                    if (accounts.isEmpty) return const SizedBox.shrink();
                     final validId = accounts.any((a) => a.id == _selectedAccountId)
                         ? _selectedAccountId
                         : accounts.first.id;
@@ -470,7 +586,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 const SizedBox(height: AppSpacing.lg),
               ],
 
-              // ── Card Name ───────────────────────────────────────────────
               const _FieldLabel('Card Name'),
               const SizedBox(height: AppSpacing.xs),
               TextFormField(
@@ -486,7 +601,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // ── Card Currency ───────────────────────────────────────────
               const _FieldLabel('Card Currency'),
               const SizedBox(height: AppSpacing.xs),
               SegmentedButton<String>(
@@ -511,7 +625,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // ── Card Type — radio list ─────────────────────────────────
               const _FieldLabel('Card Type'),
               const SizedBox(height: AppSpacing.xs),
               _CardTypeOption(
@@ -531,11 +644,9 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               ),
               const SizedBox(height: 28),
 
-              // ── Rules ───────────────────────────────────────────────────
               const _FieldLabel('Rules'),
               const SizedBox(height: AppSpacing.sm),
 
-              // Fixed Amount
               _RuleRow(
                 label: 'Fixed Amount',
                 child: SizedBox(
@@ -556,7 +667,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               ),
               const _Divider(),
 
-              // Max Charges
               _RuleRow(
                 label: 'Max Charges',
                 child: SizedBox(
@@ -576,7 +686,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               ),
               const _Divider(),
 
-              // Night Lockdown
               _RuleRow(
                 label: 'Night Lockdown',
                 subtitle: 'Block 12:00 AM – 6:00 AM',
@@ -600,7 +709,6 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               ),
               const _Divider(),
 
-              // Instant Breach Alert
               _RuleRow(
                 label: 'Instant Breach Alert',
                 subtitle: 'Push notification on breach',
@@ -627,30 +735,27 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 const SizedBox(height: 28),
                 const _FieldLabel('Billing Address (Required for Verification)'),
                 const SizedBox(height: AppSpacing.sm),
-                // ── Country Dropdown ──
                 DropdownButtonFormField<String>(
-                  initialValue: _country,
+                  value: _country,
+                  isExpanded: true,
                   decoration: InputDecoration(
+                    labelText: 'Country',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     filled: true,
                     fillColor: AppColors.surfaceContainerLowest,
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'Nigeria', child: Text('Nigeria')),
-                    DropdownMenuItem(value: 'Ghana', child: Text('Ghana')),
-                    DropdownMenuItem(value: 'Kenya', child: Text('Kenya')),
-                    DropdownMenuItem(value: 'South Africa', child: Text('South Africa')),
-                    DropdownMenuItem(value: 'Uganda', child: Text('Uganda')),
-                    DropdownMenuItem(value: 'Zambia', child: Text('Zambia')),
-                    DropdownMenuItem(value: 'Zimbabwe', child: Text('Zimbabwe')),
-                    DropdownMenuItem(value: 'Rwanda', child: Text('Rwanda')),
-                    DropdownMenuItem(value: 'Tanzania', child: Text('Tanzania')),
-                    DropdownMenuItem(value: 'Egypt', child: Text('Egypt')),
-                    DropdownMenuItem(value: 'Other/Global', child: Text('Other/Global')),
-                  ],
+                  items: _kCardCountries
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
                   onChanged: (v) {
-                     if (v != null) setState(() => _country = v);
+                     if (v != null) {
+                       setState(() {
+                         _country = v;
+                         _selectedState = null;
+                         _stateCtrl.clear();
+                       });
+                     }
                   },
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -684,16 +789,39 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       flex: 1,
-                      child: TextFormField(
-                        controller: _stateCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'State',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          filled: true,
-                          fillColor: AppColors.surfaceContainerLowest,
-                        ),
-                        validator: (v) => needsRegistration && (v == null || v.trim().isEmpty) ? 'State required' : null,
-                      ),
+                      child: _kCardStates.containsKey(_country)
+                          ? DropdownButtonFormField<String>(
+                              value: _selectedState,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                hintText: 'State',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                filled: true,
+                                fillColor: AppColors.surfaceContainerLowest,
+                              ),
+                              items: (_kCardStates[_country] ?? [])
+                                  .map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)))
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v != null) {
+                                  setState(() {
+                                    _selectedState = v;
+                                    _stateCtrl.text = v;
+                                  });
+                                }
+                              },
+                              validator: (v) => needsRegistration && v == null ? 'State required' : null,
+                            )
+                          : TextFormField(
+                              controller: _stateCtrl,
+                              decoration: InputDecoration(
+                                hintText: 'State',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                filled: true,
+                                fillColor: AppColors.surfaceContainerLowest,
+                              ),
+                              validator: (v) => needsRegistration && (v == null || v.trim().isEmpty) ? 'State required' : null,
+                            ),
                     ),
                   ],
                 ),
@@ -730,62 +858,8 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                     ),
                   ],
                 ),
-                
-                if (_country != 'Nigeria') ...[
-                  const SizedBox(height: 28),
-                  const _FieldLabel('Global KYC Requirements'),
-                  const SizedBox(height: AppSpacing.sm),
-                  DropdownButtonFormField<String>(
-                    initialValue: _idType,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      filled: true,
-                      fillColor: AppColors.surfaceContainerLowest,
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Passport', child: Text('International Passport')),
-                      DropdownMenuItem(value: 'National ID', child: Text('National ID')),
-                      DropdownMenuItem(value: 'Drivers License', child: Text('Drivers License')),
-                    ],
-                    onChanged: (v) {
-                       if (v != null) setState(() => _idType = v);
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _idNumberCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Document Number',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      filled: true,
-                      fillColor: AppColors.surfaceContainerLowest,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _pickImage(false),
-                          icon: Icon(Icons.credit_card, size: 20, color: _idImageFile != null ? AppColors.primary : AppColors.outline),
-                          label: Text(_idImageFile != null ? 'ID Captured' : 'Upload ID', style: TextStyle(color: _idImageFile != null ? AppColors.primary : AppColors.onSurface)),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _pickImage(true),
-                          icon: Icon(Icons.face, size: 20, color: _selfieImageFile != null ? AppColors.primary : AppColors.outline),
-                          label: Text(_selfieImageFile != null ? 'Selfie Captured' : 'Take Selfie', style: TextStyle(color: _selfieImageFile != null ? AppColors.primary : AppColors.onSurface)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
 
+              ],
               const SizedBox(height: AppSpacing.md),
             ],
           ),
@@ -808,11 +882,56 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
             ),
           ],
         ),
-        child: GkButton(
-          label: 'Create Card',
-          icon: Icons.credit_card_rounded,
-          isLoading: _isLoading,
-          onPressed: _createCard,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!sysState.isOperational)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: sysState.isLockedDown
+                        ? const Color(0xFF3B0A0A)
+                        : const Color(0xFF2D2000),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: sysState.isLockedDown
+                          ? const Color(0xFFCF4444)
+                          : const Color(0xFFD4A017),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        sysState.isLockedDown ? Icons.lock_rounded : Icons.warning_amber_rounded,
+                        color: sysState.isLockedDown ? const Color(0xFFFF6B6B) : const Color(0xFFFFD166),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          sysState.bannerMessage,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: sysState.isLockedDown
+                                ? const Color(0xFFFF6B6B)
+                                : const Color(0xFFFFD166),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            GkButton(
+              label: sysState.isOperational ? 'Create Card' : 'Cards Unavailable',
+              icon: Icons.credit_card_rounded,
+              isLoading: _isLoading,
+              onPressed: sysState.isOperational ? _createCard : null,
+            ),
+          ],
         ),
       ),
     );
@@ -1018,7 +1137,7 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(color: AppColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-                          child: Text('Insufficient', style: TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.bold)),
+                          child: const Text('Insufficient', style: TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.bold)),
                         )
                     ],
                   ),
@@ -1065,13 +1184,34 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
   }
 
   Future<void> _payFromVault(String planId) async {
+    final LocalAuthentication auth = LocalAuthentication();
+    try {
+      final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+      final bool canAuthenticate = canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+      if (canAuthenticate) {
+        final bool didAuthenticate = await auth.authenticate(
+          localizedReason: 'Authenticate to pay for plan via Vault',
+          options: const AuthenticationOptions(biometricOnly: false, stickyAuth: true),
+        );
+        if (!mounted) return;
+        if (!didAuthenticate) {
+          GkToast.show(context, message: 'Authentication required to use vault funds.', type: ToastType.error);
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Biometric auth error: $e');
+    }
+
     setState(() => _isLoading = true);
     try {
       final callable = FirebaseFunctions.instance.httpsCallable('purchasePlanFromVault');
       await callable.call({'plan': planId});
       if (mounted) {
+        ref.invalidate(userProfileProvider);
+        ref.invalidate(walletProvider);
         GkToast.show(context,
-            message: '${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated! 🎉',
+            message: 'Transaction successful! ${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated 🎉',
             type: ToastType.success);
       }
     } catch (e) {
@@ -1085,7 +1225,6 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
 
   Future<void> _payWithPaystack(String planId, int cost, String uid, String email) async {
     final reference = 'GTK-PLAN-${uid.substring(0, 6)}-${DateTime.now().millisecondsSinceEpoch}';
-    final amountInKobo = cost * 100;
 
     await Navigator.push(
       context,
@@ -1103,8 +1242,10 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
               final callable = FirebaseFunctions.instance.httpsCallable('purchasePlan');
               await callable.call({'plan': planId, 'reference': paidReference});
               if (mounted) {
+                ref.invalidate(userProfileProvider);
+                ref.invalidate(walletProvider);
                 GkToast.show(context,
-                    message: '${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated! 🎉',
+                    message: 'Transaction successful! ${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated 🎉',
                     type: ToastType.success);
               }
             } catch (e) {
@@ -1148,7 +1289,7 @@ class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
           const SizedBox(height: 16),
           _buildPlanCard('Activation Plan', 'activation', 1400, ['2 Cards Included', 'Basic Rules', 'No limits on top-ups'], false),
           const SizedBox(height: 16),
-          _buildPlanCard('Sentinel Prime', 'premium', 2000, [
+          _buildPlanCard('Premium Plan', 'premium', 1999, [
             'Smart Alert (breach, activity)',
             'Savings insight',
             'Night blocks',
@@ -1260,14 +1401,14 @@ class _PlanPaystackCheckoutState extends State<_PlanPaystackCheckout> {
       ..setNavigationDelegate(NavigationDelegate(
         onPageFinished: (_) => setState(() => _isLoading = false),
         onNavigationRequest: (req) {
-          if (req.url.startsWith('gatekipa://payment-success')) {
+          if (req.url.startsWith('gatekeepeer://payment-success')) {
             final uri = Uri.parse(req.url);
             final ref = uri.queryParameters['reference'] ?? widget.reference;
             Navigator.pop(context);
             widget.onPaymentSuccess(ref);
             return NavigationDecision.prevent;
           }
-          if (req.url.startsWith('gatekipa://payment-cancelled')) {
+          if (req.url.startsWith('gatekeepeer://payment-cancelled')) {
             Navigator.pop(context);
             return NavigationDecision.prevent;
           }
@@ -1343,7 +1484,8 @@ class _PlanPaystackCheckoutState extends State<_PlanPaystackCheckout> {
 <body>
   <div class="card">
     <div class="shield">🛡️</div>
-    <h1>Gatekipa</h1>
+    <h1>Gatekeepeer</h1>
+    <p style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 4px;">Powered by Westgate</p>
     <div class="plan-badge">$planLabel Plan</div>
     <p>One-time plan activation fee</p>
     <div class="amount">₦$amountNgn</div>
@@ -1368,10 +1510,10 @@ class _PlanPaystackCheckoutState extends State<_PlanPaystackCheckout> {
           ]
         },
         onClose: function() {
-          window.location.href = 'gatekipa://payment-cancelled';
+          window.location.href = 'gatekeepeer://payment-cancelled';
         },
         callback: function(response) {
-          window.location.href = 'gatekipa://payment-success?reference=' + response.reference;
+          window.location.href = 'gatekeepeer://payment-success?reference=' + response.reference;
         }
       });
       handler.openIframe();

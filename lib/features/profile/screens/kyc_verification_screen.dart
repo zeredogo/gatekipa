@@ -1,13 +1,49 @@
+import 'dart:io';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gk_button.dart';
 import '../../../core/widgets/gk_toast.dart';
 import '../../auth/providers/auth_provider.dart';
+
+// ── Comprehensive country list for global users ──
+const List<String> _kCountries = [
+  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Rwanda',
+  'Tanzania', 'Egypt', 'Ethiopia', 'Cameroon', 'Senegal', 'Ivory Coast',
+  'United States', 'United Kingdom', 'Canada', 'Germany', 'France',
+  'India', 'Brazil', 'Australia', 'Japan', 'China', 'UAE',
+  'Saudi Arabia', 'Netherlands', 'Italy', 'Spain', 'Mexico',
+  'Argentina', 'Colombia', 'Turkey', 'Indonesia', 'Philippines',
+  'Malaysia', 'Singapore', 'South Korea', 'Poland', 'Sweden',
+  'Norway', 'Denmark', 'Switzerland', 'Austria', 'Belgium',
+  'Portugal', 'Ireland', 'New Zealand', 'Other',
+];
+
+// ── States/provinces per country (key countries) ──
+const Map<String, List<String>> _kStates = {
+  'Nigeria': [
+    'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa',
+    'Benue', 'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo',
+    'Ekiti', 'Enugu', 'FCT Abuja', 'Gombe', 'Imo', 'Jigawa',
+    'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara',
+    'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun',
+    'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
+  ],
+  'Ghana': ['Greater Accra', 'Ashanti', 'Central', 'Eastern', 'Northern', 'Western', 'Volta', 'Upper East', 'Upper West', 'Brong-Ahafo'],
+  'Kenya': ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Kiambu', 'Machakos', 'Kajiado', 'Uasin Gishu', 'Nyeri'],
+  'South Africa': ['Gauteng', 'Western Cape', 'KwaZulu-Natal', 'Eastern Cape', 'Free State', 'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape'],
+  'United States': ['California', 'Texas', 'Florida', 'New York', 'Illinois', 'Pennsylvania', 'Ohio', 'Georgia', 'Michigan', 'North Carolina', 'New Jersey', 'Virginia', 'Washington', 'Arizona', 'Massachusetts', 'Tennessee', 'Indiana', 'Maryland', 'Missouri', 'Wisconsin', 'Colorado', 'Minnesota', 'South Carolina', 'Alabama', 'Louisiana', 'Kentucky', 'Oregon', 'Oklahoma', 'Connecticut', 'Utah', 'Iowa', 'Nevada', 'Arkansas', 'Mississippi', 'Kansas', 'Other'],
+  'United Kingdom': ['England', 'Scotland', 'Wales', 'Northern Ireland'],
+  'Canada': ['Ontario', 'Quebec', 'British Columbia', 'Alberta', 'Manitoba', 'Saskatchewan', 'Nova Scotia', 'New Brunswick', 'Newfoundland', 'Prince Edward Island'],
+  'India': ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Delhi', 'Uttar Pradesh', 'Gujarat', 'West Bengal', 'Telangana', 'Rajasthan', 'Kerala', 'Other'],
+};
 
 class KycVerificationScreen extends ConsumerStatefulWidget {
   const KycVerificationScreen({super.key});
@@ -18,38 +54,119 @@ class KycVerificationScreen extends ConsumerStatefulWidget {
 
 class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _ninCtrl = TextEditingController();
   bool _isLoading = false;
+  File? _documentProofFile;
+  File? _selfieFile;
+  String _selectedCountry = 'Nigeria';
+  String? _selectedState;
 
   @override
   void dispose() {
-    _ninCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDocumentProof() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      setState(() => _documentProofFile = File(picked.path));
+      if (mounted) {
+        GkToast.show(context, message: 'Document captured successfully', type: ToastType.success);
+      }
+    }
+  }
+
+  Future<void> _takeLivenessCheck() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.camera, imageQuality: 80, preferredCameraDevice: CameraDevice.front);
+    if (picked != null) {
+      setState(() => _selfieFile = File(picked.path));
+      if (mounted) {
+        GkToast.show(context, message: 'Selfie captured successfully', type: ToastType.success);
+      }
+    }
+  }
+
+  Future<String?> _uploadFile(File file, String path) async {
+    try {
+      final ref = FirebaseStorage.instance.ref().child(path);
+      await ref.putFile(file);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      return null;
+    }
   }
 
   Future<void> _verifyIdentity() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isLoading) return;
+
+    if (_documentProofFile == null) {
+      GkToast.show(context, message: 'Please upload a document proof (e.g. NIN slip, ID card)', type: ToastType.error);
+      return;
+    }
+
+    if (_selfieFile == null) {
+      GkToast.show(context, message: 'Please complete the liveness check by taking a selfie', type: ToastType.error);
+      return;
+    }
+
+    if (_selectedState == null) {
+      GkToast.show(context, message: 'Please select your state / province', type: ToastType.error);
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      // Upload document proof
+      GkToast.show(context, message: 'Uploading documents...', type: ToastType.info);
+      final docUrl = await _uploadFile(_documentProofFile!, 'kyc/$uid/document_proof_$timestamp.jpg');
+      final selfieUrl = await _uploadFile(_selfieFile!, 'kyc/$uid/liveness_selfie_$timestamp.jpg');
+
+      if (docUrl == null || selfieUrl == null) {
+        if (mounted) {
+          GkToast.show(context, message: 'Failed to upload documents. Please try again.', type: ToastType.error);
+        }
+        return;
+      }
+
+      // Call verification function with uploaded document URLs
       final result = await FirebaseFunctions.instance
           .httpsCallable('verifyKyc')
-          .call({'nin': _ninCtrl.text.trim()});
-      
+          .call({
+        'documentUrl': docUrl,
+        'selfieUrl': selfieUrl,
+        'country': _selectedCountry,
+        'state': _selectedState,
+      });
+
       if (!mounted) return;
       final dataMap = result.data as Map<dynamic, dynamic>;
       if (dataMap['success'] == true) {
-        GkToast.show(context, message: 'Identity verified successfully!', type: ToastType.success);
+        GkToast.show(context, message: 'Identity verified successfully! 🎉', type: ToastType.success);
+        // Invalidate user profile to refresh KYC status
+        ref.invalidate(userProfileProvider);
       } else {
-        GkToast.show(context, message: 'Verification failed.', type: ToastType.error);
+        GkToast.show(context, message: 'Verification failed. Please try again.', type: ToastType.error);
       }
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      GkToast.show(context, message: e.message ?? 'Verification failed. Please try again.', type: ToastType.error);
     } catch (e) {
       if (!mounted) return;
       GkToast.show(context, message: 'Could not complete verification. Try again.', type: ToastType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  List<String> _getStatesForCountry(String country) {
+    return _kStates[country] ?? ['N/A — Enter manually'];
   }
 
   @override
@@ -87,7 +204,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -102,7 +219,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                     color: isVerified ? AppColors.primary : Colors.orange,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 Text(
                   isVerified ? 'Verification Complete' : 'Verification Pending',
                   style: GoogleFonts.manrope(
@@ -124,15 +241,14 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
-                if (!isVerified) ...[
                   Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // ── Country Dropdown ──
                         Text(
-                          'National Identity Number (NIN)',
+                          'Country',
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -140,109 +256,116 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _ninCtrl,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(11),
-                          ],
-                          decoration: InputDecoration(
-                            hintText: 'Enter 11-digit NIN',
-                            prefixIcon: const Icon(Icons.badge_rounded),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(
-                                color: AppColors.outlineVariant.withValues(alpha: 0.3),
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                            ),
-                            filled: true,
-                            fillColor: AppColors.surfaceBright,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                          ),
-                          validator: (v) {
-                            if (v == null || v.length != 11) {
-                              return 'NIN must be exactly 11 digits';
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedCountry,
+                          isExpanded: true,
+                          decoration: _inputDecoration(hint: 'Select country'),
+                          items: _kCountries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              setState(() {
+                                _selectedCountry = v;
+                                _selectedState = null; // reset state on country change
+                              });
                             }
-                            return null;
                           },
                         ),
+                        const SizedBox(height: 16),
+
+                        // ── State / Province Dropdown ──
+                        Text(
+                          'State / Province',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedState,
+                          isExpanded: true,
+                          decoration: _inputDecoration(hint: 'Select state / province'),
+                          items: _getStatesForCountry(_selectedCountry)
+                              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) setState(() => _selectedState = v);
+                          },
+                          validator: (v) => v == null ? 'Please select a state / province' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+
+
+                        // ── Document Proof Upload ──
+                        Text(
+                          'Document Proof',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Upload a clear photo of your BVN slip, NIN slip, National ID, or Passport.',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.outline,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _DocumentUploadCard(
+                          icon: Icons.upload_file_rounded,
+                          title: _documentProofFile != null ? 'Document Uploaded ✓' : 'Upload Document',
+                          subtitle: _documentProofFile != null
+                              ? 'Tap to re-upload'
+                              : 'BVN/NIN Slip, National ID, etc.',
+                          isCompleted: _documentProofFile != null,
+                          onTap: _pickDocumentProof,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Liveness Check (Selfie) ──
+                        Text(
+                          'Liveness Check',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Take a clear selfie with your front camera. Ensure your face is well-lit and visible.',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.outline,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _DocumentUploadCard(
+                          icon: Icons.camera_front_rounded,
+                          title: _selfieFile != null ? 'Selfie Captured ✓' : 'Take Selfie',
+                          subtitle: _selfieFile != null
+                              ? 'Tap to retake'
+                              : 'Front camera liveness verification',
+                          isCompleted: _selfieFile != null,
+                          onTap: _takeLivenessCheck,
+                        ),
                         const SizedBox(height: 24),
+
                         GkButton(
-                          label: 'Verify NIN',
+                          label: isVerified ? 'Re-Verify Identity' : 'Verify Identity',
                           isLoading: _isLoading,
                           onPressed: _verifyIdentity,
                         ),
                       ],
                     ),
                   )
-                ] else ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceBright,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Document Proof',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              'Provided',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Liveness Check',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                            Text(
-                              'Approved',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ],
             ),
           );
@@ -254,4 +377,125 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       ),
     );
   }
+
+  InputDecoration _inputDecoration({
+    required String hint,
+    Widget? prefixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: prefixIcon,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      filled: true,
+      fillColor: AppColors.surfaceBright,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+    );
+  }
 }
+
+// ── Document Upload Card ────────────────────────────────────────────────────
+class _DocumentUploadCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool isCompleted;
+  final VoidCallback onTap;
+
+  const _DocumentUploadCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.isCompleted,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isCompleted
+          ? AppColors.primary.withValues(alpha: 0.06)
+          : AppColors.surfaceBright,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isCompleted
+                  ? AppColors.primary.withValues(alpha: 0.3)
+                  : AppColors.outlineVariant.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isCompleted
+                      ? AppColors.primary.withValues(alpha: 0.15)
+                      : AppColors.outline.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isCompleted ? Icons.check_circle_rounded : icon,
+                  color: isCompleted ? AppColors.primary : AppColors.outline,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isCompleted ? AppColors.primary : AppColors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.outline,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

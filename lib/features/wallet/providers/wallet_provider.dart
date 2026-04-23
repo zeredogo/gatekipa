@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekipa/features/wallet/models/wallet_model.dart';
+import 'package:gatekeepeer/features/wallet/models/wallet_model.dart';
 
 
 // ── Wallet Stream ───────────────────────────────────────────────────────────────
@@ -76,6 +76,37 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  /// Biometric-gated wallet-to-card funding.
+  ///
+  /// Routes through the hardened `fundCard` Cloud Function which calls
+  /// `processTransactionInternal`. This is the ONLY correct path for
+  /// debiting the wallet and crediting a virtual card.
+  ///
+  /// Throws [SystemLockedDownException] if the system is in LOCKDOWN mode
+  /// (checked client-side first; the server enforces this independently).
+  Future<bool> fundCard({
+    required String cardId,
+    required String accountId,
+    required double amount,
+    required String idempotencyKey,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final callable = _functions.httpsCallable('fundCard');
+      await callable.call({
+        'card_id': cardId,
+        'account_id': accountId,
+        'amount': amount,
+        'idempotency_key': idempotencyKey,
+      });
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      return false;
+    }
+  }
 }
 
 final walletNotifierProvider =
@@ -84,3 +115,4 @@ final walletNotifierProvider =
     FirebaseFunctions.instance,
   );
 });
+

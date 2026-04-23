@@ -21,7 +21,7 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/team_members/$(accountId + '_' + uid()));
     }
     function hasAccountAccess(accountId) {
-      return isAccountOwner(accountId) || isAccountMember(accountId);
+      return accountId == uid() || isAccountOwner(accountId) || isAccountMember(accountId);
     }
     function hasRestrictedFields() {
       return request.resource.data.keys().hasAny(
@@ -126,6 +126,63 @@ service cloud.firestore {
     match /feature_toggles/{toggleId} {
       allow read: if true; // Public or authenticated access
       allow write: if false; // Admin and DB seeding only
+    }
+
+    // ── WALLET LEDGER ─────────────────────────────────────────────────────────
+    // Authoritative, append-only ledger for all wallet mutations.
+    // NEVER writable by clients — Cloud Functions (Admin SDK) only.
+    match /wallet_ledger/{entryId} {
+      allow read: if isSignedIn() && resource.data.user_id == uid();
+      allow write: if false;
+    }
+
+    // ── CARD LEDGER ───────────────────────────────────────────────────────────
+    // Authoritative, append-only ledger for all card charges.
+    // NEVER writable by clients.
+    match /card_ledger/{entryId} {
+      allow read: if isSignedIn() && hasAccountAccess(resource.data.account_id);
+      allow write: if false;
+    }
+
+    // ── IDEMPOTENCY KEYS ─────────────────────────────────────────────────────
+    // Global cross-operation deduplication store.
+    // No client read or write — internal Cloud Function use only.
+    match /idempotency_keys/{keyId} {
+      allow read, write: if false;
+    }
+
+    // ── SYSTEM STATE ──────────────────────────────────────────────────────────
+    // Global operating mode gate (NORMAL | DEGRADED | LOCKDOWN).
+    // Clients read to display system status banners.
+    // Only Cloud Functions / Admin SDK can write.
+    match /system_state/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ── SYSTEM STATE LOG ─────────────────────────────────────────────────────
+    // Immutable audit trail of mode changes.
+    match /system_state_log/{logId} {
+      allow read: if false; // Admin Console reads via Admin SDK
+      allow write: if false;
+    }
+
+    // ── WEBHOOK EVENTS ────────────────────────────────────────────────────────
+    // Deduplication log for Bridgecard and Paystack webhook events.
+    match /webhook_events/{eventId} {
+      allow read, write: if false;
+    }
+
+    // ── HEALTH LOGS ───────────────────────────────────────────────────────────
+    // Written by reconciliation cron; admin-only access via Admin SDK.
+    match /health_logs/{logId} {
+      allow read, write: if false;
+    }
+
+    // ── CARD FUNDING REQUESTS ─────────────────────────────────────────────────
+    match /card_funding_requests/{reqId} {
+      allow read: if isSignedIn() && resource.data.uid == uid();
+      allow write: if false;
     }
 
     // Deny everything else by default

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_button.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_button.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class PremiumUpgradeScreen extends ConsumerStatefulWidget {
   const PremiumUpgradeScreen({super.key});
@@ -185,7 +185,7 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GkButton(
-                  label: 'Upgrade for ₦2,000/mo',
+                  label: 'Upgrade for ₦1,999/mo',
                   isLoading: _isLoading,
                   onPressed: _upgrade,
                 ),
@@ -270,7 +270,7 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Your gatekipa account is upgraded. You have zero limits on transactions and ultimate control.',
+            'Your Gatekipa account is upgraded. You have zero limits on transactions and ultimate control.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
               color: Colors.white70,
               height: 1.5,),

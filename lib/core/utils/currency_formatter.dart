@@ -1,6 +1,6 @@
 // lib/core/utils/currency_formatter.dart
 import 'package:intl/intl.dart';
-import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekeepeer/core/constants/app_constants.dart';
 
 class CurrencyFormatter {
   static final _formatter = NumberFormat.currency(

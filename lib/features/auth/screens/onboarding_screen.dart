@@ -5,10 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_button.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_button.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -70,13 +70,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  Future<void> _goToLogin({bool useEmail = false}) async {
+  Future<void> _goToLogin() async {
     // Mark that this device has completed onboarding —
     // future cold-starts will skip these slides.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_onboarded', true);
     if (!mounted) return;
-    context.push(useEmail ? Routes.emailAuth : Routes.phoneAuth);
+    context.push(Routes.emailAuth);
   }
 
   @override
@@ -143,28 +143,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     icon: Icons.arrow_forward_rounded,
                     onPressed: _nextPage,
                   ),
-                  if (_currentPage == _pages.length - 1) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    TextButton.icon(
-                      onPressed: () => _goToLogin(useEmail: true),
-                      icon: const Icon(Icons.email_rounded, size: 20),
-                      label: const Text(
-                        'Continue with Email',
-                        style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700,
-                          fontSize: 15,),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
-                        backgroundColor:
-                            AppColors.primary.withValues(alpha: 0.1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -252,7 +230,7 @@ class _OnboardingPageWidget extends StatelessWidget {
                           const Icon(Icons.contactless_outlined,
                               color: Colors.white70, size: 28),
                           Text(
-                            'GATEKIPA',
+                            'GATEKEEPEER',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                               fontWeight: FontWeight.w800,
                               fontSize: 14,
@@ -291,7 +269,7 @@ class _OnboardingPageWidget extends StatelessWidget {
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600)),
                                   const SizedBox(height: AppSpacing.xxs),
-                                  Text('GATEKIPA USER',
+                                  Text('GATEKEEPEER USER',
                                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,

@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen> {
         if (!passed) {
           // Biometric failed / cancelled → full signout → login screen
           await FirebaseAuth.instance.signOut();
-          if (mounted) context.go(Routes.phoneAuth);
+          if (mounted) context.go(Routes.emailAuth);
           return;
         }
       }
@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
     // ── No Firebase session (user did a full signOut or first launch) ─────────
     final hasOnboarded = prefs.getBool('has_onboarded') ?? false;
     if (mounted) {
-      context.go(hasOnboarded ? Routes.phoneAuth : Routes.onboarding);
+      context.go(hasOnboarded ? Routes.emailAuth : Routes.onboarding);
     }
   }
 

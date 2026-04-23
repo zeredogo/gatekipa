@@ -1,0 +1,267 @@
+Analyzing Gatekeepeer...                                        
+
+   info • The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/features/auth/screens/kyc_screen.dart:4:8 • unnecessary_import
+warning • Unused import: 'package:cloud_functions/cloud_functions.dart' • lib/features/auth/screens/kyc_screen.dart:6:8 • unused_import
+  error • Methods can't be invoked in constant expressions • lib/features/cards/screens/card_detail_screen.dart:33:33 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/features/cards/screens/card_detail_screen.dart:45:35 • const_eval_method_invocation
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:72:11 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:101:25 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:102:44 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:109:25 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:110:39 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:130:19 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:134:19 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:142:21 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:148:21 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:153:19 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:157:19 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:171:19 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:200:19 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:204:17 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:210:17 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:220:17 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:226:17 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:230:17 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:234:17 • creation_with_non_type
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:236:13 • undefined_named_parameter
+  error • The named parameter 'child' isn't defined • lib/features/cards/screens/card_detail_screen.dart:238:13 • undefined_named_parameter
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:249:28 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:391:23 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:398:25 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:405:25 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:423:27 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:452:21 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:456:25 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:464:25 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:472:25 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:499:19 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:501:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:506:17 • creation_with_non_type
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:547:13 • undefined_named_parameter
+  error • The named parameter 'height' isn't defined • lib/features/cards/screens/card_detail_screen.dart:548:13 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:561:17 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:567:21 • undefined_named_parameter
+  error • The named parameter 'maxLines' isn't defined • lib/features/cards/screens/card_detail_screen.dart:568:21 • undefined_named_parameter
+  error • The named parameter 'overflow' isn't defined • lib/features/cards/screens/card_detail_screen.dart:569:21 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:571:21 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:580:17 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:584:21 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:602:7 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:617:11 • undefined_named_parameter
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:687:19 • undefined_named_parameter
+  error • The named parameter 'height' isn't defined • lib/features/cards/screens/card_detail_screen.dart:687:30 • undefined_named_parameter
+  error • The named parameter 'margin' isn't defined • lib/features/cards/screens/card_detail_screen.dart:688:19 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:696:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:697:21 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:699:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:700:21 • creation_with_non_type
+  error • The named parameter 'textCapitalization' isn't defined • lib/features/cards/screens/card_detail_screen.dart:704:17 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:713:21 • creation_with_non_type
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:715:17 • undefined_named_parameter
+  error • The named parameter 'child' isn't defined • lib/features/cards/screens/card_detail_screen.dart:717:17 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:724:31 • creation_with_non_type
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:727:31 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:731:21 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:762:13 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:769:17 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:771:21 • creation_with_non_type
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:796:28 • creation_with_non_type
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:806:28 • creation_with_non_type
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:839:7 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:852:21 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:856:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:864:17 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:867:13 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:871:17 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:875:25 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:882:17 • undefined_named_parameter
+  error • The prefix 'SizedBox' can't be used here because it's shadowed by a local declaration • lib/features/cards/screens/card_detail_screen.dart:903:53 • prefix_shadowed_by_local_declaration
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:916:20 • creation_with_non_type
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1008:19 • undefined_named_parameter
+  error • The named parameter 'height' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1008:30 • undefined_named_parameter
+  error • The named parameter 'margin' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1009:19 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1017:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1018:21 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1020:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1023:23 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1033:47 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1034:29 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1037:25 • undefined_named_parameter
+  error • The named parameter 'textAlign' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1038:25 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1043:23 • creation_with_non_type
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1045:19 • undefined_named_parameter
+  error • The named parameter 'child' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1047:19 • undefined_named_parameter
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1049:34 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1053:23 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1067:25 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1068:35 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1070:23 • creation_with_non_type
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1072:19 • undefined_named_parameter
+  error • The named parameter 'child' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1074:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1081:33 • creation_with_non_type
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1084:33 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1089:21 • creation_with_non_type
+  error • Undefined name 'walletNotifierProvider' • lib/features/cards/screens/card_detail_screen.dart:1134:36 • undefined_identifier
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1169:19 • undefined_named_parameter
+  error • The named parameter 'height' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1169:30 • undefined_named_parameter
+  error • The named parameter 'margin' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1170:19 • undefined_named_parameter
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1178:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1179:21 • creation_with_non_type
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1181:19 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1182:21 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1195:21 • creation_with_non_type
+  error • The named parameter 'width' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1197:17 • undefined_named_parameter
+  error • The named parameter 'child' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1199:17 • undefined_named_parameter
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1206:31 • creation_with_non_type
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1209:31 • creation_with_non_type
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1213:21 • creation_with_non_type
+  error • 'if' can't be used as an identifier because it's a keyword • lib/features/cards/screens/card_detail_screen.dart:1222:15 • expected_identifier_but_got_keyword
+   info • The local variable '_otp' starts with an underscore • lib/features/cards/screens/card_detail_screen.dart:1222:19 • no_leading_underscores_for_local_identifiers
+  error • Expected to find ')' • lib/features/cards/screens/card_detail_screen.dart:1222:24 • expected_token
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1222:33 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1222:33 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1222:36 • expected_executable
+  error • Can't have modifier 'const' here • lib/features/cards/screens/card_detail_screen.dart:1223:17 • extraneous_modifier
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1223:23 • non_constant_identifier_names
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1223:38 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1223:38 • obsolete_colon_for_default_value
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1223:54 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1223:54 • expected_executable
+   info • The variable name 'Container' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1224:17 • non_constant_identifier_names
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1225:26 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1225:26 • obsolete_colon_for_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1226:29 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1226:29 • obsolete_colon_for_default_value
+  error • The default value of an optional parameter must be constant • lib/features/cards/screens/card_detail_screen.dart:1226:31 • non_constant_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1231:24 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1231:24 • obsolete_colon_for_default_value
+  error • The default value of an optional parameter must be constant • lib/features/cards/screens/card_detail_screen.dart:1231:26 • non_constant_default_value
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1233:47 • undefined_named_parameter
+  error • Undefined name 'context' • lib/features/cards/screens/card_detail_screen.dart:1233:63 • undefined_identifier
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1234:29 • creation_with_non_type
+  error • Undefined name '_otp' • lib/features/cards/screens/card_detail_screen.dart:1236:25 • undefined_identifier
+  error • The named parameter 'style' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1237:25 • undefined_named_parameter
+  error • Undefined name 'context' • lib/features/cards/screens/card_detail_screen.dart:1237:41 • undefined_identifier
+  error • The named parameter 'textAlign' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1238:25 • undefined_named_parameter
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1242:18 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1242:18 • expected_executable
+  error • Can't have modifier 'const' here • lib/features/cards/screens/card_detail_screen.dart:1243:17 • extraneous_modifier
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1243:23 • non_constant_identifier_names
+  error • The name 'SizedBox' is already defined • lib/features/cards/screens/card_detail_screen.dart:1243:23 • duplicate_definition
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1243:38 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1243:38 • obsolete_colon_for_default_value
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1243:54 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1243:54 • expected_executable
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1244:17 • non_constant_identifier_names
+  error • The name 'SizedBox' is already defined • lib/features/cards/screens/card_detail_screen.dart:1244:17 • duplicate_definition
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1245:24 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1245:24 • obsolete_colon_for_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1246:25 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1246:25 • obsolete_colon_for_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1247:24 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1247:24 • obsolete_colon_for_default_value
+  error • The default value of an optional parameter must be constant • lib/features/cards/screens/card_detail_screen.dart:1247:26 • non_constant_default_value
+  error • Undefined name 'context' • lib/features/cards/screens/card_detail_screen.dart:1248:52 • undefined_identifier
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1249:34 • creation_with_non_type
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1251:18 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1251:18 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1252:15 • expected_executable
+   info • An uninitialized variable should have an explicit type annotation • lib/features/cards/screens/card_detail_screen.dart:1252:17 • prefer_typing_uninitialized_variables
+  error • 'else' can't be used as an identifier because it's a keyword • lib/features/cards/screens/card_detail_screen.dart:1252:17 • expected_identifier_but_got_keyword
+  error • Expected to find ';' • lib/features/cards/screens/card_detail_screen.dart:1252:17 • expected_token
+  error • Variables must be declared using the keywords 'const', 'final', 'var' or a type name • lib/features/cards/screens/card_detail_screen.dart:1252:17 • missing_const_final_var_or_type
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1252:22 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1252:25 • expected_executable
+  error • Can't have modifier 'const' here • lib/features/cards/screens/card_detail_screen.dart:1253:17 • extraneous_modifier
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1253:23 • non_constant_identifier_names
+  error • The name 'SizedBox' is already defined • lib/features/cards/screens/card_detail_screen.dart:1253:23 • duplicate_definition
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1253:38 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1253:38 • obsolete_colon_for_default_value
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1253:54 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1253:54 • expected_executable
+   info • The variable name 'TextField' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1254:17 • non_constant_identifier_names
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1255:29 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1255:29 • obsolete_colon_for_default_value
+  error • Undefined name '_amountCtrl' • lib/features/cards/screens/card_detail_screen.dart:1255:31 • undefined_identifier
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1256:28 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1256:28 • obsolete_colon_for_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1257:31 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1257:31 • obsolete_colon_for_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1258:29 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1258:29 • obsolete_colon_for_default_value
+  error • The default value of an optional parameter must be constant • lib/features/cards/screens/card_detail_screen.dart:1258:31 • non_constant_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1264:30 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1264:30 • obsolete_colon_for_default_value
+  error • The default value of an optional parameter must be constant • lib/features/cards/screens/card_detail_screen.dart:1264:32 • non_constant_default_value
+  error • The function '_fetchOtp' isn't defined • lib/features/cards/screens/card_detail_screen.dart:1264:39 • undefined_function
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1265:18 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1265:18 • expected_executable
+  error • 'if' can't be used as an identifier because it's a keyword • lib/features/cards/screens/card_detail_screen.dart:1266:17 • expected_identifier_but_got_keyword
+  error • The name 'if' is already defined • lib/features/cards/screens/card_detail_screen.dart:1266:17 • duplicate_definition
+   info • The local variable '_message' starts with an underscore • lib/features/cards/screens/card_detail_screen.dart:1266:21 • no_leading_underscores_for_local_identifiers
+  error • Expected to find ')' • lib/features/cards/screens/card_detail_screen.dart:1266:30 • expected_token
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1266:39 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1266:39 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1266:42 • expected_executable
+  error • Can't have modifier 'const' here • lib/features/cards/screens/card_detail_screen.dart:1267:19 • extraneous_modifier
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1267:25 • non_constant_identifier_names
+  error • The name 'SizedBox' is already defined • lib/features/cards/screens/card_detail_screen.dart:1267:25 • duplicate_definition
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1267:40 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1267:40 • obsolete_colon_for_default_value
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1267:56 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1267:56 • expected_executable
+   info • The variable name 'Text' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1268:19 • non_constant_identifier_names
+   info • The local variable '_message' starts with an underscore • lib/features/cards/screens/card_detail_screen.dart:1268:24 • no_leading_underscores_for_local_identifiers
+  error • Expected to find ')' • lib/features/cards/screens/card_detail_screen.dart:1268:32 • expected_token
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1268:129 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1268:129 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1269:17 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1269:18 • expected_executable
+  error • Can't have modifier 'const' here • lib/features/cards/screens/card_detail_screen.dart:1270:17 • extraneous_modifier
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1270:23 • non_constant_identifier_names
+  error • The name 'SizedBox' is already defined • lib/features/cards/screens/card_detail_screen.dart:1270:23 • duplicate_definition
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1270:38 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1270:38 • obsolete_colon_for_default_value
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1270:54 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1270:54 • expected_executable
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1271:17 • non_constant_identifier_names
+  error • The name 'SizedBox' is already defined • lib/features/cards/screens/card_detail_screen.dart:1271:17 • duplicate_definition
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1272:24 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1272:24 • obsolete_colon_for_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1273:25 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1273:25 • obsolete_colon_for_default_value
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1274:24 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1274:24 • obsolete_colon_for_default_value
+  error • The default value of an optional parameter must be constant • lib/features/cards/screens/card_detail_screen.dart:1274:26 • non_constant_default_value
+  error • Undefined name '_loading' • lib/features/cards/screens/card_detail_screen.dart:1275:32 • undefined_identifier
+  error • Undefined name '_fetchOtp' • lib/features/cards/screens/card_detail_screen.dart:1275:50 • undefined_identifier
+  error • Undefined name '_loading' • lib/features/cards/screens/card_detail_screen.dart:1280:28 • undefined_identifier
+  error • The name 'SizedBox' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1281:33 • creation_with_non_type
+  error • The name 'Text' isn't a class • lib/features/cards/screens/card_detail_screen.dart:1284:33 • creation_with_non_type
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1287:18 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1287:18 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1288:15 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1288:16 • expected_executable
+  error • Can't have modifier 'const' here • lib/features/cards/screens/card_detail_screen.dart:1289:15 • extraneous_modifier
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/cards/screens/card_detail_screen.dart:1289:21 • non_constant_identifier_names
+  error • The name 'SizedBox' is already defined • lib/features/cards/screens/card_detail_screen.dart:1289:21 • duplicate_definition
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/cards/screens/card_detail_screen.dart:1289:36 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/cards/screens/card_detail_screen.dart:1289:36 • obsolete_colon_for_default_value
+  error • A function body must be provided • lib/features/cards/screens/card_detail_screen.dart:1289:52 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1289:52 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1290:13 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1290:14 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1291:11 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1291:12 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1292:9 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1292:10 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1293:7 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1293:8 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1294:5 • expected_executable
+  error • Unexpected text ';' • lib/features/cards/screens/card_detail_screen.dart:1294:6 • unexpected_token
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1295:3 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/cards/screens/card_detail_screen.dart:1296:1 • expected_executable
+warning • Unused import: 'package:cloud_firestore/cloud_firestore.dart' • test/firestore_test.dart:2:8 • unused_import
+warning • Unused import: 'package:firebase_core/firebase_core.dart' • test/firestore_test.dart:3:8 • unused_import
+warning • Unused import: 'package:flutter/widgets.dart' • test/firestore_test.dart:4:8 • unused_import
+

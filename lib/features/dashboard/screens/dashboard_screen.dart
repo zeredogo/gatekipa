@@ -7,35 +7,66 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/utils/currency_formatter.dart';
-import 'package:gatekipa/core/utils/date_formatter.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/utils/currency_formatter.dart';
+import 'package:gatekeepeer/core/utils/date_formatter.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
 
-import 'package:gatekipa/core/widgets/shimmer_loader.dart';
-import 'package:gatekipa/features/accounts/providers/account_provider.dart';
-import 'package:gatekipa/features/accounts/models/account_model.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
-import 'package:gatekipa/features/cards/providers/card_provider.dart';
-import 'package:gatekipa/features/search/widgets/search_bar_widget.dart';
-import 'package:gatekipa/features/wallet/models/wallet_model.dart';
-import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
-import 'package:gatekipa/features/notifications/providers/notification_provider.dart';
-import 'package:gatekipa/core/widgets/gk_card_list_tile.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/widgets/shimmer_loader.dart';
+import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
+import 'package:gatekeepeer/features/accounts/models/account_model.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
+import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
+import 'package:gatekeepeer/features/search/widgets/search_bar_widget.dart';
+import 'package:gatekeepeer/features/wallet/models/wallet_model.dart';
+import 'package:gatekeepeer/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekeepeer/features/notifications/providers/notification_provider.dart';
+import 'package:gatekeepeer/core/widgets/gk_card_list_tile.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/providers/system_state_provider.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with WidgetsBindingObserver {
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Invalidate wallet + cards on every foreground resume so the UI always
+  /// reflects authoritative Firestore state, not a stale in-memory snapshot.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(walletProvider);
+      ref.invalidate(cardsProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userAsync = ref.watch(userProfileProvider);
     final walletAsync = ref.watch(walletProvider);
     final cardsAsync = ref.watch(cardsProvider);
     final txAsync = ref.watch(transactionsProvider);
     final unreadCount = ref.watch(unreadNotifCountProvider);
+    final sysState = ref.watch(systemStateProvider).valueOrNull ?? SystemState.normal;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -140,6 +171,10 @@ class DashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── System Mode Banner (hidden in NORMAL mode) ─────────────
+                  if (!sysState.isOperational)
+                    _SystemModeBanner(state: sysState),
+
                   // Balance header
                   _BalanceSection(
                     walletAsync: walletAsync,
@@ -179,6 +214,85 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.lg),
                   _RecentActivity(txAsync: txAsync),
                   const SizedBox(height: 140),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── System Mode Banner ──────────────────────────────────────────────────────────
+// Renders ONLY when system is not NORMAL. Has zero layout cost in steady-state
+// because the parent conditionally includes it: `if (!sysState.isOperational)`.
+class _SystemModeBanner extends StatelessWidget {
+  final SystemState state;
+  const _SystemModeBanner({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final isLockdown = state.isLockedDown;
+    final bgColor = isLockdown
+        ? const Color(0xFF3B0A0A)
+        : const Color(0xFF2D2000);
+    final borderColor = isLockdown
+        ? const Color(0xFFCF4444)
+        : const Color(0xFFD4A017);
+    final iconColor = isLockdown
+        ? const Color(0xFFFF6B6B)
+        : const Color(0xFFFFD166);
+    final icon = isLockdown
+        ? Icons.lock_rounded
+        : Icons.warning_amber_rounded;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor, width: 1.2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: iconColor, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isLockdown ? 'System Lockdown' : 'System Degraded',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: iconColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    state.bannerMessage,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: iconColor.withValues(alpha: 0.75),
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                  if (state.reason != null && state.reason!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      state.reason!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: iconColor.withValues(alpha: 0.55),
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -814,6 +928,11 @@ class _GuardRulesWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userProfileProvider);
+    final cardsAsync = ref.watch(cardsProvider);
+    
+    // Check if user has active subscription card
+    final hasSubscriptionCard = cardsAsync.valueOrNull?.any((c) => !c.isTrial) ?? false;
+
     return userAsync.when(
       data: (user) {
         if (user == null) return const SizedBox();
@@ -824,8 +943,15 @@ class _GuardRulesWidget extends ConsumerWidget {
               iconColor: Colors.indigo,
               title: 'Night Lockdown',
               sub: 'Block all charges 12 AM – 6 AM (WAT)',
-              value: user.nightLockdown,
+              value: hasSubscriptionCard ? user.nightLockdown : false,
               onChanged: (v) async {
+                if (!hasSubscriptionCard) {
+                  GkToast.show(context,
+                      message: '🚀 Create a subscription card first to unlock Night Lockdown.',
+                      type: ToastType.warning,
+                      duration: const Duration(seconds: 4));
+                  return;
+                }
                 if (user.planTier != 'premium' && user.planTier != 'business') {
                   GkToast.show(context,
                       message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock Night Lockdown.',
@@ -853,8 +979,15 @@ class _GuardRulesWidget extends ConsumerWidget {
               iconColor: Colors.teal,
               title: 'Geo-Fence',
               sub: 'Block international charges',
-              value: user.geoFence,
+              value: hasSubscriptionCard ? user.geoFence : false,
               onChanged: (v) async {
+                if (!hasSubscriptionCard) {
+                  GkToast.show(context,
+                      message: '🚀 Create a subscription card first to unlock advanced geo-fencing protections.',
+                      type: ToastType.warning,
+                      duration: const Duration(seconds: 4));
+                  return;
+                }
                 if (user.planTier != 'premium' && user.planTier != 'business') {
                   GkToast.show(context,
                       message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock advanced geo-fencing protections.',

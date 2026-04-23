@@ -2,8 +2,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/features/accounts/models/account_model.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/features/accounts/models/account_model.dart';
 
 import 'package:rxdart/rxdart.dart';
 

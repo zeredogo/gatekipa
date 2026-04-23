@@ -1,8 +1,8 @@
 // lib/core/widgets/shimmer_loader.dart
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class ShimmerLoader extends StatelessWidget {
   final double width;

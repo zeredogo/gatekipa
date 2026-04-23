@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/features/analytics/providers/analytics_provider.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/features/analytics/providers/analytics_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class SavingsDeepDiveScreen extends ConsumerWidget {
   const SavingsDeepDiveScreen({super.key});

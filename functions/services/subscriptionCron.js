@@ -101,7 +101,8 @@ exports.scanSubscriptionPatterns = onSchedule("0 0 * * 0", async (event) => { //
                        color_hex: isPriceHike ? '#DC2626' : '#1E40AF',
                        icon: 'receipt_long_rounded',
                        raw_message: isPriceHike ? `PRICE HIKE! Increased from ₦${oldestAmount}` : `Auto-detected from ${groupTxns.length} card charges`,
-                       detectedAt: new Date().toISOString()
+                       detectedAt: new Date().toISOString(),
+                       next_billing_date: latest + (30 * 24 * 60 * 60 * 1000)
                      };
                      
                      await db.collection("users").doc(uid).collection("detected_subscriptions").add(subDoc);
@@ -139,7 +140,8 @@ exports.scanSubscriptionPatterns = onSchedule("0 0 * * 0", async (event) => { //
                      await existingSnap.docs[0].ref.update({
                         amount: Math.round(latestAmount * 100),
                         raw_message: `PRICE HIKE! Increased from ₦${oldestAmount}`,
-                        color_hex: '#DC2626'
+                        color_hex: '#DC2626',
+                        next_billing_date: latest + (30 * 24 * 60 * 60 * 1000)
                      });
                      
                      try {
@@ -165,4 +167,60 @@ exports.scanSubscriptionPatterns = onSchedule("0 0 * * 0", async (event) => { //
 
   console.info(`[SubscriptionCron] Finished scan. Detected ${totalDetected} new subscriptions.`);
   return { success: true, detected: totalDetected };
+});
+
+exports.sendRenewalReminders = onSchedule("0 9 * * *", async (event) => { // Runs daily at 9:00 AM
+  const { getMessaging } = require("firebase-admin/messaging");
+  
+  // Find all users
+  const usersSnap = await db.collection("users").get();
+  if (usersSnap.empty) return;
+  
+  let remindersSent = 0;
+  const now = Date.now();
+  
+  for (const userDoc of usersSnap.docs) {
+    const uid = userDoc.id;
+    const userData = userDoc.data();
+    
+    // Specifically target Instant users or free users (as requested)
+    if (userData.planTier && userData.planTier !== 'none' && userData.planTier !== 'free' && userData.planTier !== 'instant') continue;
+    
+    const subsSnap = await db.collection("users").doc(uid).collection("detected_subscriptions").get();
+    if (subsSnap.empty) continue;
+    
+    for (const subDoc of subsSnap.docs) {
+      const sub = subDoc.data();
+      if (!sub.next_billing_date) continue;
+      
+      const diffMs = sub.next_billing_date - now;
+      const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      
+      if ([5, 3, 2].includes(daysRemaining)) {
+         try {
+           const fcmToken = userData.fcm_token;
+           if (fcmToken) {
+               await getMessaging().send({
+                  token: fcmToken,
+                  notification: {
+                    title: "Upcoming Subscription 🔔",
+                    body: `${sub.name} (₦${sub.amount/100}) is due in ${daysRemaining} days. Gatekipa allows you to freeze your card if you want to cancel it!`
+                  }
+               });
+           }
+           
+           await userDoc.ref.collection("notifications").add({
+             title: "Upcoming Subscription",
+             body: `${sub.name} is due in ${daysRemaining} days. Gatekipa allows you to freeze your card to cancel it.`,
+             timestamp: new Date(),
+             isRead: false,
+             type: "alert",
+           });
+           remindersSent++;
+         } catch (err) { }
+      }
+    }
+  }
+  
+  console.info(`[SubscriptionCron] Sent ${remindersSent} 5/3/2-day renewal reminders.`);
 });

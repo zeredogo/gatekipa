@@ -1,5 +1,5 @@
 {
-  "name": "gatekeeper-functions",
+  "name": "gatekeepeer-functions",
   "version": "1.0.0",
   "description": "Gatekeeper Cloud Functions Backend",
   "main": "index.js",

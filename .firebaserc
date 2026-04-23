@@ -2,6 +2,14 @@
   "projects": {
     "default": "gatekipa-bbd1c"
   },
-  "targets": {},
+  "targets": {
+    "gatekipa-bbd1c": {
+      "storage": {
+        "default": [
+          "gatekipa-bbd1c.appspot.com"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

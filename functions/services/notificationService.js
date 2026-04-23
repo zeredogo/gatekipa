@@ -12,6 +12,8 @@ const { FieldValue } = require("firebase-admin/firestore");
 async function sendNotification(accountId, message, opts = {}) {
   let userId = null;
 
+  let userDoc = null;
+
   try {
     const accSnap = await db.collection("accounts").doc(accountId).get();
     if (accSnap.exists) {
@@ -30,6 +32,7 @@ async function sendNotification(accountId, message, opts = {}) {
   const type = opts.type || deriveType(message);
   const title = opts.title || deriveTitle(type);
 
+  // 1. Write to in-app notification center
   await db
     .collection("users")
     .doc(userId)
@@ -44,6 +47,31 @@ async function sendNotification(accountId, message, opts = {}) {
       timestamp: FieldValue.serverTimestamp(),
       metadata: opts.metadata || null,
     });
+
+  // 2. Dispatch FCM Push Notification if token exists
+  try {
+    userDoc = await db.collection("users").doc(userId).get();
+    if (userDoc.exists) {
+      const fcmToken = userDoc.data().fcm_token;
+      if (fcmToken) {
+        const { getMessaging } = require("firebase-admin/messaging");
+        await getMessaging().send({
+          token: fcmToken,
+          notification: {
+            title: title,
+            body: message,
+          },
+          data: {
+            type: type,
+            account_id: accountId,
+          },
+        });
+        console.info(`[Notification] FCM sent successfully to ${userId}`);
+      }
+    }
+  } catch (err) {
+    console.warn(`[Notification] FCM dispatch failed for ${userId}:`, err.message);
+  }
 }
 
 /** Infer notification type from message content */

@@ -1,8 +1,8 @@
 // lib/features/search/providers/search_provider.dart
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekipa/features/accounts/models/account_model.dart';
-import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekeepeer/features/accounts/models/account_model.dart';
+import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
 
 class SearchResult {
   final List<AccountModel> accounts;
@@ -40,7 +40,7 @@ final searchResultsProvider = FutureProvider<SearchResult>((ref) async {
             id: c['id'] ?? '',
             accountId: c['account_id'] ?? '',
             name: c['name'] ?? '',
-            status: c['status'] ?? 'active',
+            localStatus: c['status'] ?? 'active',
             isTrial: c['is_trial'] ?? false,
             createdAt: c['created_at'] ?? 0,
           ))

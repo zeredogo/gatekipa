@@ -4,15 +4,15 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
-import 'package:gatekipa/features/cards/providers/card_provider.dart';
-import 'package:gatekipa/features/accounts/models/account_model.dart';
-import 'package:gatekipa/features/accounts/providers/account_provider.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/features/team/screens/team_members_screen.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
+import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
+import 'package:gatekeepeer/features/accounts/models/account_model.dart';
+import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/features/team/screens/team_members_screen.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class AccountDetailScreen extends ConsumerWidget {
   final AccountModel account;

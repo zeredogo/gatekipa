@@ -4,6 +4,9 @@ const { requireAuth, requireVerifiedEmail, requireFields, requireKyc, requireAdm
 const crypto = require("crypto");
 const { internalFreezeBridgecard } = require("./bridgecardService");
 const { sendNotification } = require("./notificationService");
+const { FieldValue } = require("firebase-admin/firestore");
+const { getSystemMode, assertSystemAllowsFinancialOps } = require("../core/systemState");
+const { assertValidTransition } = require("../core/stateMachine");
 const logger = require("firebase-functions/logger");
 
 
@@ -30,14 +33,59 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
   requireFields(data, ["account_id", "name"]);
   const { account_id, name, is_trial = false, category = 'personal', currency = 'NGN' } = data;
 
+  const userDoc = await db.collection("users").doc(uid).get();
+  const currentPlan = userDoc.exists ? (userDoc.data().planTier || "free") : "free";
+
   // Verify account ownership or membership
-  const accountDoc = await db.collection("accounts").doc(account_id).get();
-  if (!accountDoc.exists) throw new HttpsError("not-found", "Account not found.");
-  if (accountDoc.data().owner_user_id !== uid) {
-    const tmSnap = await db.collection("team_members").doc(`${account_id}_${uid}`).get();
-    if (!tmSnap.exists || tmSnap.data().role !== "admin") {
-      throw new HttpsError("permission-denied", "Only owner or admin can create cards.");
+  let accountData = {};
+  if (account_id === uid) {
+    // Virtual personal account fallback
+    if (currentPlan !== "free" && currentPlan !== "instant") {
+      throw new HttpsError("permission-denied", "An explicit client profile is required for upgraded plans.");
     }
+    accountData = { owner_user_id: uid };
+  } else {
+    const accountDoc = await db.collection("accounts").doc(account_id).get();
+    if (!accountDoc.exists) throw new HttpsError("not-found", "Account not found.");
+    
+    accountData = accountDoc.data();
+    if (accountData.owner_user_id !== uid) {
+      const tmSnap = await db.collection("team_members").doc(`${account_id}_${uid}`).get();
+      if (!tmSnap.exists || tmSnap.data().role !== "admin") {
+        throw new HttpsError("permission-denied", "Only owner or admin can create cards.");
+      }
+    }
+  }
+
+  // ENFORCE PLAN LOGIC ON BACKEND natively using User's Plan
+  const activeCardsSnap = await db.collection("cards")
+    .where("account_id", "==", account_id)
+    .where("status", "in", ["active", "pending_issuance"])
+    .count()
+    .get();
+
+  const activeCardCount = activeCardsSnap.data().count;
+
+  // Plan Limits Matrix
+  let maxAllowed = 1; // Default
+  if (currentPlan === "free" || currentPlan === "instant") {
+    maxAllowed = 1;
+  } else if (currentPlan === "activation") {
+    maxAllowed = 2;
+  } else if (currentPlan === "premium") {
+    maxAllowed = 3;
+  } else if (currentPlan === "business") {
+    maxAllowed = 5;
+  } else {
+    // Unknown plans default to 1 for safety
+    maxAllowed = 1;
+  }
+
+  if (activeCardCount >= maxAllowed) {
+    throw new HttpsError(
+      "permission-denied", 
+      `The '${currentPlan}' plan is limited to ${maxAllowed} active card(s). Please upgrade to create more.`
+    );
   }
 
   const { last4, masked_number, cvv } = generatePlaceholderDetails();
@@ -49,14 +97,20 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
     id: cardRef.id,
     account_id,
     name: name.trim(),
-    status: "pending_issuance", // Becomes 'active' after createBridgecard succeeds
+    // localStatus is the authoritative status field. 'status' kept for migration window.
+    local_status: "pending_issuance",
+    status: "pending_issuance",
+    lifecycle_version: 0,
     is_trial: is_trial,
     category: category,
     currency: currency,
     last4,
     masked_number,
     cvv,
+    // allocated_amount replaces balance_limit. Both written during migration window.
+    allocated_amount: 0,
     balance_limit: 0,
+    // cached fields — updated by Cloud Functions after card_ledger commits
     spent_amount: 0,
     charge_count: 0,
     created_at: now,
@@ -65,11 +119,12 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
 
   await cardRef.set(card);
 
-  // Trial Card Auto-Rules
+  // Plan specific auto-rules
+  const rulesBatch = db.batch();
+  let hasRules = false;
+
   if (is_trial) {
-    const rulesBatch = db.batch();
-    
-    // Max charges = 1
+    hasRules = true;
     const maxChargeRef = db.collection("rules").doc();
     rulesBatch.set(maxChargeRef, {
       id: maxChargeRef.id,
@@ -80,8 +135,10 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
       meta: {},
       created_at: now
     });
+  }
 
-    // Expiry = 30 days
+  if (is_trial || currentPlan === "premium" || currentPlan === "business") {
+    hasRules = true;
     const expiryRef = db.collection("rules").doc();
     rulesBatch.set(expiryRef, {
       id: expiryRef.id,
@@ -92,7 +149,9 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
       meta: {},
       created_at: now
     });
+  }
 
+  if (hasRules) {
     await rulesBatch.commit();
   }
 
@@ -102,28 +161,53 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
 exports.toggleCardStatus = onCall({ region: "us-central1" }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
-  const { card_id, status } = request.data;
+  const { card_id, status: targetStatus } = request.data;
   requireFields(request.data, ["card_id", "status"]);
+
+  // Validate target is a known status
+  const allowedTargets = ["active", "frozen", "terminated"];
+  if (!allowedTargets.includes(targetStatus)) {
+    throw new HttpsError("invalid-argument", `Invalid status '${targetStatus}'. Must be one of: ${allowedTargets.join(", ")}.`);
+  }
 
   const cardSnap = await db.collection("cards").doc(card_id).get();
   if (!cardSnap.exists) throw new HttpsError("not-found", "Card not found");
-  
+
   const accountDoc = await db.collection("accounts").doc(cardSnap.data().account_id).get();
   if (!accountDoc.exists || accountDoc.data().owner_user_id !== uid) {
     throw new HttpsError("permission-denied", "Only the account owner can toggle card status.");
   }
 
+  // State machine enforcement — no skipping allowed
+  const currentStatus = cardSnap.data().local_status || cardSnap.data().status;
+  try {
+    assertValidTransition(currentStatus, targetStatus);
+  } catch (e) {
+    throw new HttpsError("failed-precondition", e.message);
+  }
+
+  // Write both local_status (authoritative) and status (migration compat)
   await db.collection("cards").doc(card_id).update({
-    status: status,
-    ...(cardSnap.data().bridgecard_card_id && { bridgecard_status: status === "blocked" ? "frozen" : status }),
+    local_status: targetStatus,
+    status: targetStatus,
+    lifecycle_version: FieldValue.increment(1),
+    ...(cardSnap.data().bridgecard_card_id && {
+      bridgecard_status: targetStatus === "frozen" ? "frozen" : targetStatus
+    }),
   });
 
   if (cardSnap.data().bridgecard_card_id) {
     try {
-      await internalFreezeBridgecard(cardSnap.data().bridgecard_card_id, status === "blocked" || status === "frozen", cardSnap.data().currency);
+      await internalFreezeBridgecard(
+        cardSnap.data().bridgecard_card_id,
+        targetStatus === "frozen",
+        cardSnap.data().currency
+      );
     } catch (e) {
-      logger.error(`[CardToggle] Bridgecard toggle failed for ${card_id}`, e);
-      throw new HttpsError("internal", `Failed to sync toggled status to Bridgecard: ${e.message}`);
+      logger.error(`[CardToggle] Bridgecard sync failed for ${card_id}`, e);
+      // Do NOT throw — local status is already updated. Bridgecard sync is best-effort.
+      // A reconciliation job will re-sync if needed.
+      logger.warn(`[CardToggle] Local status updated but Bridgecard sync failed. Card ${card_id} will be reconciled.`);
     }
   }
 
@@ -161,7 +245,9 @@ exports.renameCard = onCall({ region: "us-central1" }, async (request) => {
 
 exports.disableCard = async function(cardId) {
   await db.collection("cards").doc(cardId).update({
-    status: "blocked"
+    local_status: "frozen",
+    status: "blocked", // migration compat
+    lifecycle_version: FieldValue.increment(1),
   });
 };
 
@@ -266,39 +352,52 @@ exports.activateKillSwitch = onCall({ region: "us-central1" }, async (request) =
  * adminGlobalKillSwitch — blocks ALL active cards across the absolute entire platform.
  * Protected by strict `requireAdmin` custom claim validation.
  */
-exports.adminGlobalKillSwitch = onCall({ region: "us-central1" }, async (request) => {
+exports.adminGlobalKillSwitch = onCall({ region: "us-central1", enforceAppCheck: false }, async (request) => {
   requireAdmin(request.auth);
 
+  // ── STEP 1: Write system_state/global FIRST — instant gate ─────────────────
+  // All Cloud Functions now reject immediately before a single card is touched.
+  await db.doc("system_state/global").set({
+    mode: "LOCKDOWN",
+    reason: "Admin Global Kill Switch activated via Cloud Function",
+    activated_by: request.auth.uid,
+    updated_at: FieldValue.serverTimestamp(),
+  });
+
+  logger.info("[AdminKillSwitch] System mode set to LOCKDOWN — gate closed.");
+
+  // ── STEP 2: Card document sweep (best-effort UI consistency) ────────────────
   const cardsSnap = await db.collection("cards")
+    .where("local_status", "==", "active")
+    .get();
+
+  // Also sweep legacy cards still using old 'status' field
+  const legacySnap = await db.collection("cards")
     .where("status", "==", "active")
     .get();
 
-  if (cardsSnap.empty) return { success: true, processed: 0, frozen: 0, failed: 0 };
+  const allDocs = new Map();
+  for (const doc of [...cardsSnap.docs, ...legacySnap.docs]) {
+    allDocs.set(doc.id, doc);
+  }
 
-  let totalBlocked = 0;
-  const failedFreezes = [];
+  if (allDocs.size === 0) return { success: true, mode: "LOCKDOWN", processed: 0 };
 
-  // Batch process
+  let totalFrozen = 0;
   const batchArray = [];
   let currentBatch = db.batch();
   let operationCount = 0;
 
-  for (const doc of cardsSnap.docs) {
-    currentBatch.update(doc.ref, { 
+  for (const [, doc] of allDocs) {
+    currentBatch.update(doc.ref, {
+      local_status: "frozen",
       status: "blocked",
+      lifecycle_version: FieldValue.increment(1),
+      admin_locked_at: FieldValue.serverTimestamp(),
       ...(doc.data().bridgecard_card_id && { bridgecard_status: "frozen" }),
     });
     operationCount++;
-
-    if (doc.data().bridgecard_card_id) {
-      try {
-        await internalFreezeBridgecard(doc.data().bridgecard_card_id, true, doc.data().currency);
-        totalBlocked++;
-      } catch (e) {
-        logger.error(`[AdminKillSwitch] Failed to freeze card ${doc.id} at Bridgecard`, e);
-        failedFreezes.push(doc.id);
-      }
-    }
+    totalFrozen++;
 
     if (operationCount === 450) {
       batchArray.push(currentBatch);
@@ -307,22 +406,30 @@ exports.adminGlobalKillSwitch = onCall({ region: "us-central1" }, async (request
     }
   }
 
-  if (operationCount > 0) {
-    batchArray.push(currentBatch);
-  }
+  if (operationCount > 0) batchArray.push(currentBatch);
 
   for (const batch of batchArray) {
     await batch.commit();
   }
 
-  if (failedFreezes.length > 0) {
-    throw new HttpsError(
-      "internal",
-      `FAILED STATE: Could not freeze ${failedFreezes.length} cards (${failedFreezes.slice(0, 5).join(', ')}...). Manual intervention required.`
-    );
-  }
+  // ── STEP 3: Queue Bridgecard freeze task (async, best-effort) ──────────────
+  await db.collection("admin_tasks").add({
+    type: "BRIDGECARD_MASS_FREEZE",
+    status: "PENDING",
+    triggered_by: request.auth.uid,
+    card_count: totalFrozen,
+    created_at: FieldValue.serverTimestamp(),
+  });
 
-  return { success: true, processed: cardsSnap.size, frozen: totalBlocked, failed: failedFreezes.length };
+  logger.info(`[AdminKillSwitch] Froze ${totalFrozen} cards. Bridgecard freeze queued.`);
+
+  return {
+    success: true,
+    mode: "LOCKDOWN",
+    processed: allDocs.size,
+    frozen: totalFrozen,
+    bridgecardFreezeStatus: "queued_async",
+  };
 });
 
 /**

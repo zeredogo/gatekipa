@@ -3,12 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
+import 'package:gatekeepeer/features/wallet/models/transaction_orchestration_model.dart';
 
 // ── Rules Stream for a single card ─────────────────────────────────────────────
-final cardRulesProvider = StreamProvider.family<List<CardRule>, String>((ref, cardId) {
+final cardRulesProvider = StreamProvider.autoDispose.family<List<CardRule>, String>((ref, cardId) {
   return FirebaseFirestore.instance
       .collection('rules')
       .where('card_id', isEqualTo: cardId)
@@ -22,10 +23,11 @@ final cardsProvider = StreamProvider<List<VirtualCardModel>>((ref) {
 
   final accountsAsync = ref.watch(accountsStreamProvider);
   final accounts = accountsAsync.valueOrNull ?? [];
-  if (accounts.isEmpty) return Stream.value([]);
 
   // Firestore whereIn supports up to 30 values
-  final accountIds = accounts.map((a) => a.id).take(30).toList();
+  final accountIdsSet = accounts.map((a) => a.id).toSet();
+  accountIdsSet.add(user.uid); // Inject personal user ID as a fallback account_id
+  final accountIds = accountIdsSet.take(30).toList();
 
   return FirebaseFirestore.instance
       .collection('cards')
@@ -72,10 +74,11 @@ final transactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
 
   final accountsAsync = ref.watch(accountsStreamProvider);
   final accounts = accountsAsync.valueOrNull ?? [];
-  if (accounts.isEmpty) return Stream.value([]);
 
   // Firestore whereIn supports up to 30 values
-  final accountIds = accounts.map((a) => a.id).take(30).toList();
+  final accountIdsSet = accounts.map((a) => a.id).toSet();
+  accountIdsSet.add(user.uid); // Inject personal user ID as a fallback account_id
+  final accountIds = accountIdsSet.take(30).toList();
 
   return FirebaseFirestore.instance
       .collection('transactions')
@@ -141,7 +144,7 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<String?> createCard({
-    required String accountId,
+    String? accountId,
     required String name,
     required bool isTrial,
     String category = 'personal',
@@ -151,7 +154,7 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       final result = await FirebaseFunctions.instance.httpsCallable('createVirtualCard').call({
-        'account_id': accountId,
+        if (accountId != null) 'account_id': accountId,
         'name': name,
         'is_trial': isTrial,
         'category': category,
@@ -372,6 +375,17 @@ class TransactionModel {
   String? get blockReason => declineReason;
   String get category => 'Card Transaction';
   String get type => 'debit';
+  /// Typed status for badge widgets — maps raw Firestore string to [TxnStatus].
+  TxnStatus get txnStatus {
+    switch (status.toLowerCase()) {
+      case 'approved':    return TxnStatus.success;
+      case 'pending':     return TxnStatus.pending;
+      case 'processing':  return TxnStatus.processing;
+      case 'declined':
+      case 'failed':      return TxnStatus.failed;
+      default:            return TxnStatus.unknown;
+    }
+  }
 }
 
 final cardNotifierProvider =

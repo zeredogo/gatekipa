@@ -3,37 +3,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gatekipa/core/theme/app_theme.dart';
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/features/auth/screens/splash_screen.dart';
-import 'package:gatekipa/features/auth/screens/onboarding_screen.dart';
-import 'package:gatekipa/features/auth/screens/email_auth_screen.dart';
-import 'package:gatekipa/features/auth/screens/phone_auth_screen.dart';
-import 'package:gatekipa/features/auth/screens/otp_screen.dart';
-import 'package:gatekipa/features/auth/screens/email_verify_pending_screen.dart';
-import 'package:gatekipa/features/auth/screens/kyc_screen.dart';
-import 'package:gatekipa/features/dashboard/screens/dashboard_screen.dart';
-import 'package:gatekipa/features/wallet/screens/wallet_screen.dart';
-import 'package:gatekipa/features/wallet/screens/add_funds_screen.dart';
-import 'package:gatekipa/features/cards/screens/cards_list_screen.dart';
-import 'package:gatekipa/features/cards/screens/card_creation_screen.dart';
-import 'package:gatekipa/features/cards/screens/card_detail_screen.dart';
-import 'package:gatekipa/features/accounts/screens/account_detail_screen.dart';
-import 'package:gatekipa/features/detect/screens/detection_setup_screen.dart';
-import 'package:gatekipa/features/detect/screens/detected_subscriptions_screen.dart';
-import 'package:gatekipa/features/notifications/screens/notification_center_screen.dart';
-import 'package:gatekipa/features/notifications/screens/notification_detail_screen.dart';
-import 'package:gatekipa/features/analytics/screens/analytics_hub_screen.dart';
-import 'package:gatekipa/features/analytics/screens/efficiency_portfolio_screen.dart';
-import 'package:gatekipa/features/analytics/screens/savings_deep_dive_screen.dart';
-import 'package:gatekipa/features/profile/screens/profile_screen.dart';
-import 'package:gatekipa/features/profile/screens/settings_screen.dart';
-import 'package:gatekipa/features/accounts/screens/accounts_screen.dart';
-import 'package:gatekipa/features/accounts/models/account_model.dart';
-import 'package:gatekipa/features/team/screens/team_members_screen.dart';
+import 'package:gatekeepeer/core/theme/app_theme.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/features/auth/screens/splash_screen.dart';
+import 'package:gatekeepeer/features/auth/screens/onboarding_screen.dart';
+import 'package:gatekeepeer/features/auth/screens/email_auth_screen.dart';
+import 'package:gatekeepeer/features/auth/screens/phone_auth_screen.dart';
+import 'package:gatekeepeer/features/auth/screens/otp_screen.dart';
+import 'package:gatekeepeer/features/auth/screens/email_verify_pending_screen.dart';
+import 'package:gatekeepeer/features/auth/screens/kyc_screen.dart';
+import 'package:gatekeepeer/features/dashboard/screens/dashboard_screen.dart';
+import 'package:gatekeepeer/features/wallet/screens/wallet_screen.dart';
+import 'package:gatekeepeer/features/wallet/screens/add_funds_screen.dart';
+import 'package:gatekeepeer/features/cards/screens/cards_list_screen.dart';
+import 'package:gatekeepeer/features/cards/screens/card_creation_screen.dart';
+import 'package:gatekeepeer/features/cards/screens/card_detail_screen.dart';
+import 'package:gatekeepeer/features/accounts/screens/account_detail_screen.dart';
+import 'package:gatekeepeer/features/detect/screens/detection_setup_screen.dart';
+import 'package:gatekeepeer/features/detect/screens/detected_subscriptions_screen.dart';
+import 'package:gatekeepeer/features/notifications/screens/notification_center_screen.dart';
+import 'package:gatekeepeer/features/notifications/screens/notification_detail_screen.dart';
+import 'package:gatekeepeer/features/analytics/screens/analytics_hub_screen.dart';
+import 'package:gatekeepeer/features/analytics/screens/efficiency_portfolio_screen.dart';
+import 'package:gatekeepeer/features/analytics/screens/savings_deep_dive_screen.dart';
+import 'package:gatekeepeer/features/profile/screens/profile_screen.dart';
+import 'package:gatekeepeer/features/profile/screens/settings_screen.dart';
+import 'package:gatekeepeer/features/accounts/screens/accounts_screen.dart';
+import 'package:gatekeepeer/features/accounts/models/account_model.dart';
+import 'package:gatekeepeer/features/team/screens/team_members_screen.dart';
 
-import 'package:gatekipa/core/widgets/app_shell.dart';
+import 'package:gatekeepeer/core/widgets/app_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -76,21 +76,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         return Routes.phoneAuth;
       }
 
-      // KYC guard — only block 'pending'; allow 'verified' and 'skipped'
-      if (user != null && !isAuthRoute && state.fullPath != Routes.splash) {
-        final profileState = ref.read(userProfileProvider);
-        
-        // Wait for profile to load before making routing decisions
-        if (profileState.isLoading) {
-          return Routes.splash; 
-        }
-        
-        final profile = profileState.valueOrNull;
-        if (profile != null && profile.kycStatus == 'pending') {
-          return Routes.kyc;
-        }
-      }
-
+      // KYC guard has been removed from global routing so users can access the wallet.
+      // Card issuance will be gated at the card creation screen instead.
       return null;
     },
     routes: [
@@ -240,14 +227,14 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class GatekipaApp extends ConsumerWidget {
-  const GatekipaApp({super.key});
+class GatekeepeerApp extends ConsumerWidget {
+  const GatekeepeerApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
-      title: 'Gatekipa',
+      title: 'Gatekeepeer',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,

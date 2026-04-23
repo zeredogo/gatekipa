@@ -6,17 +6,17 @@
 const { setGlobalOptions } = require("firebase-functions/v2");
 // Allows standard Cloud Run scaling on the Blaze plan up to a sustainable cap
 // Setting cpu to 0.16 to prevent exceeding regions total allowable CPU quota during multi-function deployment
-setGlobalOptions({ maxInstances: 1, memory: "256MiB", cpu: 0.16, enforceAppCheck: true });
+setGlobalOptions({ maxInstances: 1, memory: "256MiB", cpu: 0.16, enforceAppCheck: false });
 
 const { onUserCreated, purchasePlan, purchasePlanFromVault } = require("./services/authService");
 const { createAccount, inviteTeamMember, renameAccount, deleteAccount, switchActiveAccount, removeTeamMember } = require("./services/accountService");
 const { createVirtualCard, toggleCardStatus, activateKillSwitch, renameCard, adminGlobalKillSwitch, sendCardNotification } = require("./services/cardService");
 const { createRule, deleteRule, adminSimulateRuleEngine } = require("./services/ruleService");
-const { processTransaction } = require("./services/transactionService");
+const { processTransaction, fundCard } = require("./services/transactionService");
 const { searchEntities } = require("./services/searchService");
 const { detectSubscriptions } = require("./services/detectService");
-const { createVaultAccount } = require("./services/walletService");
-const { verifyBvn, verifyKyc } = require("./services/kycService");
+const { createVaultAccount, requestWithdrawal } = require("./services/walletService");
+const { verifyBvn, verifyKyc, qoreidWebhook } = require("./services/kycService");
 const { verifyPaystackPayment, paystackWebhook } = require("./services/paystackService");
 const { deleteUserAccount, initiatePremiumUpgrade, verifyPremiumPayment } = require("./services/userService");
 const {
@@ -32,6 +32,7 @@ const {
 const { integritySweep } = require("./services/reconciliationCron");
 const { scanSubscriptionPatterns } = require("./services/subscriptionCron");
 const { expirationCron } = require("./services/expirationCron");
+const { adminSetSystemMode, adminGetSystemMode } = require("./services/systemService");
 
 
 // 1. Auth / User Lifecycle
@@ -62,6 +63,7 @@ exports.adminSimulateRuleEngine = adminSimulateRuleEngine;
 
 // 5. Transaction & Evaluation Core
 exports.processTransaction = processTransaction;
+exports.fundCard = fundCard;
 
 // 6. Search Service
 exports.searchEntities = searchEntities;
@@ -74,12 +76,18 @@ exports.integritySweep = integritySweep;
 exports.scanSubscriptionPatterns = scanSubscriptionPatterns;
 exports.expirationCron = expirationCron;
 
+// 9. System Mode Management (Admin Only)
+exports.adminSetSystemMode = adminSetSystemMode;
+exports.adminGetSystemMode = adminGetSystemMode;
+
 // 8. Wallet Operations
 exports.createVaultAccount = createVaultAccount;
+exports.requestWithdrawal = requestWithdrawal;
 
 // 9. KYC / Identity Verification
 exports.verifyBvn = verifyBvn;
 exports.verifyKyc = verifyKyc;
+exports.qoreidWebhook = qoreidWebhook;
 
 // 10. Payment Verification
 exports.verifyPaystackPayment = verifyPaystackPayment;

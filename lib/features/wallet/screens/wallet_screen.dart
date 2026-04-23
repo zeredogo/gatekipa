@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/utils/currency_formatter.dart';
-import 'package:gatekipa/core/utils/date_formatter.dart';
-import 'package:gatekipa/core/widgets/shimmer_loader.dart';
-import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/utils/currency_formatter.dart';
+import 'package:gatekeepeer/core/utils/date_formatter.dart';
+import 'package:gatekeepeer/core/widgets/shimmer_loader.dart';
+import 'package:gatekeepeer/features/wallet/providers/wallet_provider.dart';
 import '../../cards/providers/card_provider.dart'
     show transactionsProvider, TransactionModel;
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/widgets/transaction_status_widget.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
@@ -372,29 +373,7 @@ class _TxCard extends StatelessWidget {
                           : AppColors.onSurface,),
               ),
               const SizedBox(height: AppSpacing.xxs),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: tx.isApproved
-                      ? AppColors.tertiary.withValues(alpha: 0.12)
-                      : tx.isBlocked
-                          ? AppColors.error.withValues(alpha: 0.1)
-                          : AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  tx.status.toUpperCase(),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                    color: tx.isApproved
-                        ? AppColors.tertiary
-                        : tx.isBlocked
-                            ? AppColors.error
-                            : AppColors.outline,),
-                ),
-              ),
+              TransactionStatusBadge(status: tx.txnStatus),
             ],
           ),
         ],

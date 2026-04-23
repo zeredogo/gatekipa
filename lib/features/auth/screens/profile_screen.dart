@@ -6,19 +6,20 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gatekipa/core/constants/app_constants.dart';
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_button.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/features/auth/models/user_model.dart';
-import 'package:gatekipa/features/profile/screens/kyc_verification_screen.dart';
-import 'package:gatekipa/features/profile/screens/bvn_verification_screen.dart';
-import 'package:gatekipa/features/profile/screens/biometrics_screen.dart';
-import 'package:gatekipa/features/profile/screens/pin_management_screen.dart';
-import 'package:gatekipa/features/profile/screens/premium_upgrade_screen.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:gatekeepeer/core/constants/app_constants.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_button.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/features/auth/models/user_model.dart';
+import 'package:gatekeepeer/features/profile/screens/kyc_verification_screen.dart';
+
+import 'package:gatekeepeer/features/profile/screens/biometrics_screen.dart';
+import 'package:gatekeepeer/features/profile/screens/pin_management_screen.dart';
+import 'package:gatekeepeer/features/profile/screens/premium_upgrade_screen.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -32,7 +33,6 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   /// Locks the app (keeps Firebase session for biometric re-entry) or
-  /// fully signs out if biometrics is disabled.
   Future<void> _handleSignOut(BuildContext context, WidgetRef ref) async {
     final biometricEnabled = await _isBiometricEnabled();
     if (biometricEnabled) {
@@ -40,7 +40,7 @@ class ProfileScreen extends ConsumerWidget {
     } else {
       await ref.read(authNotifierProvider.notifier).signOut();
     }
-    if (context.mounted) context.go(Routes.phoneAuth);
+    if (context.mounted) context.go(Routes.emailAuth);
   }
 
   @override
@@ -179,17 +179,10 @@ class ProfileScreen extends ConsumerWidget {
                     _SettingsSection(title: 'Identity', items: [
                       _SettingsItem(
                         icon: Icons.badge_rounded,
-                        label: 'KYC Status',
+                        label: 'Government Issued ID',
                         trailing:
                             _KycBadge(status: user?.kycStatus ?? 'pending'),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KycVerificationScreen())),
-                      ),
-                      _SettingsItem(
-                        icon: Icons.lock_rounded,
-                        label: 'BVN / NIN',
-                        trailing: const Icon(Icons.chevron_right_rounded,
-                            color: AppColors.outline),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BvnVerificationScreen())),
                       ),
                     ]),
                     const SizedBox(height: 20),
@@ -297,6 +290,22 @@ class ProfileScreen extends ConsumerWidget {
                       ]),
                       const SizedBox(height: 20),
                     ],
+                    // Help & Support
+                    _SettingsSection(title: 'Support', items: [
+                      _SettingsItem(
+                        icon: Icons.headset_mic_rounded,
+                        label: 'Help & Support',
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.outline),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const _SupportWebView(),
+                          ),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 20),
                     // Danger zone
                     _SettingsSection(title: 'Danger Zone', items: [
                       _SettingsItem(
@@ -353,7 +362,7 @@ class _KycBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, label) = switch (status) {
-      'approved' => (AppColors.tertiary, 'Verified'),
+      'approved' || 'verified' => (AppColors.tertiary, 'Verified'),
       'pending' => (const Color(0xFFFF6B35), 'Pending'),
       'rejected' => (AppColors.error, 'Rejected'),
       _ => (AppColors.outline, 'Not Done'),
@@ -682,7 +691,7 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
       Navigator.of(context, rootNavigator: true).pop();
       // Sign out locally and redirect
       await widget.parentRef.read(authNotifierProvider.notifier).signOut();
-      if (mounted) context.go(Routes.phoneAuth);
+      if (mounted) context.go(Routes.emailAuth);
     } on FirebaseFunctionsException catch (e) {
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
@@ -738,3 +747,51 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
   }
 }
 
+// ── Support WebView ─────────────────────────────────────────────────────────
+class _SupportWebView extends StatefulWidget {
+  const _SupportWebView();
+
+  @override
+  State<_SupportWebView> createState() => _SupportWebViewState();
+}
+
+class _SupportWebViewState extends State<_SupportWebView> {
+  late final WebViewController _controller;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageFinished: (_) => setState(() => _isLoading = false),
+      ))
+      ..loadRequest(Uri.parse('https://gatekipa.com/support'));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        title: Text(
+          'Help & Support',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+        ),
+        leading: const CloseButton(color: AppColors.onSurface),
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            const Center(
+                child: CircularProgressIndicator(color: AppColors.primary)),
+        ],
+      ),
+    );
+  }
+}

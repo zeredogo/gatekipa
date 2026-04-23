@@ -76,7 +76,7 @@ exports.deleteRule = onCall({ region: "us-central1" }, async (request) => {
  * adminSimulateRuleEngine — Executes evaluating logic but bypasses actual freezing actions.
  * Perfect for frontend UI debugging traces.
  */
-exports.adminSimulateRuleEngine = onCall({ region: "us-central1" }, async (request) => {
+exports.adminSimulateRuleEngine = onCall({ region: "us-central1", enforceAppCheck: false }, async (request) => {
   requireAdmin(request.auth);
   
   const { card_id, amount, merchant_name, currency, channel } = request.data;

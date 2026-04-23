@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_virtual_card.dart';
-import 'package:gatekipa/core/widgets/gk_card_list_tile.dart';
-import 'package:gatekipa/core/widgets/shimmer_loader.dart';
-import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
-import 'package:gatekipa/features/cards/providers/card_provider.dart';
-import 'package:gatekipa/features/search/providers/search_provider.dart';
-import 'package:gatekipa/features/search/screens/search_screen.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_virtual_card.dart';
+import 'package:gatekeepeer/core/widgets/gk_card_list_tile.dart';
+import 'package:gatekeepeer/core/widgets/shimmer_loader.dart';
+import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
+import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
+import 'package:gatekeepeer/features/search/providers/search_provider.dart';
+import 'package:gatekeepeer/features/search/screens/search_screen.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/core/widgets/gk_button.dart';
 
 class CardsListScreen extends ConsumerStatefulWidget {
   const CardsListScreen({super.key});
@@ -44,6 +46,59 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
   Widget build(BuildContext context) {
     final cardsAsync = ref.watch(cardsProvider);
     final isSearching = _searchCtrl.text.trim().isNotEmpty;
+    final profileState = ref.watch(userProfileProvider);
+    final isKycPending = profileState.valueOrNull?.kycStatus == 'pending';
+
+    if (isKycPending) {
+      return Scaffold(
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
+          title: Text('Cards', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 22, color: AppColors.onSurface)),
+          backgroundColor: AppColors.surface,
+          scrolledUnderElevation: 0,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 36),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'KYC Verification Required',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'To ensure platform security, you must complete your identity verification before you can view or issue cards.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                GkButton(
+                  label: 'Complete KYC',
+                  icon: Icons.verified_user,
+                  onPressed: () => context.push(Routes.kyc),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.surface,

@@ -1,8 +1,8 @@
 // lib/core/widgets/gk_card_list_tile.dart
 import 'package:flutter/material.dart';
-import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class GkCardListTile extends StatelessWidget {
   final VirtualCardModel card;

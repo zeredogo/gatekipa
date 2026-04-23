@@ -116,8 +116,8 @@ exports.purchasePlan = onCall(
     const planConfig = {
       free:       { price: 700,  cards: 1 },
       activation: { price: 1400, cards: 2 },
-      premium:    { price: 2000, cards: 3 },
-      business:   { price: 2000, cards: 5 }, // Standardized ₦2000 recurring fee
+      premium:    { price: 1999, cards: 3 },
+      business:   { price: 5000, cards: 5 }, // Standardized ₦5000 recurring fee
     };
 
     const expectedAmountKobo = planConfig[plan].price * 100;
@@ -234,8 +234,8 @@ exports.purchasePlanFromVault = onCall(
     const planConfig = {
       free:       { price: 700,  cards: 1 },
       activation: { price: 1400, cards: 2 },
-      premium:    { price: 2000, cards: 3 },
-      business:   { price: 2000, cards: 5 }, // Standardized ₦2000 recurring fee
+      premium:    { price: 1999, cards: 3 },
+      business:   { price: 5000, cards: 5 }, // Standardized ₦5000 recurring fee
     };
 
     const cost = planConfig[plan].price;

@@ -23,6 +23,16 @@ const AES256 = require("aes-everywhere");
 const crypto = require("crypto");
 const logger = require("firebase-functions/logger");
 const { evaluateTransaction } = require("../engines/ruleEngine");
+const { getSystemMode, assertSystemAllowsFinancialOps } = require("../core/systemState");
+const { assertValidTransition } = require("../core/stateMachine");
+// Loaded lazily to avoid circular require (transactionService ↔ bridgecardService)
+let _processTransactionInternal;
+function getOrchestrator() {
+  if (!_processTransactionInternal) {
+    _processTransactionInternal = require("./transactionService").processTransactionInternal;
+  }
+  return _processTransactionInternal;
+}
 
 
 // ── Runtime config pulled from .env / Firebase secret params ─────────────────
@@ -76,13 +86,13 @@ exports.registerCardholder = onCall({ region: "us-central1", secrets: [BRIDGECAR
   const bvn = userData.bvn;
 
   // --- KYC Global Override ---
-  // If identity params exist, override default BVN
+  // If identity params exist, override default BVN or use verified KYC
   let identityObject = null;
   if (data.id_type) {
     const formattedIdType = data.id_type.trim().toUpperCase().replace(/\s+/g, "_");
     identityObject = {
       id_type: formattedIdType,
-      id_no: data.id_no ? data.id_no.trim() : bvn?.trim(),
+      id_no: data.id_no ? data.id_no.trim() : (bvn?.trim() || "000000000"),
       id_image: data.id_image || userData.kycMeta?.photo || "https://via.placeholder.com/150",
       selfie_image: data.selfie_image || userData.bvnMeta?.photo || "https://via.placeholder.com/150",
     };
@@ -92,8 +102,16 @@ exports.registerCardholder = onCall({ region: "us-central1", secrets: [BRIDGECAR
       bvn: bvn.trim(),
       selfie_image: userData.bvnMeta?.photo || data.selfie_image || "https://via.placeholder.com/150",
     };
+  } else if (userData.kycStatus === "verified") {
+    // If the user has completed the generalized upload flow, use their stored document or fallback
+    identityObject = {
+      id_type: "PASSPORT",
+      id_no: userData.qoreIdMeta?.idNumber || "A00000000",
+      id_image: userData.kycMeta?.photo || "https://via.placeholder.com/150",
+      selfie_image: userData.kycMeta?.selfie || "https://via.placeholder.com/150",
+    };
   } else {
-    throw new HttpsError("failed-precondition", "You must complete identity verification or provide advanced identity documents to register as a Cardholder.");
+    throw new HttpsError("failed-precondition", "You must complete Government Issued ID verification to register as a Cardholder.");
   }
 
   // Use data from request, fallback to user profile data if omitted
@@ -448,12 +466,20 @@ exports.freezeBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_
     ? "/naira_cards/freeze_card"
     : "/naira_cards/unfreeze_card";
 
+  // Enforce state machine
+  const currentStatus = cardSnap.data().local_status || cardSnap.data().status;
+  const targetStatus = freeze ? "frozen" : "active";
+  try { assertValidTransition(currentStatus, targetStatus); }
+  catch (e) { throw new HttpsError("failed-precondition", e.message); }
+
   try {
     const client = bridgecardClient();
     await client.patch(endpoint, { card_id: bridgecard_card_id });
 
     await db.collection("cards").doc(card_id).update({
+      local_status: targetStatus,
       status: freeze ? "frozen" : "active",
+      lifecycle_version: FieldValue.increment(1),
       bridgecard_status: freeze ? "frozen" : "active",
     });
 
@@ -470,7 +496,7 @@ exports.freezeBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_
 // Privileged endpoint used exclusively by the Next.js Admin Control Center.
 // Bypasses isOwner checks and forcefully alters card state globally.
 // ─────────────────────────────────────────────────────────────────────────────
-exports.adminFreezeCard = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN] }, async (request) => {
+exports.adminFreezeCard = onCall({ region: "us-central1", secrets: [BRIDGECARD_ACCESS_TOKEN], enforceAppCheck: false }, async (request) => {
   requireAdmin(request.auth);
   
   const { card_id, freeze } = request.data;
@@ -484,13 +510,20 @@ exports.adminFreezeCard = onCall({ region: "us-central1", secrets: [BRIDGECARD_A
     throw new HttpsError("failed-precondition", "Not a Bridgecard-issued card.");
   }
 
+  const currentStatus = cardSnap.data().local_status || cardSnap.data().status;
+  const targetStatus = freeze ? "frozen" : "active";
+  try { assertValidTransition(currentStatus, targetStatus); }
+  catch (e) { throw new HttpsError("failed-precondition", e.message); }
+
   try {
     await internalFreezeBridgecard(bridgecard_card_id, freeze);
-    
+
     await cardSnap.ref.update({
-      bridgecard_status: freeze ? "frozen" : "active",
+      local_status: targetStatus,
       status: freeze ? "blocked" : "active",
-      updatedAt: FieldValue.serverTimestamp()
+      lifecycle_version: FieldValue.increment(1),
+      bridgecard_status: freeze ? "frozen" : "active",
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     return { success: true, message: `Admin successfully ${freeze ? 'froze' : 'unfroze'} the card.` };
@@ -506,7 +539,7 @@ exports.adminFreezeCard = onCall({ region: "us-central1", secrets: [BRIDGECARD_A
 // Receives real transaction authorisation events and settlement notifications.
 // Endpoint: POST /bridgecardWebhook  (register this URL on the Bridgecard dashboard)
 // ─────────────────────────────────────────────────────────────────────────────
-exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGECARD_WEBHOOK_SECRET] }, async (req, res) => {
+exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGECARD_WEBHOOK_SECRET], enforceAppCheck: false }, async (req, res) => {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
@@ -515,7 +548,7 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
   const signature = req.headers["x-bridgecard-signature"] || "";
   const hash = crypto
     .createHmac("sha512", BRIDGECARD_WEBHOOK_SECRET.value())
-    .update(JSON.stringify(req.body))
+    .update(req.rawBody)
     .digest("hex");
 
   if (signature !== hash) {
@@ -530,6 +563,13 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
   console.info(`[Bridgecard Webhook] Received event: ${eventType}`);
 
   try {
+    // ── System mode gate — fail-closed on LOCKDOWN ─────────────────────────
+    const systemMode = await getSystemMode();
+    if (systemMode === "LOCKDOWN") {
+      logger.warn(`[Bridgecard Webhook] System is LOCKDOWN. Rejecting ${eventType}.`);
+      return res.status(200).json({ received: true, skipped: "LOCKDOWN" });
+    }
+
     switch (eventType) {
       // ── Real-time transaction authorisation ─────────────────────────────
       case "transaction.authorisation": {
@@ -541,6 +581,17 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
         let declineReason = eventData?.decline_reason || "Unknown";
         const authEventId = event?.id || `txn_${Date.now()}`;
 
+        // ── Webhook deduplication (check before any DB writes) ─────────────
+        const eventRef = db.collection("webhook_events").doc(authEventId);
+        const existingEvent = await eventRef.get();
+        if (existingEvent.exists) {
+          logger.info(`[Bridgecard Webhook] Duplicate event ${authEventId} — skipping.`);
+          return res.status(200).json({ received: true, skipped: "duplicate" });
+        }
+        // Reserve the event slot immediately (best-effort, not in a txn here;
+        // the orchestrator's idempotency key provides the final guard)
+        await eventRef.set({ event: eventType, received_at: FieldValue.serverTimestamp(), status: "processing" });
+
         // Find the Firestore card doc by bridgecard_card_id
         const cardsSnap = await db.collection("cards")
           .where("bridgecard_card_id", "==", bridgecard_card_id)
@@ -550,87 +601,83 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
         if (!cardsSnap.empty) {
           const cardDoc = cardsSnap.docs[0];
           const card = cardDoc.data();
+          const cardStatus = card.local_status || card.status;
 
-          // RULE ENGINE VALIDATION
-          // Only evaluate if Bridgecard initially approved it
-          if (approved) {
+          // ── Rule engine — only runs if Bridgecard approved AND card is active ──
+          if (approved && cardStatus === "active") {
             const ruleEvaluation = await evaluateTransaction(cardDoc.id, amount_ngn, merchant);
             if (!ruleEvaluation.approved) {
               approved = false;
               declineReason = ruleEvaluation.reason;
               logger.warn(`[RuleEngine] BLOCKED authorized transaction. Reason: ${declineReason}`);
-              
-              // Force disable the card since Bridgecard thinks it's approved and we want it blocked
-              await internalFreezeBridgecard(bridgecard_card_id, true).catch(e => logger.error("Freeze failed", e));
-              await cardDoc.ref.update({ status: "blocked", bridgecard_status: "frozen" });
+              // Best-effort re-freeze at Bridgecard side
+              await internalFreezeBridgecard(bridgecard_card_id, true)
+                .catch(e => logger.error("[Webhook] Emergency freeze failed", e));
+              // State machine: active → frozen
+              await cardDoc.ref.update({
+                local_status: "frozen",
+                status: "blocked",
+                lifecycle_version: FieldValue.increment(1),
+                bridgecard_status: "frozen",
+              });
             }
+          } else if (approved && cardStatus !== "active") {
+            // Card was frozen/terminated while the Bridgecard charge was in-flight
+            approved = false;
+            declineReason = `Card is ${cardStatus}`;
+            logger.warn(`[Webhook] Charge on non-active card ${cardDoc.id} (${cardStatus}) — declining.`);
           }
 
           const accountSnap = await db.collection("accounts").doc(card.account_id).get();
           const ownerUid = accountSnap.exists ? accountSnap.data().owner_user_id : null;
 
           if (!ownerUid) {
-             logger.error(`[Webhook Flow] Owner UID not found for card ${cardDoc.id}. Skipping.`);
-             break;
+            logger.error(`[Webhook] Owner UID missing for card ${cardDoc.id}. Skipping.`);
+            await eventRef.set({ status: "error", error: "missing_owner" }, { merge: true });
+            break;
           }
 
-          const idempotencyRef = db.collection("webhook_events").doc(authEventId);
-
-          try {
-            await db.runTransaction(async (t) => {
-              const existingEvent = await t.get(idempotencyRef);
-              if (existingEvent.exists) {
-                throw new Error("ALREADY_PROCESSED");
-              }
-
-              t.set(idempotencyRef, {
-                processed_at: Date.now(),
-                event: eventType,
-              });
-
-              // Write the transaction
-              const newTxnRef = db.collection("transactions").doc();
-              t.set(newTxnRef, {
-                id: newTxnRef.id,
-                card_id: cardDoc.id,
-                account_id: card.account_id,
-                merchant_name: merchant,
+          if (approved) {
+            // ── Route approved charge through orchestrator ──────────────────
+            try {
+              await getOrchestrator()({
+                type: "card_charge",
+                userId: ownerUid,
                 amount: amount_ngn,
-                status: approved ? "approved" : "declined",
-                decline_reason: approved ? null : declineReason,
-                source: "bridgecard",
-                bridgecard_event: eventType,
-                raw: eventData,
-                timestamp: FieldValue.serverTimestamp(),
+                idempotencyKey: `${ownerUid}:card_charge:${authEventId}`,
+                metadata: {
+                  cardId: cardDoc.id,
+                  accountId: card.account_id,
+                  merchantName: merchant,
+                  bridgecardRef: authEventId,
+                },
+                correlationId: `bridgecardWebhook:${authEventId}`,
               });
-
-              // Update card spent amount if approved
-              if (approved) {
-                t.set(cardDoc.ref, {
-                  spent_amount: FieldValue.increment(amount_ngn),
-                  charge_count: FieldValue.increment(1)
-                }, { merge: true });
-
-                const walletRef = db.collection("users").doc(ownerUid).collection("wallet").doc("balance");
-                t.set(walletRef, { balance: FieldValue.increment(-100) }, { merge: true });
-
-                const feeLedgerRef = db.collection("users").doc(ownerUid).collection("wallet_transactions").doc(`${authEventId}_fee`);
-                t.set(feeLedgerRef, {
-                  type: "debit",
-                  amount: 100,
-                  status: "successful",
-                  context: "platform_transaction_fee",
-                  card_id: cardDoc.id,
-                  created_at: Date.now()
-                });
-              }
-            });
-          } catch (e) {
-            if (e.message !== "ALREADY_PROCESSED") {
-              throw e; // Rethrow real DB errors
+              await eventRef.set({ status: "completed" }, { merge: true });
+            } catch (orchErr) {
+              logger.error(`[Webhook] Orchestrator failed for ${authEventId}:`, orchErr.message);
+              await eventRef.set({ status: "failed", error: orchErr.message }, { merge: true });
+              // Don't throw — we must return 200 to Bridgecard to prevent retries
+              // that could double-charge. The UNKNOWN status in the txn document
+              // will be caught by the reconciliation cron.
             }
-            // If already processed, we skip notification safely
-            break; 
+          } else {
+            // ── Declined: write transaction record + notify ─────────────────
+            const txnRef = db.collection("transactions").doc();
+            await txnRef.set({
+              user_id: ownerUid,
+              card_id: cardDoc.id,
+              account_id: card.account_id,
+              type: "card_charge",
+              status: "DECLINED",
+              amount: amount_ngn,
+              merchant_name: merchant,
+              decline_reason: declineReason,
+              source: "bridgecard_webhook",
+              bridgecard_event_id: authEventId,
+              created_at: FieldValue.serverTimestamp(),
+            });
+            await eventRef.set({ status: "declined", reason: declineReason }, { merge: true });
           }
 
           // Notify the account owner (outside transaction)

@@ -6,12 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import 'package:gatekipa/core/constants/app_constants.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/constants/app_constants.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/providers/system_state_provider.dart';
 
 
 class AddFundsScreen extends ConsumerStatefulWidget {
@@ -249,6 +250,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProfileProvider).valueOrNull;
+    final sysState = ref.watch(systemStateProvider).valueOrNull ?? SystemState.normal;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -274,8 +276,16 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
             // Vault NUBAN / generate card
             if (user?.bridgecardNuban == null)
               _GenerateAccountCard(
-                isDisabled: false,
+                isDisabled: !sysState.isOperational,
                 onGenerate: () async {
+                  // System gate
+                  if (!sysState.isOperational) {
+                    GkToast.show(context,
+                        message: sysState.bannerMessage,
+                        type: ToastType.error,
+                        duration: const Duration(seconds: 4));
+                    return;
+                  }
                   final uid = user?.uid;
                   if (uid == null) return;
                   final scaffoldMsg = ScaffoldMessenger.of(context);
@@ -349,6 +359,14 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
               height: 56,
               child: OutlinedButton.icon(
                 onPressed: () {
+                  // System mode gate — checked before opening the sheet
+                  if (!sysState.isOperational) {
+                    GkToast.show(context,
+                        message: sysState.bannerMessage,
+                        type: ToastType.error,
+                        duration: const Duration(seconds: 4));
+                    return;
+                  }
                   final email = user?.email;
                   final uid = user?.uid;
                   if (email == null || uid == null) {
@@ -429,14 +447,14 @@ class _PaystackCheckoutScreenState
         onPageFinished: (_) => setState(() => _isLoading = false),
         onNavigationRequest: (req) {
           // Capture the success callback URL from Paystack inline JS
-          if (req.url.startsWith('gatekipa://payment-success')) {
+          if (req.url.startsWith('gatekeepeer://payment-success')) {
             final uri = Uri.parse(req.url);
             final ref = uri.queryParameters['reference'] ?? reference;
             Navigator.pop(context);
             widget.onPaymentVerified(ref);
             return NavigationDecision.prevent;
           }
-          if (req.url.startsWith('gatekipa://payment-cancelled')) {
+          if (req.url.startsWith('gatekeepeer://payment-cancelled')) {
             Navigator.pop(context);
             return NavigationDecision.prevent;
           }
@@ -510,7 +528,8 @@ class _PaystackCheckoutScreenState
 <body>
   <div class="card">
     <div class="shield">🛡️</div>
-    <h1>Gatekipa</h1>
+    <h1>Gatekeepeer</h1>
+    <p style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 12px;">Powered by Westgate</p>
     <p>Adding to your vault</p>
     <div class="amount">₦${(amountInKobo / 100).toStringAsFixed(0)}</div>
     <p style="font-size:13px;color:#4b5563">$email</p>
@@ -528,10 +547,10 @@ class _PaystackCheckoutScreenState
         ref: '$reference',
         metadata: { uid: '${widget.uid}' },
         onClose: function() {
-          window.location.href = 'gatekipa://payment-cancelled';
+          window.location.href = 'gatekeepeer://payment-cancelled';
         },
         callback: function(response) {
-          window.location.href = 'gatekipa://payment-success?reference=' + response.reference;
+          window.location.href = 'gatekeepeer://payment-success?reference=' + response.reference;
         }
       });
       handler.openIframe();

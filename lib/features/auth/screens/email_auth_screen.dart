@@ -7,11 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/features/auth/providers/auth_provider.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/constants/routes.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
 
 class EmailAuthScreen extends ConsumerStatefulWidget {
   const EmailAuthScreen({super.key});
@@ -282,6 +282,27 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
               const SizedBox(height: 36),
 
               if (!_isLogin) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Please ensure you use your exact legal name as it appears on your Government Issued ID.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w600, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 220.ms).slideX(begin: 0.05, end: 0),
                 Row(
                   children: [
                     Expanded(
@@ -449,20 +470,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                   fontSize: 14,),
               ),
             ),
-            TextButton.icon(
-              onPressed: () => context.pushReplacement(Routes.phoneAuth),
-              icon: const Icon(Icons.phone_rounded, size: 18),
-              label: const Text(
-                'Use Phone Number instead',
-                style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w600,
-                  fontSize: 13,),
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.onSurfaceVariant,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              ),
-            ),
+
             // ── Biometric quick-unlock (only shown in lock mode) ────────────
             if (_biometricAvailable) ...[
               const Padding(

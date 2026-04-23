@@ -1,15 +1,15 @@
 // lib/core/widgets/gk_virtual_card.dart
 import 'package:flutter/material.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekipa/features/accounts/providers/account_provider.dart';
-import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
+import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
 
 import 'package:local_auth/local_auth.dart';
-import 'package:gatekipa/core/theme/app_spacing.dart';
-import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekeepeer/core/widgets/gk_toast.dart';
 
 class GkVirtualCard extends ConsumerStatefulWidget {
   final VirtualCardModel card;
@@ -115,7 +115,7 @@ class _GkVirtualCardState extends ConsumerState<GkVirtualCard> {
     // Look up the account by ID to show to the user
     final accounts = ref.watch(accountsStreamProvider).valueOrNull ?? [];
     final account = accounts.where((a) => a.id == widget.card.accountId).firstOrNull;
-    final accountName = account?.name.toUpperCase() ?? 'GATEKIPA CARD';
+    final accountName = account?.name.toUpperCase() ?? 'GATEKEEPEER CARD';
 
     return GestureDetector(
       onTap: widget.onTap,

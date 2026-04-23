@@ -71,7 +71,7 @@
       "collectionGroup": "rules",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "card_id", "order": "ASCENDING" },
+        { "fieldPath": "card_id",  "order": "ASCENDING" },
         { "fieldPath": "sub_type", "order": "ASCENDING" }
       ]
     },
@@ -120,8 +120,74 @@
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "planTier", "order": "ASCENDING" },
-        { "fieldPath": "subscription_expiry_date", "order": "ASCENDING" }
+        { "fieldPath": "planTier",                  "order": "ASCENDING" },
+        { "fieldPath": "subscription_expiry_date",  "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "card_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "card_id",    "order": "ASCENDING" },
+        { "fieldPath": "type",       "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "card_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "card_id",    "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "card_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "account_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "wallet_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id",    "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id",    "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "webhook_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "source",     "order": "ASCENDING" },
+        { "fieldPath": "event_type", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "idempotency_keys",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id",    "order": "ASCENDING" },
+        { "fieldPath": "expires_at", "order": "ASCENDING" }
       ]
     }
   ],

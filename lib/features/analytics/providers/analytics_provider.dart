@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:gatekipa/core/theme/app_colors.dart';
-import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
 
 class TrialData {
   final String name;
@@ -61,7 +61,13 @@ class AnalyticsModel {
   });
 }
 
-final analyticsProvider = Provider<AsyncValue<AnalyticsModel>>((ref) {
+final analyticsProvider = Provider.autoDispose<AsyncValue<AnalyticsModel>>((ref) {
+  // Keep the computed analytics alive for 30 s after last listener leaves.
+  // This prevents flicker when the user switches away from the analytics tab
+  // and back, while still allowing the value to be GC'd if unused.
+  final link = ref.keepAlive();
+  Future.delayed(const Duration(seconds: 30), link.close);
+
   final transactionsAsync = ref.watch(transactionsProvider);
   final cardsAsync = ref.watch(cardsProvider);
 
