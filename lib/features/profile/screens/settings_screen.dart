@@ -211,13 +211,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                 ]),
                 const SizedBox(height: 20),
-                const _Section(title: 'LEGAL', items: [
-                  _LinkItem(
+                _Section(title: 'LEGAL', items: [
+                  const _LinkItem(
                     icon: Icons.privacy_tip_rounded,
                     label: 'Privacy Policy',
                     url: 'https://gatekipa.com/privacy',
                   ),
-                  _LinkItem(
+                  const _LinkItem(
                     icon: Icons.article_rounded,
                     label: 'Terms of Service',
                     url: 'https://gatekipa.com/terms',
@@ -225,7 +225,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _LinkItem(
                     icon: Icons.help_outline_rounded,
                     label: 'Help & Support',
-                    url: 'https://gatekipa.com/support',
+                    url: Uri.dataFromString('''<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: sans-serif; padding: 40px 24px; text-align: center; color: #111827; }
+  h2 { color: #027A48; font-weight: 800; margin-bottom: 8px; }
+  p { line-height: 1.6; color: #4B5563; margin-top: 0; }
+  .box { background: #F9FAFB; border-radius: 16px; padding: 24px; margin-top: 32px; border: 1px solid #E5E7EB; }
+  a { color: #027A48; text-decoration: none; font-weight: 700; font-size: 16px; }
+</style>
+</head>
+<body>
+  <h2>How can we help?</h2>
+  <p>Our support team is always ready to assist you.</p>
+  <div class="box">
+    <p><b>Email us at:</b><br><a href="mailto:support@gatekeepeer.com">support@gatekeepeer.com</a></p>
+    <br>
+    <p><b>Call us on:</b><br><a href="tel:+2348000000000">+234 800 GATEKEEPEER</a></p>
+  </div>
+</body>
+</html>''', mimeType: 'text/html').toString(),
                   ),
                 ]),
                 const SizedBox(height: 40),
