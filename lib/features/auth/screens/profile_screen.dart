@@ -779,9 +779,7 @@ class _SupportWebViewState extends State<_SupportWebView> {
   <h2>How can we help?</h2>
   <p>Our support team is always ready to assist you.</p>
   <div class="box">
-    <p><b>Email us at:</b><br><a href="mailto:support@gatekeepeer.com">support@gatekeepeer.com</a></p>
-    <br>
-    <p><b>Call us on:</b><br><a href="tel:+2348000000000">+234 800 GATEKEEPEER</a></p>
+    <p><b>Email us at:</b><br><a href="mailto:hello@gatekipa.com">hello@gatekipa.com</a></p>
   </div>
 </body>
 </html>
