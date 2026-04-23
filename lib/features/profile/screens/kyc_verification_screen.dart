@@ -60,8 +60,11 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
   String _selectedCountry = 'Nigeria';
   String? _selectedState;
 
+  final _idNumberController = TextEditingController();
+
   @override
   void dispose() {
+    _idNumberController.dispose();
     super.dispose();
   }
 
@@ -102,9 +105,16 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_isLoading) return;
 
-    if (_documentProofFile == null) {
-      GkToast.show(context, message: 'Please upload a document proof (e.g. NIN slip, ID card)', type: ToastType.error);
-      return;
+    if (_selectedCountry == 'Nigeria') {
+      if (_idNumberController.text.trim().isEmpty) {
+        GkToast.show(context, message: 'Please enter your NIN, BVN, Driver\'s License or Passport Number', type: ToastType.error);
+        return;
+      }
+    } else {
+      if (_documentProofFile == null) {
+        GkToast.show(context, message: 'Please upload a document proof (e.g. National ID, Passport)', type: ToastType.error);
+        return;
+      }
     }
 
     if (_selfieFile == null) {
@@ -123,19 +133,23 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-      // Upload document proof
-      GkToast.show(context, message: 'Uploading documents...', type: ToastType.info);
-      final docUrl = await _uploadFile(_documentProofFile!, 'kyc/$uid/document_proof_$timestamp.jpg');
+      GkToast.show(context, message: 'Uploading data...', type: ToastType.info);
+      
+      String? docUrl;
+      if (_documentProofFile != null) {
+        docUrl = await _uploadFile(_documentProofFile!, 'kyc/$uid/document_proof_$timestamp.jpg');
+      }
+      
       final selfieUrl = await _uploadFile(_selfieFile!, 'kyc/$uid/liveness_selfie_$timestamp.jpg');
 
-      if (docUrl == null || selfieUrl == null) {
+      if (selfieUrl == null || (_selectedCountry != 'Nigeria' && docUrl == null)) {
         if (mounted) {
-          GkToast.show(context, message: 'Failed to upload documents. Please try again.', type: ToastType.error);
+          GkToast.show(context, message: 'Failed to upload required documents. Please try again.', type: ToastType.error);
         }
         return;
       }
 
-      // Call verification function with uploaded document URLs
+      // Call verification function with uploaded document URLs and ID number
       final result = await FirebaseFunctions.instance
           .httpsCallable('verifyKyc')
           .call({
@@ -143,6 +157,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
         'selfieUrl': selfieUrl,
         'country': _selectedCountry,
         'state': _selectedState,
+        'idNumber': _idNumberController.text.trim(),
       });
 
       if (!mounted) return;
@@ -298,9 +313,48 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
 
 
 
+                        const SizedBox(height: 16),
+
+                        if (_selectedCountry == 'Nigeria') ...[
+                          Text(
+                            'Identification Number',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Please provide your NIN, BVN, Driver\'s License or Passport number.',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.outline,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _idNumberController,
+                            keyboardType: TextInputType.text,
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: _inputDecoration(
+                              hint: 'Enter your ID number',
+                              prefixIcon: const Icon(Icons.badge_rounded, color: AppColors.outlineVariant),
+                            ),
+                            validator: (v) {
+                              if (_selectedCountry == 'Nigeria' && (v == null || v.trim().isEmpty)) {
+                                return 'Please enter an ID number';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
                         // ── Document Proof Upload ──
                         Text(
-                          'Document Proof',
+                          _selectedCountry == 'Nigeria' ? 'Document Proof (Optional)' : 'Document Proof',
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -309,7 +363,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Upload a clear photo of your BVN slip, NIN slip, National ID, or Passport.',
+                          _selectedCountry == 'Nigeria' 
+                              ? 'You can optionally upload a clear photo of your ID.'
+                              : 'Upload a clear photo of your National ID, Passport, etc.',
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             color: AppColors.outline,
@@ -322,7 +378,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           title: _documentProofFile != null ? 'Document Uploaded ✓' : 'Upload Document',
                           subtitle: _documentProofFile != null
                               ? 'Tap to re-upload'
-                              : 'BVN/NIN Slip, National ID, etc.',
+                              : 'Tap here to capture image',
                           isCompleted: _documentProofFile != null,
                           onTap: _pickDocumentProof,
                         ),

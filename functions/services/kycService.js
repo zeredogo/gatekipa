@@ -76,8 +76,12 @@ exports.verifyKyc = onCall({ region: "us-central1" }, async (request) => {
   const uid = request.auth.uid;
   const data = request.data;
   
-  if (!data.documentUrl || !data.selfieUrl) {
-    throw new HttpsError("invalid-argument", "Document proof and liveness selfie are required.");
+  if (!data.selfieUrl || (data.country !== 'Nigeria' && !data.documentUrl)) {
+    throw new HttpsError("invalid-argument", "Selfie is required, and Document proof is required for non-Nigerians.");
+  }
+
+  if (data.country === 'Nigeria' && !data.idNumber) {
+    throw new HttpsError("invalid-argument", "Identification number is required for Nigerian users.");
   }
 
   const qoreIdKey = process.env.QOREID_API_KEY || null;
@@ -104,8 +108,9 @@ exports.verifyKyc = onCall({ region: "us-central1" }, async (request) => {
              applicantData: {
                 country: data.country,
                 state: data.state,
-                documentUrl: data.documentUrl,
-                selfieUrl: data.selfieUrl
+                documentUrl: data.documentUrl || null,
+                selfieUrl: data.selfieUrl,
+                idNumber: data.idNumber || null
              }
           })
         }
@@ -133,10 +138,11 @@ exports.verifyKyc = onCall({ region: "us-central1" }, async (request) => {
     verified = true;
     verificationMeta = { 
        devMode: true,
-       photo: data.documentUrl,
+       photo: data.documentUrl || null,
        selfie: data.selfieUrl,
        country: data.country,
-       state: data.state 
+       state: data.state,
+       idNumber: data.idNumber || null
     };
   }
 
