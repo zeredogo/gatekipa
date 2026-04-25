@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/gk_button.dart';
 import '../../../core/widgets/gk_toast.dart';
+import '../../../core/constants/routes.dart';
 import '../../auth/providers/auth_provider.dart';
 
 // ── Comprehensive country list for global users ──
@@ -166,12 +167,23 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
         GkToast.show(context, message: 'Identity verified successfully! 🎉', type: ToastType.success);
         // Invalidate user profile to refresh KYC status
         ref.invalidate(userProfileProvider);
+        if (mounted) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(Routes.dashboard);
+          }
+        }
       } else {
         GkToast.show(context, message: 'Verification failed. Please try again.', type: ToastType.error);
       }
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      GkToast.show(context, message: e.message ?? 'Verification failed. Please try again.', type: ToastType.error);
+      String msg = e.message ?? 'Verification failed. Please try again.';
+      if (msg.toLowerCase().contains('status code') || msg.toLowerCase().contains('internal') || msg.length > 120) {
+        msg = 'The verification service is temporarily unavailable. Please try again later.';
+      }
+      GkToast.show(context, message: msg, type: ToastType.error);
     } catch (e) {
       if (!mounted) return;
       GkToast.show(context, message: 'Could not complete verification. Try again.', type: ToastType.error);
@@ -326,7 +338,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Please provide your NIN, BVN, Driver\'s License or Passport number.',
+                            'Please provide your BVN or NIN.',
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               color: AppColors.outline,
@@ -352,37 +364,37 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           const SizedBox(height: 16),
                         ],
 
-                        // ── Document Proof Upload ──
-                        Text(
-                          _selectedCountry == 'Nigeria' ? 'Document Proof (Optional)' : 'Document Proof',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurfaceVariant,
+                        if (_selectedCountry != 'Nigeria') ...[
+                          // ── Document Proof Upload ──
+                          Text(
+                            'Document Proof',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _selectedCountry == 'Nigeria' 
-                              ? 'You can optionally upload a clear photo of your ID.'
-                              : 'Upload a clear photo of your National ID, Passport, etc.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.outline,
-                            height: 1.4,
+                          const SizedBox(height: 4),
+                          Text(
+                            'Upload a clear photo of your National ID, Passport, etc.',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.outline,
+                              height: 1.4,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        _DocumentUploadCard(
-                          icon: Icons.upload_file_rounded,
-                          title: _documentProofFile != null ? 'Document Uploaded ✓' : 'Upload Document',
-                          subtitle: _documentProofFile != null
-                              ? 'Tap to re-upload'
-                              : 'Tap here to capture image',
-                          isCompleted: _documentProofFile != null,
-                          onTap: _pickDocumentProof,
-                        ),
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 8),
+                          _DocumentUploadCard(
+                            icon: Icons.upload_file_rounded,
+                            title: _documentProofFile != null ? 'Document Uploaded ✓' : 'Upload Document',
+                            subtitle: _documentProofFile != null
+                                ? 'Tap to re-upload'
+                                : 'Tap here to capture image',
+                            isCompleted: _documentProofFile != null,
+                            onTap: _pickDocumentProof,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
                         // ── Liveness Check (Selfie) ──
                         Text(

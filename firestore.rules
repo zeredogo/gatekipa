@@ -24,21 +24,22 @@ service cloud.firestore {
       return accountId == uid() || isAccountOwner(accountId) || isAccountMember(accountId);
     }
     function hasRestrictedFields() {
-      return request.resource.data.keys().hasAny(
-        [
-          'kycStatus', 'hasBvn', 'bvnVerifiedAt', 'bvnMeta', 'isPremium',
-          'bridgecard_status', 'bridgecard_cardholder_id', 'bridgecardNuban', 
-          'bridgecardBankName', 'bridgecardAccountName'
-        ]
-      );
+      return request.resource.data.keys().hasAny([
+        'hasBvn', 'bvnVerifiedAt', 'bvnMeta', 'isPremium',
+        'bridgecard_status', 'bridgecard_cardholder_id', 'bridgecardNuban', 
+        'bridgecardBankName', 'bridgecardAccountName', 'planTier', 
+        'cardsIncluded', 'isAdmin', 'role', 'subscription_expiry_date'
+      ]) || ('kycStatus' in request.resource.data && request.resource.data.kycStatus == 'verified');
     }
     function isRestrictedFieldBeingUpdated() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasAny(
-        [
-          'kycStatus', 'hasBvn', 'bvnVerifiedAt', 'bvnMeta', 'isPremium',
-          'bridgecard_status', 'bridgecard_cardholder_id', 'bridgecardNuban', 
-          'bridgecardBankName', 'bridgecardAccountName'
-        ]
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'hasBvn', 'bvnVerifiedAt', 'bvnMeta', 'isPremium',
+        'bridgecard_status', 'bridgecard_cardholder_id', 'bridgecardNuban', 
+        'bridgecardBankName', 'bridgecardAccountName', 'planTier', 
+        'cardsIncluded', 'isAdmin', 'role', 'subscription_expiry_date'
+      ]) || (
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['kycStatus']) && 
+        request.resource.data.kycStatus == 'verified'
       );
     }
 

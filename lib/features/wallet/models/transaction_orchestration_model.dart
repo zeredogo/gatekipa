@@ -158,7 +158,7 @@ class OrchestratedTransaction {
         userId: data['user_id'] as String? ?? '',
         type: TxnType.fromString(data['type'] as String?),
         status: TxnStatus.fromString(data['status'] as String?),
-        amount: (data['amount'] as num? ?? 0).toDouble(),
+        amount: num.tryParse(data['amount']?.toString() ?? '0')?.toDouble() ?? 0.0,
         idempotencyKey: data['idempotency_key'] as String? ?? '',
         metadata: Map<String, dynamic>.from(
             (data['metadata'] as Map?) ?? const {}),

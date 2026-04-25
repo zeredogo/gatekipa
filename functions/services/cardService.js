@@ -57,15 +57,6 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
     }
   }
 
-  // ENFORCE PLAN LOGIC ON BACKEND natively using User's Plan
-  const activeCardsSnap = await db.collection("cards")
-    .where("account_id", "==", account_id)
-    .where("status", "in", ["active", "pending_issuance"])
-    .count()
-    .get();
-
-  const activeCardCount = activeCardsSnap.data().count;
-
   // Plan Limits Matrix
   let maxAllowed = 1; // Default
   if (currentPlan === "free" || currentPlan === "instant") {
@@ -81,15 +72,7 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
     maxAllowed = 1;
   }
 
-  if (activeCardCount >= maxAllowed) {
-    throw new HttpsError(
-      "permission-denied", 
-      `The '${currentPlan}' plan is limited to ${maxAllowed} active card(s). Please upgrade to create more.`
-    );
-  }
-
   const { last4, masked_number, cvv } = generatePlaceholderDetails();
-
   const cardRef = db.collection("cards").doc();
   const now = Date.now();
 
@@ -117,43 +100,55 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
     created_by: uid
   };
 
-  await cardRef.set(card);
+  await db.runTransaction(async (t) => {
+    // ENFORCE PLAN LOGIC ON BACKEND ATOMICALLY
+    const activeCardsQuery = db.collection("cards")
+      .where("account_id", "==", account_id)
+      .where("status", "in", ["active", "pending_issuance"]);
+      
+    const activeCardsSnap = await t.get(activeCardsQuery);
+    const activeCardCount = activeCardsSnap.size;
 
-  // Plan specific auto-rules
-  const rulesBatch = db.batch();
-  let hasRules = false;
+    if (activeCardCount >= maxAllowed) {
+      throw new HttpsError(
+        "permission-denied", 
+        `The '${currentPlan}' plan is limited to ${maxAllowed} active card(s). Please upgrade to create more.`
+      );
+    }
 
-  if (is_trial) {
-    hasRules = true;
-    const maxChargeRef = db.collection("rules").doc();
-    rulesBatch.set(maxChargeRef, {
-      id: maxChargeRef.id,
-      card_id: cardRef.id,
-      type: "behavior",
-      sub_type: "max_charges",
-      value: 1,
-      meta: {},
-      created_at: now
-    });
-  }
+    t.set(cardRef, card);
 
-  if (is_trial || currentPlan === "premium" || currentPlan === "business") {
-    hasRules = true;
-    const expiryRef = db.collection("rules").doc();
-    rulesBatch.set(expiryRef, {
-      id: expiryRef.id,
-      card_id: cardRef.id,
-      type: "time",
-      sub_type: "expiry_date",
-      value: now + 30 * 24 * 60 * 60 * 1000,
-      meta: {},
-      created_at: now
-    });
-  }
+    // Plan specific auto-rules
+    let hasRules = false;
 
-  if (hasRules) {
-    await rulesBatch.commit();
-  }
+    if (is_trial) {
+      hasRules = true;
+      const maxChargeRef = db.collection("rules").doc();
+      t.set(maxChargeRef, {
+        id: maxChargeRef.id,
+        card_id: cardRef.id,
+        type: "behavior",
+        sub_type: "max_charges",
+        value: 1,
+        meta: {},
+        created_at: now
+      });
+    }
+
+    if (is_trial || currentPlan === "premium" || currentPlan === "business") {
+      hasRules = true;
+      const expiryRef = db.collection("rules").doc();
+      t.set(expiryRef, {
+        id: expiryRef.id,
+        card_id: cardRef.id,
+        type: "time",
+        sub_type: "expiry_date",
+        value: now + 30 * 24 * 60 * 60 * 1000,
+        meta: {},
+        created_at: now
+      });
+    }
+  });
 
   return { success: true, cardId: cardRef.id, card };
 });

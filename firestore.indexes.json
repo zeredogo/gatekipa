@@ -26,6 +26,22 @@
       ]
     },
     {
+      "collectionGroup": "cards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "account_id", "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "account_id", "order": "ASCENDING" },
+        { "fieldPath": "created_by", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "transactions",
       "queryScope": "COLLECTION",
       "fields": [
@@ -57,6 +73,30 @@
       "fields": [
         { "fieldPath": "card_id",   "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "card_id",   "order": "ASCENDING" },
+        { "fieldPath": "status",    "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id",    "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
       ]
     },
     {
@@ -150,6 +190,14 @@
       ]
     },
     {
+      "collectionGroup": "card_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "card_id", "order": "ASCENDING" },
+        { "fieldPath": "type",    "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "wallet_ledger",
       "queryScope": "COLLECTION",
       "fields": [
@@ -158,15 +206,7 @@
       ]
     },
     {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status",     "order": "ASCENDING" },
-        { "fieldPath": "created_at", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
+      "collectionGroup": "wallet_ledger",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "user_id",    "order": "ASCENDING" },

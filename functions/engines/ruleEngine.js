@@ -20,6 +20,32 @@
 const { db } = require("../utils/firebase");
 const logger = require("firebase-functions/logger");
 
+// ── Plan tier constants ───────────────────────────────────────────────────────
+// FIX #7: Single source of truth for plan naming — "free" is the canonical
+// name for Instant plan across all backend code. Frontend should use "free" too.
+const SENTINEL_PLANS = ["premium", "business"];
+const TRIAL_ELIGIBLE_PLANS = ["free", "activation"];
+
+/**
+ * FIX #5: Single consolidated helper to determine if a user has active Sentinel access.
+ * Checks both paid plan tier AND active Sentinel trial expiry.
+ * Use this everywhere instead of computing isSentinel inline.
+ *
+ * @param {object} userData - Firestore user document data
+ * @returns {boolean}
+ */
+function userHasSentinelAccess(userData) {
+  if (!userData) return false;
+  if (SENTINEL_PLANS.includes(userData.planTier)) return true;
+  const trialExpiry = userData.sentinel_trial_expiry_date;
+  // FIX: Firestore Timestamp objects must use .toMillis() — direct > Date.now() comparison
+  // with a Timestamp object is always false in JavaScript.
+  const trialExpiryMs = trialExpiry?.toMillis
+    ? trialExpiry.toMillis()
+    : (typeof trialExpiry === 'number' ? trialExpiry : 0);
+  return trialExpiryMs > Date.now();
+}
+
 // ── Ledger helpers ────────────────────────────────────────────────────────────
 
 /**
@@ -236,11 +262,14 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
 
   // 4. Global user-level guards
   const userSnap = await db.collection("users").doc(ownerUid).get();
-  if (userSnap.exists) {
-    const userData = userSnap.data();
+  const userData = userSnap.exists ? userSnap.data() : null;
 
-    // Night lockdown (user-level)
-    if (userData.nightLockdown === true && isNightLockdownActive()) {
+  // FIX #5: Use single consolidated helper — computed once, used everywhere below
+  const isSentinel = userHasSentinelAccess(userData);
+
+  if (userData) {
+    // Night lockdown (user-level) — Sentinel feature only
+    if (isSentinel && userData.nightLockdown === true && isNightLockdownActive()) {
       isGlobalBlocked = true;
       globalReason = "Global night lockdown is active (12AM–6AM WAT)";
       evaluations.push({ rule: "Global Night Lockdown", result: "FAIL" });
@@ -249,21 +278,35 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
       evaluations.push({ rule: "Global Night Lockdown", result: "PASS" });
     }
 
-    // Geo-fence (NGN cards only)
-    if (card.currency !== "USD" && userData.geoFence === true &&
-        merchantName && merchantName.toLowerCase().includes("[intl]")) {
-      isGlobalBlocked = true;
-      globalReason = "Geo-fence active: only Nigerian transactions allowed";
-      evaluations.push({ rule: "Global Geo-Fence", result: "FAIL" });
-      if (!options.dryRun) return { approved: false, reason: globalReason };
+    // FIX #6: Geo-fence — check real transaction channel/country instead of
+    // fake "[intl]" string. Bridgecard webhooks include a `channel` field.
+    // Cross-border transactions typically come via "WEB" or "POS" from non-NG merchants.
+    // We gate on the card's currency and the merchant country code if present.
+    if (isSentinel && userData.geoFence === true && card.currency !== "USD") {
+      // merchantName is passed from webhook; check for known international patterns.
+      // A more robust solution would use the webhook's `merchant_country` field directly.
+      const merchantStr = (merchantName || "").toLowerCase();
+      const isInternational = merchantStr.includes("[intl]") || 
+                              merchantStr.includes("international") ||
+                              (options.merchantCountry && options.merchantCountry !== "NG") ||
+                              (options.transactionCurrency && options.transactionCurrency !== "NGN");
+      
+      if (isInternational) {
+        isGlobalBlocked = true;
+        globalReason = "Geo-fence active: only Nigerian transactions allowed";
+        evaluations.push({ rule: "Global Geo-Fence", result: "FAIL" });
+        if (!options.dryRun) return { approved: false, reason: globalReason };
+      } else {
+        evaluations.push({ rule: "Global Geo-Fence", result: "PASS" });
+      }
     } else {
       evaluations.push({ rule: "Global Geo-Fence", result: "PASS" });
     }
   }
 
-  // 5. Sub-user hierarchical spend limit
+  // 5. Sub-user hierarchical spend limit — Sentinel feature only
   const creatorUid = card.created_by || ownerUid;
-  if (creatorUid !== ownerUid) {
+  if (creatorUid !== ownerUid && isSentinel) {
     const tmSnap = await db.collection("team_members")
       .doc(`${card.account_id}_${creatorUid}`)
       .get();
@@ -298,10 +341,23 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
   const rules = rulesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
   // 8. Evaluate each rule
+  // FIX #5: isSentinel is already computed above — no re-computation needed
+  // FIX: max_per_txn and max_charges are BASIC rules — submitted for all plan tiers at card
+  // creation. They must NOT be bypassed for non-Sentinel users, otherwise cards lose
+  // their spending cap enforcement the moment a trial expires.
+  // Sentinel-only: monthly_cap, valid_duration, block_after_first, block_if_amount_changes.
+  const advancedRules = ["monthly_cap", "valid_duration", "block_after_first", "block_if_amount_changes", "night_lockdown", "instant_breach_alert"];
+
   for (const rule of rules) {
     // USD cards bypass advanced spend/behavior rules (keeps USD cards globally spendable)
     if (card.currency === "USD" && rule.sub_type !== "night_lockdown") {
       evaluations.push({ rule: `${rule.sub_type}`, result: "BYPASSED (USD card)" });
+      continue;
+    }
+
+    // Bypass advanced rules if the user's Sentinel access has expired
+    if (!isSentinel && advancedRules.includes(rule.sub_type)) {
+      evaluations.push({ rule: `${rule.sub_type}`, result: "BYPASSED (Sentinel access expired)" });
       continue;
     }
 
@@ -339,4 +395,5 @@ module.exports = {
   getLedgerMonthlySum,
   getLedgerChargeCount,
   getLedgerFirstChargeAmount,
+  userHasSentinelAccess,
 };

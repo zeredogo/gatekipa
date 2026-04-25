@@ -5,14 +5,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:gatekeepeer/core/constants/app_constants.dart';
-import 'package:gatekeepeer/core/constants/routes.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_button.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/features/analytics/providers/analytics_provider.dart';
-import 'package:gatekeepeer/features/profile/screens/premium_upgrade_screen.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/analytics/providers/analytics_provider.dart';
+import 'package:gatekipa/features/profile/screens/premium_upgrade_screen.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class AnalyticsHubScreen extends ConsumerWidget {
   const AnalyticsHubScreen({super.key});
@@ -23,6 +23,7 @@ class AnalyticsHubScreen extends ConsumerWidget {
 
     return userAsync.when(
       data: (user) {
+        // FIX #6: Use isSentinelPrime so 5-day trial users also get analytics access.
         final isPremium = user?.isSentinelPrime == true;
         return Scaffold(
           backgroundColor: AppColors.surface,
@@ -508,11 +509,14 @@ class _MonthlyBarChart extends StatelessWidget {
                       getTitlesWidget: (v, meta) {
                         final idx = v.toInt();
                         if (idx < 0 || idx >= months.length) {
-                          return const SizedBox.shrink();
+                          return SideTitleWidget(axisSide: meta.axisSide, child: const SizedBox.shrink());
                         }
-                        return Text(
-                          months[idx],
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          child: Text(
+                            months[idx],
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline),
+                          ),
                         );
                       },
                     ),

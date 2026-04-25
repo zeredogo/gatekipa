@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/features/analytics/providers/analytics_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/analytics/providers/analytics_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class SavingsDeepDiveScreen extends ConsumerWidget {
   const SavingsDeepDiveScreen({super.key});
@@ -205,10 +205,13 @@ class _TrendChart extends StatelessWidget {
                 getTitlesWidget: (v, m) {
                   final idx = v.toInt();
                   if (idx < 0 || idx >= months.length) {
-                    return const SizedBox.shrink();
+                    return SideTitleWidget(axisSide: m.axisSide, child: const SizedBox.shrink());
                   }
-                  return Text(months[idx],
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10, color: AppColors.outline));
+                  return SideTitleWidget(
+                    axisSide: m.axisSide,
+                    child: Text(months[idx],
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10, color: AppColors.outline)),
+                  );
                 },
               ),
             ),

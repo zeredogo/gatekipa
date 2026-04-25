@@ -4,15 +4,15 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
-import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
-import 'package:gatekeepeer/features/accounts/models/account_model.dart';
-import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/features/team/screens/team_members_screen.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/accounts/models/account_model.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/team/screens/team_members_screen.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class AccountDetailScreen extends ConsumerWidget {
   final AccountModel account;
@@ -44,8 +44,9 @@ class AccountDetailScreen extends ConsumerWidget {
               if (val == 'rename') _showRenameSheet(context, ref);
               if (val == 'team') {
                 final user = ref.read(userProfileProvider).valueOrNull;
-                if (user != null && user.planTier != 'business') {
-                  GkToast.show(context, message: '🏢 Business Plan Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
+                // FIX #1: Use isSentinelPrime — Sentinel Prime (premium) was wrongly excluded.
+                if (user != null && !user.isSentinelPrime) {
+                  GkToast.show(context, message: '🏢 Sentinel Prime or Business Plan required to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
                   return;
                 }
                 context.push('/home/accounts/${account.id}/team', extra: account);
@@ -127,8 +128,9 @@ class AccountDetailScreen extends ConsumerWidget {
                         ),
                         onPressed: () {
                           final user = ref.read(userProfileProvider).valueOrNull;
-                          if (user != null && user.planTier != 'business') {
-                            GkToast.show(context, message: '🏢 Business Plan Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
+                          // FIX #1: Use isSentinelPrime — Sentinel Prime (premium) was wrongly excluded.
+                          if (user != null && !user.isSentinelPrime) {
+                            GkToast.show(context, message: '🏢 Sentinel Prime or Business Plan required to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
                             return;
                           }
                           Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
@@ -483,6 +485,7 @@ class _RenameSheetState extends ConsumerState<_RenameSheet> {
                         final ok = await ref
                             .read(accountNotifierProvider.notifier)
                             .renameAccount(accountId: widget.account.id, newName: _ctrl.text.trim());
+                        if (!mounted) return;
                         setState(() => _loading = false);
                         if (!context.mounted) return;
                         GkToast.show(context,

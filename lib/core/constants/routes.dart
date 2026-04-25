@@ -27,4 +27,9 @@ class Routes {
   static const String settings = '/settings';
   static const String accounts = '/home/accounts';
   static const String search = '/home/search';
+  // Profile sub-screens
+  static const String pinManagement = '/profile/pin';
+  static const String biometrics = '/profile/biometrics';
+  static const String premiumUpgrade = '/profile/premium';
+  static const String support = '/profile/support';
 }

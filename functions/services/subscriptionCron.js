@@ -183,9 +183,6 @@ exports.sendRenewalReminders = onSchedule("0 9 * * *", async (event) => { // Run
     const uid = userDoc.id;
     const userData = userDoc.data();
     
-    // Specifically target Instant users or free users (as requested)
-    if (userData.planTier && userData.planTier !== 'none' && userData.planTier !== 'free' && userData.planTier !== 'instant') continue;
-    
     const subsSnap = await db.collection("users").doc(uid).collection("detected_subscriptions").get();
     if (subsSnap.empty) continue;
     
@@ -196,22 +193,23 @@ exports.sendRenewalReminders = onSchedule("0 9 * * *", async (event) => { // Run
       const diffMs = sub.next_billing_date - now;
       const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
       
-      if ([5, 3, 2].includes(daysRemaining)) {
+      if ([5, 3, 1].includes(daysRemaining)) {
          try {
+           const timeText = daysRemaining === 1 ? '24 hours' : `${daysRemaining} days`;
            const fcmToken = userData.fcm_token;
            if (fcmToken) {
                await getMessaging().send({
                   token: fcmToken,
                   notification: {
                     title: "Upcoming Subscription 🔔",
-                    body: `${sub.name} (₦${sub.amount/100}) is due in ${daysRemaining} days. Gatekipa allows you to freeze your card if you want to cancel it!`
+                    body: `${sub.name} (₦${sub.amount/100}) is due in ${timeText}. Gatekipa allows you to freeze your card if you want to cancel it!`
                   }
                });
            }
            
            await userDoc.ref.collection("notifications").add({
              title: "Upcoming Subscription",
-             body: `${sub.name} is due in ${daysRemaining} days. Gatekipa allows you to freeze your card to cancel it.`,
+             body: `${sub.name} is due in ${timeText}. Gatekipa allows you to freeze your card to cancel it.`,
              timestamp: new Date(),
              isRead: false,
              type: "alert",
@@ -222,5 +220,5 @@ exports.sendRenewalReminders = onSchedule("0 9 * * *", async (event) => { // Run
     }
   }
   
-  console.info(`[SubscriptionCron] Sent ${remindersSent} 5/3/2-day renewal reminders.`);
+  console.info(`[SubscriptionCron] Sent ${remindersSent} 5-day/3-day/24-hour renewal reminders.`);
 });

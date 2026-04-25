@@ -7,11 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gatekeepeer/core/constants/routes.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class EmailAuthScreen extends ConsumerStatefulWidget {
   const EmailAuthScreen({super.key});
@@ -26,6 +26,11 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _postalCodeController = TextEditingController();
+  final _houseNumberController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   bool _isLogin = true;
@@ -48,6 +53,11 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _addressController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _postalCodeController.dispose();
+    _houseNumberController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -84,7 +94,12 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
       );
       if (!mounted) return;
       if (authenticated) {
-        context.go(Routes.dashboard);
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null && !user.emailVerified) {
+          context.go(Routes.emailVerifyPending, extra: user.email);
+        } else {
+          context.go(Routes.dashboard);
+        }
       } else {
         GkToast.show(context,
             message: 'Biometric verification failed. Please try again.',
@@ -125,11 +140,8 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
         // Check email verified
         final user = FirebaseAuth.instance.currentUser;
         if (user != null && !user.emailVerified) {
-          // Send a fresh verification email and redirect to pending screen
-          await user.sendEmailVerification();
           if (mounted) {
-            context.pushReplacement(Routes.emailVerifyPending,
-                extra: email);
+            context.pushReplacement(Routes.emailVerifyPending, extra: email);
           }
           return;
         }
@@ -141,16 +153,19 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
               password,
               firstName: _firstNameController.text.trim(),
               lastName: _lastNameController.text.trim(),
+              phone: _phoneController.text.trim(),
               address: _addressController.text.trim(),
+              city: _cityController.text.trim(),
+              addrState: _stateController.text.trim(),
+              postalCode: _postalCodeController.text.trim(),
+              houseNumber: _houseNumberController.text.trim(),
             );
 
         if (!mounted) return;
 
-        // Send verification email
+        // Email verification is handled by the backend 'onUserCreated' Cloud Function trigger.
+        // We do not need to call resendVerificationEmail here to avoid TOO_MANY_ATTEMPTS errors.
         final user = FirebaseAuth.instance.currentUser;
-        if (user != null && !user.emailVerified) {
-          await user.sendEmailVerification();
-        }
 
         if (mounted) {
           GkToast.show(context,
@@ -161,17 +176,16 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      String msg = e.toString();
-      if (e is FirebaseAuthException) {
-        msg = e.message ?? 'Authentication failed. Please try again.';
-      } else {
-        msg = msg.replaceAll(RegExp(r'\[.*?\]\s*'), '');
+      String msg = 'Something went wrong. Please try again.';
+      if (e is String) {
+        msg = e;
+      } else if (e is FirebaseAuthException) {
+        msg = e.message ?? msg;
       }
       GkToast.show(
         context,
         message: msg,
         type: ToastType.error,
-        title: 'Authentication Error',
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -310,8 +324,12 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                         controller: _firstNameController,
                         label: 'First Name',
                         icon: Icons.person_outline_rounded,
-                        validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Required' : null,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Required';
+                          if (v.trim().length < 2) return 'Min 2 characters';
+                          if (!RegExp(r"^[a-zA-Z\-' ]+$").hasMatch(v.trim())) return 'Letters only';
+                          return null;
+                        },
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -320,20 +338,103 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                         controller: _lastNameController,
                         label: 'Last Name',
                         icon: Icons.person_outline_rounded,
-                        validator: (v) =>
-                            (v == null || v.isEmpty) ? 'Required' : null,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Required';
+                          if (v.trim().length < 2) return 'Min 2 characters';
+                          if (!RegExp(r"^[a-zA-Z\-' ]+$").hasMatch(v.trim())) return 'Letters only';
+                          return null;
+                        },
                       ),
                     ),
                   ],
                 ).animate().fadeIn(delay: 250.ms).slideX(begin: 0.05, end: 0),
+                const SizedBox(height: 16),
+                _buildTextField(
+                  controller: _phoneController,
+                  label: 'Phone Number',
+                  icon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Phone number is required';
+                    final cleaned = v.trim().replaceAll(RegExp(r'[\s\-]'), '');
+                    if (!RegExp(r'^\+?[0-9]{10,15}$').hasMatch(cleaned)) {
+                      return 'Enter a valid phone (e.g. +2348012345678)';
+                    }
+                    return null;
+                  },
+                ).animate().fadeIn(delay: 270.ms).slideX(begin: 0.05, end: 0),
                 const SizedBox(height: 20),
                 _buildTextField(
                   controller: _addressController,
-                  label: 'Full Address',
+                  label: 'Street Address',
                   icon: Icons.home_work_outlined,
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Enter your address' : null,
-                ).animate().fadeIn(delay: 280.ms).slideX(begin: 0.05, end: 0),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Street address is required';
+                    if (v.trim().length < 5) return 'Enter a valid street address';
+                    return null;
+                  },
+                ).animate().fadeIn(delay: 290.ms).slideX(begin: 0.05, end: 0),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _cityController,
+                        label: 'City',
+                        icon: Icons.location_city_rounded,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Required';
+                          if (v.trim().length < 2) return 'Min 2 chars';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _stateController,
+                        label: 'State',
+                        icon: Icons.map_outlined,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Required';
+                          if (v.trim().length < 2) return 'Min 2 chars';
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 310.ms).slideX(begin: 0.05, end: 0),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _houseNumberController,
+                        label: 'House No.',
+                        icon: Icons.pin_rounded,
+                        keyboardType: TextInputType.text,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Required';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _postalCodeController,
+                        label: 'Postal Code',
+                        icon: Icons.markunread_mailbox_outlined,
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Required';
+                          if (!RegExp(r'^[0-9]{4,10}$').hasMatch(v.trim())) return 'Digits only (4+)';
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 330.ms).slideX(begin: 0.05, end: 0),
                 const SizedBox(height: 20),
               ],
 
@@ -366,6 +467,34 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                 },
               ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.05, end: 0),
               
+              if (_isLogin)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () async {
+                      if (_emailController.text.isEmpty) {
+                        GkToast.show(context, message: 'Please enter your email address first', type: ToastType.error);
+                        return;
+                      }
+                      try {
+                        await ref.read(authNotifierProvider.notifier).resetPassword(_emailController.text);
+                        if (!mounted) return;
+                        GkToast.show(context, message: 'Password reset link sent to your email', type: ToastType.success);
+                      } catch (e) {
+                        if (!mounted) return;
+                        GkToast.show(context, message: e.toString(), type: ToastType.error);
+                      }
+                    },
+                    child: Text(
+                      'Forgot Password?',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                ).animate().fadeIn(delay: 450.ms),
+
               if (!_isLogin) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -459,6 +588,11 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                   _firstNameController.clear();
                   _lastNameController.clear();
                   _addressController.clear();
+                  _cityController.clear();
+                  _stateController.clear();
+                  _postalCodeController.clear();
+                  _houseNumberController.clear();
+                  _phoneController.clear();
                 });
               },
               child: Text(

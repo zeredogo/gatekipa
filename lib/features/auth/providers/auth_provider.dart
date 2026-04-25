@@ -1,13 +1,14 @@
 // lib/features/auth/providers/auth_provider.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gatekeepeer/features/auth/models/user_model.dart';
-import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
-import 'package:gatekeepeer/features/search/providers/search_provider.dart';
+import 'package:gatekipa/features/auth/models/user_model.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/search/providers/search_provider.dart';
 
-import 'package:gatekeepeer/core/constants/app_constants.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
 
 // ── Firebase instances ──────────────────────────────────────────────────────────
 final firebaseAuthProvider = Provider((ref) => FirebaseAuth.instance);
@@ -138,8 +139,24 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<void> resetPassword(String email) async {
+    state = const AsyncValue.loading();
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('requestPasswordReset');
+      await callable.call({'email': email});
+      state = const AsyncValue.data(null);
+    } on FirebaseAuthException catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      throw _getFriendlyErrorMessage(e.code);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      throw 'An unexpected error occurred. Please try again.';
+    }
+  }
+
   Future<void> signUpWithEmail(String email, String password,
-      {String? firstName, String? lastName, String? address}) async {
+      {String? firstName, String? lastName, String? phone, String? address,
+       String? city, String? addrState, String? postalCode, String? houseNumber}) async {
     state = const AsyncValue.loading();
     try {
       final result = await _auth.createUserWithEmailAndPassword(
@@ -148,7 +165,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
       );
       if (result.user != null) {
         await _handleUserLogin(result.user!,
-            firstName: firstName, lastName: lastName, address: address);
+            firstName: firstName, lastName: lastName, phone: phone, address: address,
+            city: city, addrState: addrState, postalCode: postalCode, houseNumber: houseNumber);
       }
       state = const AsyncValue.data(null);
     } on FirebaseAuthException catch (e) {
@@ -161,7 +179,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> _handleUserLogin(User user,
-      {String? firstName, String? lastName, String? address}) async {
+      {String? firstName, String? lastName, String? phone, String? address,
+       String? city, String? addrState, String? postalCode, String? houseNumber}) async {
     final doc = _db.collection(AppConstants.usersCollection).doc(user.uid);
     // Add a timeout to prevent infinite hanging when fully offline.
     final snap = await doc.get().timeout(
@@ -175,10 +194,14 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
         firstName: firstName,
         lastName: lastName,
         address: address,
+        city: city,
+        state: addrState,
+        postalCode: postalCode,
+        houseNumber: houseNumber,
         displayName: (firstName != null && lastName != null)
             ? '$firstName $lastName'
             : null,
-        phoneNumber: user.phoneNumber,
+        phoneNumber: phone ?? user.phoneNumber,
         email: user.email,
         kycStatus: 'pending',
         isPremium: false,

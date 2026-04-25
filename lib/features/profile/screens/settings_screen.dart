@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:gatekeepeer/core/constants/app_constants.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -82,7 +82,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       } catch (e) {
         if (mounted) {
           GkToast.show(context,
-              message: 'Biometrics unavailable: ${e.toString()}',
+              message: 'Biometrics are not set up on this device. Please enable Face ID or Fingerprint in your device settings.',
               type: ToastType.error);
         }
         return;
@@ -222,29 +222,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     label: 'Terms of Service',
                     url: 'https://gatekipa.com/terms',
                   ),
-                  _LinkItem(
+                  const _LinkItem(
                     icon: Icons.help_outline_rounded,
                     label: 'Help & Support',
-                    url: Uri.dataFromString('''<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  body { font-family: sans-serif; padding: 40px 24px; text-align: center; color: #111827; }
-  h2 { color: #027A48; font-weight: 800; margin-bottom: 8px; }
-  p { line-height: 1.6; color: #4B5563; margin-top: 0; }
-  .box { background: #F9FAFB; border-radius: 16px; padding: 24px; margin-top: 32px; border: 1px solid #E5E7EB; }
-  a { color: #027A48; text-decoration: none; font-weight: 700; font-size: 16px; }
-</style>
-</head>
-<body>
-  <h2>How can we help?</h2>
-  <p>Our support team is always ready to assist you.</p>
-  <div class="box">
-    <p><b>Email us at:</b><br><a href="mailto:hello@gatekipa.com">hello@gatekipa.com</a></p>
-  </div>
-</body>
-</html>''', mimeType: 'text/html').toString(),
+                    url: 'mailto:hello@gatekipa.com',
                   ),
                 ]),
                 const SizedBox(height: 40),
@@ -449,13 +430,11 @@ class _LinkItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(20),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => _WebViewScreen(title: label, url: url),
-          ),
-        );
+      onTap: () async {
+        final Uri uri = Uri.parse(url);
+        if (!await launchUrl(uri)) {
+          debugPrint('Could not launch $url');
+        }
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -479,53 +458,6 @@ class _LinkItem extends StatelessWidget {
                 color: AppColors.outline, size: 20),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── In-App WebView Screen ──────────────────────────────────────────────────────
-class _WebViewScreen extends StatefulWidget {
-  final String title;
-  final String url;
-  const _WebViewScreen({required this.title, required this.url});
-
-  @override
-  State<_WebViewScreen> createState() => _WebViewScreenState();
-}
-
-class _WebViewScreenState extends State<_WebViewScreen> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageFinished: (_) => setState(() => _isLoading = false),
-      ))
-      ..loadRequest(Uri.parse(widget.url));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: Text(
-          widget.title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: AppColors.primary),
-        ),
-        leading: const CloseButton(color: AppColors.onSurface),
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-        ],
       ),
     );
   }

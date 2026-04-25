@@ -1,6 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
-const { requireVerifiedEmail, requireFields, requireKyc } = require("../utils/validators");
+const { requireVerifiedEmail, requireFields, requireKyc, requirePin } = require("../utils/validators");
 const { FieldValue } = require("firebase-admin/firestore");
 const logger = require("firebase-functions/logger");
 const axios = require("axios");
@@ -135,33 +135,47 @@ exports.requestWithdrawal = onCall({ region: "us-central1" }, async (request) =>
 
   // IAM Enforcement
   await requireKyc(uid);
+  
+  // SECURE TRANSACTION PIN ENFORCEMENT
+  // Neutralizes Client-Side bypass vectors where attackers on new devices
+  // approve transactions locally without knowing the user's PIN.
+  await requirePin(uid, data.pin);
 
   const walletRef = db.doc(`users/${uid}/wallet/balance`);
   const withdrawalRef = db.collection("withdrawal_requests").doc();
   const ledgerRef = db.collection("wallet_ledger").doc();
   
+  // Phase 1 (Kobo): Convert to integer kobo once
+  const amountKobo = Math.round(amount * 100);
+
   try {
     await db.runTransaction(async (t) => {
       const doc = await t.get(walletRef);
-      const currentBalance = doc.exists ? (doc.data().cached_balance ?? doc.data().balance ?? 0) : 0;
+      const walletData = doc.data() || {};
+      const currentBalanceKobo = walletData.balance_kobo ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
       
-      if (currentBalance < amount) {
+      if (currentBalanceKobo < amountKobo) {
         throw new HttpsError("failed-precondition", "Insufficient funds for withdrawal.");
       }
       
+      const balanceAfterKobo = currentBalanceKobo - amountKobo;
+
       // 2. Atomically lock funds (deduct from wallet immediately)
       t.set(walletRef, { 
-        cached_balance: FieldValue.increment(-amount),
-        balance: FieldValue.increment(-amount)
+        balance_kobo: FieldValue.increment(-amountKobo),
+        cached_balance: FieldValue.increment(-amount), // legacy dual-write
+        balance: FieldValue.increment(-amount) // legacy dual-write
       }, { merge: true });
       
       // 3. Create ledger entry reflecting the hold
       t.set(ledgerRef, {
         user_id: uid,
         type: "debit",
-        amount,
+        amount_kobo: amountKobo,
+        amount, // legacy dual-write
         reference: withdrawalRef.id,
-        balance_after: currentBalance - amount,
+        balance_after_kobo: balanceAfterKobo,
+        balance_after: balanceAfterKobo / 100, // legacy dual-write
         source: "withdrawal_hold",
         created_at: FieldValue.serverTimestamp(),
       });

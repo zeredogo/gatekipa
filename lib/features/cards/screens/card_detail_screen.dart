@@ -4,17 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/utils/date_formatter.dart';
-import 'package:gatekeepeer/core/utils/currency_formatter.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/core/widgets/gk_virtual_card.dart';
-import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
-import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
-import 'package:gatekeepeer/core/widgets/transaction_status_widget.dart';
-import 'package:gatekeepeer/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/date_formatter.dart';
+import 'package:gatekipa/core/utils/currency_formatter.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/widgets/gk_virtual_card.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/widgets/transaction_status_widget.dart';
+import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
 
 class CardDetailScreen extends ConsumerWidget {
   final String cardId;
@@ -365,6 +365,9 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProfileProvider).valueOrNull;
+    final isSentinel = user?.isSentinelPrime ?? false;
+
     return Container(
       decoration: BoxDecoration(
         color: widget.card.isBlocked
@@ -461,6 +464,7 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                     widget.rules.any((r) => r.subType == 'block_if_amount_changes'),
                     'block_if_amount_changes',
                     (val) => _toggleRule('block_if_amount_changes', val),
+                    isSentinel: isSentinel,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   _buildSubToggle(
@@ -469,6 +473,7 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                     widget.rules.any((r) => r.subType == 'instant_breach_alert'),
                     'instant_breach_alert',
                     (val) => _toggleRule('instant_breach_alert', val),
+                    isSentinel: isSentinel,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   _buildSubToggle(
@@ -477,6 +482,7 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                     widget.rules.any((r) => r.subType == 'night_lockdown'),
                     'night_lockdown',
                     (val) => _toggleRule('night_lockdown', val),
+                    isSentinel: isSentinel,
                   ),
                 ],
               ),
@@ -488,8 +494,9 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
   }
 
   Widget _buildSubToggle(
-      String title, String subtitle, bool value, String subTypeKey, ValueChanged<bool> onChanged) {
+      String title, String subtitle, bool value, String subTypeKey, ValueChanged<bool> onChanged, {bool isSentinel = true}) {
     final isLoading = _loadingRules.contains(subTypeKey);
+    final displayValue = value && isSentinel;
     return Row(
       children: [
         Expanded(
@@ -512,7 +519,7 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
           )
         else
           Switch(
-            value: value,
+            value: displayValue,
             thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
               if (states.contains(WidgetState.selected)) {
                 return const Icon(Icons.check, color: AppColors.primary);
@@ -658,7 +665,7 @@ class _RenameCardSheetState extends ConsumerState<_RenameCardSheet> {
           cardId: widget.card.id,
           newName: newName,
         );
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
     if (mounted) {
       GkToast.show(context,
           message: success ? 'Card renamed successfully' : 'Failed to rename card',
@@ -1017,7 +1024,7 @@ class _TransactionOtpModalState extends ConsumerState<_TransactionOtpModal> {
               Text('Transaction Verification',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
               const SizedBox(height: AppSpacing.xs),
-              Text('Bridgecard requires the exact spending amount in Naira to authorize the OTP.',
+              Text('Westgate Stratagem requires the exact spending amount in Naira to authorize the OTP.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant)),
               
               if (_otp != null) ...[

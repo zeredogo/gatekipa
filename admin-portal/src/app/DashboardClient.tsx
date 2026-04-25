@@ -86,7 +86,7 @@ export default function DashboardClient({ initialIsLockdown, stats, transactions
               <Wallet className="w-6 h-6" />
               <h3 className="font-semibold">Wallet Ledger</h3>
             </div>
-            <div className="text-4xl font-bold tracking-tighter">₦ {stats.totalBalance.toLocaleString()}</div>
+            <div className="text-4xl font-bold tracking-tighter">₦ {(stats.totalBalance / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <p className="text-sm text-gray-400">Total circulating balance</p>
           </div>
           

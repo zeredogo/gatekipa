@@ -7,8 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekeepeer/app.dart';
-import 'package:gatekeepeer/firebase_options.dart';
+import 'package:gatekipa/app.dart';
+import 'package:gatekipa/firebase_options.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -54,7 +54,7 @@ Future<void> main() async {
   // Save FCM token whenever it changes (initial + refreshed)
   _initFcmTokenSave();
 
-  runApp(const ProviderScope(child: GatekeepeerApp()));
+  runApp(const ProviderScope(child: GatekipaApp()));
 }
 
 /// Saves the FCM token to Firestore under the authenticated user's profile.

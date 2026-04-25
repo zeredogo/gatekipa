@@ -173,8 +173,23 @@ exports.paystackWebhook = onRequest(
       const data = event.data;
       const reference = data.reference;
       const amountKobo = data.amount;
-      const uid = data.metadata?.uid;
       const plan = data.metadata?.plan; // set when purchasing a plan
+
+      // Robust UID extraction (handles DVA bank transfers where metadata is on the customer)
+      let uid = data.metadata?.uid || data.customer?.metadata?.uid;
+
+      if (!uid && data.customer?.customer_code) {
+        try {
+          const userQuery = await db.collection("users")
+            .where("paystack_customer_id", "==", data.customer.customer_code)
+            .limit(1).get();
+          if (!userQuery.empty) {
+            uid = userQuery.docs[0].id;
+          }
+        } catch (err) {
+          logger.error("[Paystack Webhook] Failed to look up user by customer_code:", err);
+        }
+      }
 
       if (!uid) {
         console.warn(`[Paystack Webhook] Missing metadata.uid for ref: ${reference}`);
@@ -186,12 +201,28 @@ exports.paystackWebhook = onRequest(
         const planConfig = {
           free:       { price: 700,  cards: 1 },
           activation: { price: 1400, cards: 2 },
-          premium:    { price: 2000, cards: 3 },
+          premium:    { price: 1999, cards: 3 }, // FIX: was 2000, correct price is 1999
           business:   { price: 5000, cards: 5 },
         };
 
+        const isTrial = plan === "free" || plan === "activation";
+        const nowMs   = Date.now();
+
+        // FIX: Webhook failsafe was missing subscription_expiry_date and sentinel_trial_expiry_date.
+        // Without subscription_expiry_date, expirationCron downgrades the user within 24h.
+        // Without sentinel_trial_expiry_date, trial users get no Sentinel access via this path.
+        const planUpdates = {
+          planTier: plan,
+          cardsIncluded: planConfig[plan].cards,
+          subscription_expiry_date: nowMs + (30 * 24 * 60 * 60 * 1000),
+        };
+        if (isTrial) {
+          planUpdates.sentinel_trial_expiry_date = nowMs + (5 * 24 * 60 * 60 * 1000);
+        }
+
         const userRef        = db.collection("users").doc(uid);
         const idempotencyRef = db.collection("users").doc(uid).collection("plan_purchases").doc(reference);
+        const ledgerRef      = db.collection("users").doc(uid).collection("wallet_transactions").doc(`plan_${plan}_${reference}`);
 
         try {
           await db.runTransaction(async (t) => {
@@ -202,14 +233,22 @@ exports.paystackWebhook = onRequest(
               reference, plan,
               amountKobo,
               status: "success",
-              timestamp: Date.now(),
+              timestamp: nowMs,
               source: "webhook",
             });
 
-            t.set(userRef, {
-              planTier: plan,
-              cardsIncluded: planConfig[plan].cards,
-            }, { merge: true });
+            t.set(ledgerRef, {
+              type: "debit",
+              amount: amountKobo / 100,
+              status: "successful",
+              context: "plan_purchase",
+              method: "paystack_webhook",
+              metadata: plan,
+              reference,
+              created_at: nowMs,
+            });
+
+            t.set(userRef, planUpdates, { merge: true });
           });
 
           logger.info(`[Paystack Webhook] Plan '${plan}' activated for UID ${uid} via ref ${reference}`);
@@ -261,7 +300,21 @@ exports.paystackWebhook = onRequest(
       } // end else (Standard wallet top-up)
       } // end charge.success
       else if (event.event === "charge.refunded" || event.event === "refund.processed") {
-        const uid = data.metadata?.uid;
+        let uid = data.metadata?.uid || data.customer?.metadata?.uid;
+
+        if (!uid && data.customer?.customer_code) {
+          try {
+            const userQuery = await db.collection("users")
+              .where("paystack_customer_id", "==", data.customer.customer_code)
+              .limit(1).get();
+            if (!userQuery.empty) {
+              uid = userQuery.docs[0].id;
+            }
+          } catch (err) {
+            logger.error("[Paystack Webhook] Failed to look up user by customer_code for refund:", err);
+          }
+        }
+
         if (!uid) {
           console.warn(`[Paystack Webhook] Missing metadata.uid for refund ref: ${reference}`);
           return res.status(200).json({ status: "ignored_missing_uid" });

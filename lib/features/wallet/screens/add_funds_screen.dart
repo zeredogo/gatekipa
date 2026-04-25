@@ -4,16 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
-import 'package:gatekeepeer/core/constants/app_constants.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/features/wallet/providers/wallet_provider.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
-import 'package:gatekeepeer/core/providers/system_state_provider.dart';
 
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:go_router/go_router.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/providers/system_state_provider.dart';
+import 'package:gatekipa/core/widgets/gk_checkout.dart';
 
 class AddFundsScreen extends ConsumerStatefulWidget {
   const AddFundsScreen({super.key});
@@ -171,15 +172,14 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                         }
                         // Close the sheet, open Paystack checkout
                         Navigator.pop(ctx);
-                        Navigator.push(
-                          context,
+                        Navigator.of(context, rootNavigator: true).push(
                           MaterialPageRoute(
-                            builder: (_) => _PaystackCheckoutScreen(
+                            builder: (_) => GkCheckout(
+                              type: GkCheckoutType.fundWallet,
                               amountInNgn: amt,
                               email: email,
                               uid: uid,
-                              onPaymentVerified: (reference) async {
-                                // Capture context-dependent state before await
+                              onSuccess: (reference) async {
                                 final scaffoldMsg =
                                     ScaffoldMessenger.of(context);
                                 GkToast.show(
@@ -288,6 +288,13 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   }
                   final uid = user?.uid;
                   if (uid == null) return;
+                  if (user?.kycStatus != 'verified') {
+                    GkToast.show(context,
+                        message: 'Please verify your identity to generate an account.',
+                        type: ToastType.warning);
+                    context.push(Routes.kyc);
+                    return;
+                  }
                   final scaffoldMsg = ScaffoldMessenger.of(context);
                   final textTheme = Theme.of(context).textTheme;
                   final success = await ref
@@ -375,6 +382,13 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                         type: ToastType.warning);
                     return;
                   }
+                  if (user?.kycStatus != 'verified') {
+                    GkToast.show(context,
+                        message: 'Please verify your identity to add funds.',
+                        type: ToastType.warning);
+                    context.push(Routes.kyc);
+                    return;
+                  }
                   _showTopUpBottomSheet(context, email, uid);
                 },
                 icon: const Icon(Icons.credit_card_rounded),
@@ -410,204 +424,9 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
   }
 }
 
-// ── Paystack Checkout WebView Screen ─────────────────────────────────────────
-class _PaystackCheckoutScreen extends StatefulWidget {
-  final double amountInNgn;
-  final String email;
-  final String uid;
-  final Future<void> Function(String reference) onPaymentVerified;
 
-  const _PaystackCheckoutScreen({
-    required this.amountInNgn,
-    required this.email,
-    required this.uid,
-    required this.onPaymentVerified,
-  });
 
-  @override
-  State<_PaystackCheckoutScreen> createState() =>
-      _PaystackCheckoutScreenState();
-}
 
-class _PaystackCheckoutScreenState
-    extends State<_PaystackCheckoutScreen> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    final reference =
-        'GTK-${widget.uid.substring(0, 6)}-${DateTime.now().millisecondsSinceEpoch}';
-    final amountInKobo = (widget.amountInNgn * 100).toInt();
-
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageFinished: (_) => setState(() => _isLoading = false),
-        onNavigationRequest: (req) {
-          // Capture the success callback URL from Paystack inline JS
-          if (req.url.startsWith('gatekeepeer://payment-success')) {
-            final uri = Uri.parse(req.url);
-            final ref = uri.queryParameters['reference'] ?? reference;
-            Navigator.pop(context);
-            widget.onPaymentVerified(ref);
-            return NavigationDecision.prevent;
-          }
-          if (req.url.startsWith('gatekeepeer://payment-cancelled')) {
-            Navigator.pop(context);
-            return NavigationDecision.prevent;
-          }
-          return NavigationDecision.navigate;
-        },
-      ))
-      ..loadHtmlString(_buildPaystackHtml(
-        publicKey: AppConstants.paystackPublicKey,
-        email: widget.email,
-        amountInKobo: amountInKobo,
-        reference: reference,
-      ));
-  }
-
-  String _buildPaystackHtml({
-    required String publicKey,
-    required String email,
-    required int amountInKobo,
-    required String reference,
-  }) {
-    return '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Secure Payment</title>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 24px;
-    }
-    .card {
-      background: white;
-      border-radius: 20px;
-      padding: 32px 24px;
-      text-align: center;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-      width: 100%;
-      max-width: 400px;
-    }
-    .shield { font-size: 48px; margin-bottom: 16px; }
-    h1 { font-size: 22px; font-weight: 800; color: #1a6b47; margin-bottom: 8px; }
-    p { font-size: 14px; color: #6b7280; margin-bottom: 4px; }
-    .amount { font-size: 32px; font-weight: 800; color: #1a6b47; margin: 16px 0; }
-    .btn {
-      display: inline-block;
-      background: #1a6b47;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      padding: 16px 32px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 16px;
-    }
-    .btn:active { opacity: 0.85; }
-    .lock { font-size: 12px; color: #9ca3af; margin-top: 16px; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="shield">🛡️</div>
-    <h1>Gatekeepeer</h1>
-    <p style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 12px;">Powered by Westgate</p>
-    <p>Adding to your vault</p>
-    <div class="amount">₦${(amountInKobo / 100).toStringAsFixed(0)}</div>
-    <p style="font-size:13px;color:#4b5563">$email</p>
-    <button class="btn" onclick="payWithPaystack()">Pay Securely</button>
-    <div class="lock">🔒 Secured by Westgate Stratagem · PCI DSS compliant</div>
-  </div>
-
-  <script>
-    function payWithPaystack() {
-      var handler = PaystackPop.setup({
-        key: '$publicKey',
-        email: '$email',
-        amount: $amountInKobo,
-        currency: 'NGN',
-        ref: '$reference',
-        metadata: { uid: '${widget.uid}' },
-        onClose: function() {
-          window.location.href = 'gatekeepeer://payment-cancelled';
-        },
-        callback: function(response) {
-          window.location.href = 'gatekeepeer://payment-success?reference=' + response.reference;
-        }
-      });
-      handler.openIframe();
-    }
-
-    // Auto-open on load for a smoother experience
-    window.onload = function() {
-      setTimeout(payWithPaystack, 300);
-    };
-  </script>
-</body>
-</html>
-''';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: Text('Secure Payment',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
-        leading: const BackButton(color: AppColors.onSurface),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.lock_rounded,
-                    size: 14, color: AppColors.outline),
-                const SizedBox(width: AppSpacing.xxs),
-                Text('Westgate Stratagem',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline)),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_isLoading)
-            const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: AppSpacing.md),
-                  Text('Loading secure checkout…'),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── NUBAN Card ────────────────────────────────────────────────────────────────
 class _NubanCard extends StatelessWidget {

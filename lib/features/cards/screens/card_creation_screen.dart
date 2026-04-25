@@ -1,23 +1,26 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // lib/features/cards/screens/card_creation_screen.dart
 import 'package:flutter/material.dart';
-import 'package:local_auth/local_auth.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
-import 'package:gatekeepeer/core/constants/app_constants.dart';
-import 'package:gatekeepeer/core/constants/routes.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_button.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
-import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
-import 'package:gatekeepeer/features/wallet/providers/wallet_provider.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
-import 'package:gatekeepeer/core/providers/system_state_provider.dart';
+
+
+
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/widgets/gk_checkout.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/providers/system_state_provider.dart';
+import 'package:gatekipa/features/accounts/screens/accounts_screen.dart';
 
 // ── Comprehensive country list for global users ──
 const List<String> _kCardCountries = [
@@ -63,8 +66,7 @@ class CardCreationScreen extends ConsumerStatefulWidget {
 class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _cardNameCtrl = TextEditingController();
-  final _fixedAmountCtrl = TextEditingController();
-  final _maxChargesCtrl = TextEditingController();
+
 
   final _addressCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
@@ -73,9 +75,10 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
   final _houseNumberCtrl = TextEditingController();
 
   String _cardType = 'subscription';
-  bool _nightLockdown = true;
-  bool _instantBreachAlert = true;
+  bool _nightLockdown = false;
+  bool _instantBreachAlert = false;
   bool _isLoading = false;
+  bool _useProfileAddress = true;
 
   String _cardCurrency = 'NGN';
   String _country = 'Nigeria';
@@ -102,14 +105,38 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
           setState(() => _selectedAccountId = activeAcc.id);
         }
       }
+
+      // Pre-fill billing address from user profile if available
+      if (_hasProfileAddress) {
+        _syncProfileAddress();
+      } else {
+        _useProfileAddress = false;
+      }
     });
+  }
+
+  void _syncProfileAddress() {
+    final user = ref.read(userProfileProvider).valueOrNull;
+    if (user != null && _useProfileAddress) {
+      if ((user.address ?? '').isNotEmpty) _addressCtrl.text = user.address!;
+      if ((user.city ?? '').isNotEmpty) _cityCtrl.text = user.city!;
+      if ((user.state ?? '').isNotEmpty) {
+        _stateCtrl.text = user.state!;
+        _selectedState = user.state;
+      }
+      if ((user.postalCode ?? '').isNotEmpty) _postalCodeCtrl.text = user.postalCode!;
+      if ((user.houseNumber ?? '').isNotEmpty) _houseNumberCtrl.text = user.houseNumber!;
+    }
+  }
+
+  bool get _hasProfileAddress {
+    final user = ref.read(userProfileProvider).valueOrNull;
+    return user != null && (user.address ?? '').isNotEmpty;
   }
 
   @override
   void dispose() {
     _cardNameCtrl.dispose();
-    _fixedAmountCtrl.dispose();
-    _maxChargesCtrl.dispose();
     _addressCtrl.dispose();
     _cityCtrl.dispose();
     _stateCtrl.dispose();
@@ -180,73 +207,331 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     );
   }
 
-  Future<void> _createCard() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final user = ref.read(userProfileProvider).valueOrNull;
-    final isFreePlan = user != null && user.planTier == 'free';
-    
-    // All non-free plans require a client profile (account) to map the card.
-    if (_selectedAccountId == null && !isFreePlan) {
-      GkToast.show(context, message: 'Please create a client profile first to map your card.', type: ToastType.error);
-      return;
-    }
-
-    final wallet = ref.read(walletProvider).valueOrNull;
-    if (wallet == null || wallet.balance <= 0) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text(
-            'Insufficient Funds',
-            style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          content: Text(
-            'You have no funds available. Please top up your vault to proceed with card creation.',
-            style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: AppColors.outline)),
+  Future<Map<String, dynamic>?> _showPlanSelectionSheet() async {
+    return showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).padding.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Select a Plan', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+              ],
             ),
+            const SizedBox(height: 8),
+            Text('You need to activate a baseline subscription tier to start creating cards. This is a one-time deduction.', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
+            const SizedBox(height: 24),
+            
+            // FIX #4 & #5: Accurate features + 5-day trial banner on Instant & Activation
+            _buildMiniPlanCard(ctx, 'Instant Plan', 'free', 700,
+              ['1 Virtual Card', 'Basic Rules Only', '⚡ 5-Day Sentinel Trial'], false, hasTrial: true),
+            const SizedBox(height: 12),
+            _buildMiniPlanCard(ctx, 'Activation Plan', 'activation', 1400,
+              ['2 Virtual Cards', 'Basic Rules Only', '⚡ 5-Day Sentinel Trial'], false, hasTrial: true),
+            const SizedBox(height: 12),
+            _buildMiniPlanCard(ctx, 'Sentinel Prime', 'premium', 1999,
+              ['Smart Alerts', 'Night Lockdown', 'Geo-Fence', 'Advanced Rules'], true),
+            const SizedBox(height: 12),
+            _buildMiniPlanCard(ctx, 'Business Plan', 'business', 5000,
+              ['5 Cards', 'Team Access', 'Priority Protection', 'Full Suite'], false),
+          ],
+        ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniPlanCard(BuildContext ctx, String name, String id, int price, List<String> features, bool isPopular, {bool hasTrial = false}) {
+    return InkWell(
+      onTap: () => Navigator.pop(ctx, {'id': id, 'price': price, 'name': name}),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isPopular ? AppColors.primary : AppColors.outlineVariant),
+          color: isPopular ? AppColors.primary.withValues(alpha: 0.05) : AppColors.surfaceContainerLowest,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(name, style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                      if (isPopular) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(8)),
+                          child: const Text('RECOMMENDED', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                        ),
+                      ]
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(features.join(' • '), style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant)),
+                  if (hasTrial) ...[ 
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFA500).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFFFA500).withValues(alpha: 0.4)),
+                      ),
+                      child: const Text(
+                        '⚡ Includes 5-Day Sentinel Prime Trial',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFCC8400)),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Text('₦$price', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _showFundingPrompt(double deficit, double currentBalance) async {
+    return await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.account_balance_wallet_rounded, color: AppColors.error, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text('Insufficient Funds', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text(
+              'Your Vault balance is ₦${currentBalance.toStringAsFixed(0)}. You need an additional ₦${deficit.toStringAsFixed(0)} to complete this creation.',
+              textAlign: TextAlign.center,
+              style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx, true);
+                },
+                child: const Text('Fund Externally', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                context.push(Routes.addFunds);
-              },
-              child: const Text('Add Funds', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.outline)),
             ),
           ],
         ),
-      );
-      return;
-    }
+      ),
+    ) ?? false;
+  }
 
-    if (_cardCurrency == 'USD' && (wallet.balance) < 8000) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text('Insufficient Funds for USD Card', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-          content: Text('Bridgecard requires a minimum \$5 (approx ₦8,000) pre-fund to cover USD card creation and maintenance.', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
-          actions: [
-             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.outline))),
-             TextButton(onPressed: () {
-                Navigator.pop(ctx);
-                context.push(Routes.addFunds);
-              }, child: const Text('Add Funds', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold))),
+  Future<bool> _showVaultDeductionConfirm(double totalNeeded, int planCost, double balance) async {
+    return await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text('Confirm Deduction', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text(
+              'A total of ₦${totalNeeded.toStringAsFixed(0)} (Plan: ₦$planCost) will be deducted from your Vault balance (₦${balance.toStringAsFixed(0)}).',
+              textAlign: TextAlign.center,
+              style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Confirm & Create', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.outline)),
+            ),
           ],
-        )
-      );
-      return;
+        ),
+      ),
+    ) ?? false;
+  }
+  Future<void> _createCard() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    final user = ref.read(userProfileProvider).valueOrNull;
+    if (user == null) return;
+    final wallet = ref.read(walletProvider).valueOrNull;
+    // hasNoPlan: only users with NO plan at all need to select one.
+    // FIX #3: 'activation' users have already paid — they keep their plan.
+    // Only 'none' and empty tier should be forced through plan selection.
+    final hasNoPlan = (user.planTier == 'none' || user.planTier.isEmpty);
+    
+    String? selectedPlanId;
+    int planCost = 0;
+
+    // STEP 1: Plan Selection (If needed)
+    if (hasNoPlan) {
+        final result = await _showPlanSelectionSheet();
+        if (result == null) return; // user cancelled
+        selectedPlanId = result['id'];
+        planCost = result['price'];
+    } else {
+        selectedPlanId = user.planTier;
     }
 
+    // FIX #7: 'free' is the canonical backend name for Instant plan.
+    // 'instant' was a legacy alias — removed to prevent inconsistent gating.
+    final isInstant = selectedPlanId == 'free';
+
+    // STEP 2: Client Profile Check
+    if (_selectedAccountId == null && !isInstant) {
+        if (!mounted) return;
+        GkToast.show(context, message: 'Please create a client profile first to map your card.', type: ToastType.info);
+        final newAccountId = await showCreateAccountSheet(context, planTier: selectedPlanId);
+        if (newAccountId == null) return; // user cancelled profile creation
+        setState(() => _selectedAccountId = newAccountId);
+    }
+
+    final cardName = _cardNameCtrl.text.trim().isNotEmpty ? _cardNameCtrl.text.trim() : 'New Virtual Card';
+    
+    // Total needed: plan cost + minimum card funding
+    double totalNeeded = planCost.toDouble();
+    if (_cardCurrency == 'USD') {
+        totalNeeded += 8000; // Minimum USD card funding
+    }
+
+    double currentBalance = wallet?.balance ?? 0.0;
+
+    // STEP 3: Funding Check
+    if (currentBalance < totalNeeded) {
+        final deficit = totalNeeded - currentBalance;
+        final wantToFund = await _showFundingPrompt(deficit, currentBalance);
+        if (!wantToFund) return; // cancelled
+        
+        // Launch GkCheckout to fund exactly the missing amount
+        final refStr = 'GTK-FUND-${user.uid.substring(0, 6)}-${DateTime.now().millisecondsSinceEpoch}';
+        
+        // Let's use Navigator push
+        if (!mounted) return;
+        final bool? checkoutSuccess = await Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => GkCheckout(
+              type: GkCheckoutType.fundWallet,
+              amountInNgn: deficit,
+              email: user.email ?? '',
+              uid: user.uid,
+              reference: refStr,
+              onSuccess: (String paidReference) async {
+                // Return true so we can await it
+                Navigator.pop(context, true);
+              },
+              onCancel: () {
+                Navigator.pop(context, false);
+              },
+            ),
+          ),
+        );
+        
+        if (checkoutSuccess != true) {
+            if (!mounted) return;
+        GkToast.show(context, message: 'Funding was cancelled or failed.', type: ToastType.error);
+            return;
+        }
+        
+        // Verify payment
+        if (!mounted) return;
+        setState(() => _isLoading = true);
+        final verified = await ref.read(walletNotifierProvider.notifier).verifyPaystackPayment(reference: refStr);
+        if (!verified) {
+            if (!mounted) return;
+            setState(() => _isLoading = false);
+            GkToast.show(context, message: 'Payment verification failed. Please contact support.', type: ToastType.error);
+            return;
+        }
+    } else if (totalNeeded > 0) {
+        // Just confirm vault deduction
+        final confirm = await _showVaultDeductionConfirm(totalNeeded, planCost, currentBalance);
+        if (!confirm) return;
+    }
+
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
-    if (user != null && user.bridgecardCardholderId == null) {
+    // STEP 4: Purchase Plan (if selected and needed)
+    if (hasNoPlan && selectedPlanId != null) {
+        try {
+            const storage = FlutterSecureStorage();
+            final secureKey = '${user.uid}_transaction_pin';
+            final pin = await storage.read(key: secureKey);
+            
+            if (pin == null || pin.isEmpty) {
+               throw Exception("No Transaction PIN configured. Please set one up in Profile.");
+            }
+
+            final callable = FirebaseFunctions.instance.httpsCallable('purchasePlanFromVault');
+            await callable.call({'plan': selectedPlanId, 'pin': pin});
+        } catch (e) {
+            if (!mounted) return;
+            setState(() => _isLoading = false);
+            GkToast.show(context, message: 'Could not activate your plan. Please ensure you have sufficient vault balance and try again.', type: ToastType.error);
+            return;
+        }
+    }
+
+    // STEP 5: KYC / Bridgecard Registration
+    if (user.bridgecardCardholderId == null) {
       if (user.kycStatus != 'verified') {
+        if (!mounted) return;
         setState(() => _isLoading = false);
         GkToast.show(context, message: 'Please complete your identity verification in Profile first.', type: ToastType.error);
         return;
@@ -267,39 +552,47 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
       if (!regSuccess) {
         if (!mounted) return;
         setState(() => _isLoading = false);
-        GkToast.show(context, message: 'Failed to verify billing address and identity with Bridgecard.', type: ToastType.error);
+        final stateErr = ref.read(cardNotifierProvider);
+        String errMsg = 'Failed to verify billing address and identity. Please check your details and try again.';
+        if (stateErr.hasError) {
+          final err = stateErr.error;
+          if (err is FirebaseFunctionsException) {
+            errMsg = err.message ?? errMsg;
+          } else {
+            // Prevent raw stack traces from showing
+            final errStr = err.toString();
+            if (!errStr.contains('Exception: ') && !errStr.contains('Error: ')) {
+               errMsg = errStr;
+            }
+          }
+          // Sanitize technical API errors
+          if (errMsg.toLowerCase().contains('status code') || errMsg.length > 150) {
+            errMsg = 'The verification service is temporarily unavailable. Please try again later.';
+          }
+        }
+        GkToast.show(context, message: errMsg, type: ToastType.error);
         return;
       }
     }
 
-    final cardName =
-        _cardNameCtrl.text.trim().isNotEmpty ? _cardNameCtrl.text.trim() : 'New Virtual Card';
-
-    final fixedAmt =
-        double.tryParse(_fixedAmountCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
-    final maxCharges = 
-        int.tryParse(_maxChargesCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-
+    // STEP 6: Create Card
     final accounts = ref.read(accountsStreamProvider).valueOrNull ?? [];
     final selectedAcc = accounts.where((a) => a.id == _selectedAccountId).firstOrNull;
     final derivedCategory = selectedAcc?.type ?? 'personal';
     
-    // Use selected account ID, fallback to first account, or use UID directly for free plan users
-    final resolvedAccountId = selectedAcc?.id ?? (accounts.isNotEmpty ? accounts.first.id : user?.uid);
+    final resolvedAccountId = selectedAcc?.id ?? (accounts.isNotEmpty ? accounts.first.id : user.uid);
 
     final cardId = await ref.read(cardNotifierProvider.notifier).createCard(
           accountId: resolvedAccountId,
           name: cardName,
           category: derivedCategory,
           isTrial: _cardType == 'trial',
-          balanceLimit: fixedAmt > 0 ? fixedAmt : 50000,
+          balanceLimit: 50000,
           currency: _cardCurrency,
         );
 
     if (cardId != null) {
-      if (mounted) {
-        GkToast.show(context, message: 'Setting up your card...', type: ToastType.info);
-      }
+      if (mounted) GkToast.show(context, message: 'Setting up your card...', type: ToastType.info);
 
       final pin = await _collectCardPin();
       if (pin == null) {
@@ -328,50 +621,22 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         return;
       }
 
-      // ── Step 3: Apply rules ────────────────────────────────────────────
-      if (fixedAmt > 0) {
-        await ref.read(cardNotifierProvider.notifier).createCardRule(
-              cardId: cardId,
-              type: 'spend',
-              subType: 'max_per_txn',
-              value: fixedAmt,
-            );
-      }
-      if (maxCharges > 0) {
-        await ref.read(cardNotifierProvider.notifier).createCardRule(
-              cardId: cardId,
-              type: 'behavior',
-              subType: 'max_charges',
-              value: maxCharges,
-            );
-      }
-      if (_nightLockdown) {
-        await ref.read(cardNotifierProvider.notifier).createCardRule(
-              cardId: cardId,
-              type: 'time',
-              subType: 'night_lockdown',
-              value: true,
-            );
-      }
-      if (_instantBreachAlert) {
-        await ref.read(cardNotifierProvider.notifier).createCardRule(
-              cardId: cardId,
-              type: 'behavior',
-              subType: 'instant_breach_alert',
-              value: true,
-            );
+      // Step 7: Apply rules
+      // FIX #4: Re-read user at submission time to validate Sentinel access.
+      // This prevents stale toggle state if trial expired mid-session.
+      final currentUser = ref.read(userProfileProvider).valueOrNull;
+      final hasSentinelNow = currentUser?.isSentinelPrime ?? false;
 
+      if (_nightLockdown && hasSentinelNow) {
+        await ref.read(cardNotifierProvider.notifier).createCardRule(cardId: cardId, type: 'time', subType: 'night_lockdown', value: true);
+      }
+      if (_instantBreachAlert && hasSentinelNow) {
+        await ref.read(cardNotifierProvider.notifier).createCardRule(cardId: cardId, type: 'behavior', subType: 'instant_breach_alert', value: true);
         try {
-          await FirebaseFunctions.instance
-              .httpsCallable('sendCardNotification')
-              .call({
-            'cardId': cardId,
-            'title': 'Breach Alert Armed',
-            'body': 'Your instant breach alert for $cardName is now active.',
-            'type': 'alert',
+          await FirebaseFunctions.instance.httpsCallable('sendCardNotification').call({
+            'cardId': cardId, 'title': 'Breach Alert Armed', 'body': 'Your instant breach alert for $cardName is now active.', 'type': 'alert'
           });
-        } catch (_) {
-        }
+        } catch (_) {}
       }
     }
 
@@ -386,6 +651,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     ref.watch(walletProvider);
@@ -396,69 +662,13 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     final sysState = ref.watch(systemStateProvider).valueOrNull ?? SystemState.normal;
 
     final accounts = accountsAsync.valueOrNull;
-    final isFreePlan = user != null && user.planTier == 'free';
 
-    final hasNoPlan = user != null && (user.planTier == 'none' || user.planTier.isEmpty || user.planTier == 'activation');
 
-    if (hasNoPlan) {
-      return Scaffold(
-        backgroundColor: AppColors.surface,
-        appBar: AppBar(
-          title: Text('Select a Plan', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 20)),
-          backgroundColor: AppColors.surface,
-        ),
-        body: _PlanSelectionView(user: user),
-      );
-    }
-
-    if (accounts != null && accounts.isEmpty && !isFreePlan) {
-      return Scaffold(
-        backgroundColor: AppColors.surface,
-        appBar: AppBar(
-          title: Text('Create Client Profile', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, fontSize: 20)),
-          backgroundColor: AppColors.surface,
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary, size: 36),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Create a Client Profile First',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Premium and Business plans require you to map your cards to a specific Client Profile for advanced tracking.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                GkButton(
-                  label: 'Create Profile Now',
-                  icon: Icons.add,
-                  onPressed: () => context.pushReplacement(Routes.accounts),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+    // Auto-select the only account if there's exactly one
+    if (!_isLocked && accounts != null && accounts.length == 1 && _selectedAccountId == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedAccountId = accounts.first.id);
+      });
     }
 
     return Scaffold(
@@ -476,6 +686,12 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              
+
+              // ── Main card form begins here ──
+              Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_isLocked) ...[
@@ -644,53 +860,14 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               ),
               const SizedBox(height: 28),
 
-              const _FieldLabel('Rules'),
+              const _FieldLabel('Protection Rules'),
               const SizedBox(height: AppSpacing.sm),
-
-              _RuleRow(
-                label: 'Fixed Amount',
-                child: SizedBox(
-                  width: 120,
-                  child: TextFormField(
-                    controller: _fixedAmountCtrl,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.end,
-                    decoration: InputDecoration(
-                      prefixText: '₦ ',
-                      isDense: true,
-                      hintText: 'Enter amount',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ),
-              ),
-              const _Divider(),
-
-              _RuleRow(
-                label: 'Max Charges',
-                child: SizedBox(
-                  width: 80,
-                  child: TextFormField(
-                    controller: _maxChargesCtrl,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.end,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: '∞',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ),
-              ),
-              const _Divider(),
 
               _RuleRow(
                 label: 'Night Lockdown',
                 subtitle: 'Block 12:00 AM – 6:00 AM',
                 child: Switch(
-                  value: _nightLockdown,
+                  value: _nightLockdown && (user?.isSentinelPrime ?? false),
                   thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
                     if (states.contains(WidgetState.selected)) {
                       return const Icon(Icons.check, color: AppColors.primary);
@@ -713,7 +890,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 label: 'Instant Breach Alert',
                 subtitle: 'Push notification on breach',
                 child: Switch(
-                  value: _instantBreachAlert,
+                  value: _instantBreachAlert && (user?.isSentinelPrime ?? false),
                   thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
                     if (states.contains(WidgetState.selected)) {
                       return const Icon(Icons.check, color: AppColors.primary);
@@ -733,10 +910,58 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
 
               if (needsRegistration) ...[
                 const SizedBox(height: 28),
-                const _FieldLabel('Billing Address (Required for Verification)'),
-                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    const Expanded(child: _FieldLabel('Billing Address')),
+                    if (_hasProfileAddress)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Use saved', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 4),
+                          SizedBox(
+                            height: 28,
+                            child: Switch(
+                              value: _useProfileAddress,
+                              thumbIcon: WidgetStateProperty.resolveWith<Icon?>((states) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return const Icon(Icons.check, color: AppColors.primary, size: 14);
+                                }
+                                return null;
+                              }),
+                              onChanged: (v) {
+                                setState(() {
+                                  _useProfileAddress = v;
+                                  if (v) {
+                                    _syncProfileAddress();
+                                  } else {
+                                    _addressCtrl.clear();
+                                    _cityCtrl.clear();
+                                    _stateCtrl.clear();
+                                    _postalCodeCtrl.clear();
+                                    _houseNumberCtrl.clear();
+                                    _selectedState = null;
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Please enter your complete street address (e.g. "123 Main Street, Phase 2"). A neighborhood name alone will cause verification to fail.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 12,
+                    color: AppColors.outline,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
                 DropdownButtonFormField<String>(
-                  value: _country,
+                  initialValue: _country,
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: 'Country',
@@ -762,7 +987,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 TextFormField(
                   controller: _addressCtrl,
                   decoration: InputDecoration(
-                    hintText: 'Street Address',
+                    hintText: 'Full Street Address (e.g., 123 Main St)',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     filled: true,
@@ -791,7 +1016,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                       flex: 1,
                       child: _kCardStates.containsKey(_country)
                           ? DropdownButtonFormField<String>(
-                              value: _selectedState,
+                              initialValue: _selectedState,
                               isExpanded: true,
                               decoration: InputDecoration(
                                 hintText: 'State',
@@ -861,8 +1086,10 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
 
               ],
               const SizedBox(height: AppSpacing.md),
-            ],
-          ),
+              // Close the main form column
+              ],
+            ),
+          ]),
         ),
       ),
       bottomNavigationBar: Container(
@@ -1057,517 +1284,3 @@ class _FieldLabel extends StatelessWidget {
       );
 }
 
-
-class _PlanSelectionView extends ConsumerStatefulWidget {
-  final dynamic user; // UserModel
-  const _PlanSelectionView({required this.user});
-  @override
-  ConsumerState<_PlanSelectionView> createState() => _PlanSelectionViewState();
-}
-
-class _PlanSelectionViewState extends ConsumerState<_PlanSelectionView> {
-  bool _isLoading = false;
-
-  Future<void> _purchasePlan(String planId, int cost) async {
-    final user = widget.user;
-    final uid = user?.uid as String?;
-    final email = user?.email as String?;
-
-    if (uid == null || email == null) {
-      GkToast.show(context, message: 'Please complete your profile first.', type: ToastType.error);
-      return;
-    }
-
-    final wallet = ref.read(walletProvider).valueOrNull;
-    final currentBalance = wallet?.balance ?? 0.0;
-    final canPayFromVault = currentBalance >= cost;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetCtx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.outlineVariant, borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 24),
-              Text('Select Payment Method', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              Text('How would you like to pay for this plan?', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
-              const SizedBox(height: 24),
-
-              // Vault Option
-              InkWell(
-                onTap: () {
-                  Navigator.pop(sheetCtx);
-                  if (canPayFromVault) {
-                    _payFromVault(planId);
-                  } else {
-                    GkToast.show(context, message: 'Insufficient funds in vault.', type: ToastType.error);
-                  }
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: canPayFromVault ? AppColors.primary : AppColors.outlineVariant),
-                    borderRadius: BorderRadius.circular(16),
-                    color: canPayFromVault ? AppColors.primaryContainer.withValues(alpha: 0.1) : AppColors.surfaceContainerLowest,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.account_balance_wallet_rounded, color: canPayFromVault ? AppColors.primary : AppColors.outline, size: 28),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Pay from Vault', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: canPayFromVault ? AppColors.onSurface : AppColors.outline)),
-                            Text('Balance: ₦${currentBalance.toStringAsFixed(2)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
-                          ],
-                        ),
-                      ),
-                      if (!canPayFromVault)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: AppColors.errorContainer, borderRadius: BorderRadius.circular(8)),
-                          child: const Text('Insufficient', style: TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.bold)),
-                        )
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Bank / Paystack Option
-              InkWell(
-                onTap: () {
-                  Navigator.pop(sheetCtx);
-                  _payWithPaystack(planId, cost, uid, email);
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.outlineVariant),
-                    borderRadius: BorderRadius.circular(16),
-                    color: AppColors.surfaceContainerLowest,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.credit_card_rounded, color: AppColors.primary, size: 28),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Pay with Bank / Card', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                            Text('Via secure checkout', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _payFromVault(String planId) async {
-    final LocalAuthentication auth = LocalAuthentication();
-    try {
-      final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-      final bool canAuthenticate = canAuthenticateWithBiometrics || await auth.isDeviceSupported();
-      if (canAuthenticate) {
-        final bool didAuthenticate = await auth.authenticate(
-          localizedReason: 'Authenticate to pay for plan via Vault',
-          options: const AuthenticationOptions(biometricOnly: false, stickyAuth: true),
-        );
-        if (!mounted) return;
-        if (!didAuthenticate) {
-          GkToast.show(context, message: 'Authentication required to use vault funds.', type: ToastType.error);
-          return;
-        }
-      }
-    } catch (e) {
-      debugPrint('Biometric auth error: $e');
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('purchasePlanFromVault');
-      await callable.call({'plan': planId});
-      if (mounted) {
-        ref.invalidate(userProfileProvider);
-        ref.invalidate(walletProvider);
-        GkToast.show(context,
-            message: 'Transaction successful! ${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated 🎉',
-            type: ToastType.success);
-      }
-    } catch (e) {
-      if (mounted) {
-        GkToast.show(context, message: 'Activation failed: $e', type: ToastType.error);
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _payWithPaystack(String planId, int cost, String uid, String email) async {
-    final reference = 'GTK-PLAN-${uid.substring(0, 6)}-${DateTime.now().millisecondsSinceEpoch}';
-
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _PlanPaystackCheckout(
-          planId: planId,
-          planName: planId[0].toUpperCase() + planId.substring(1),
-          amountInNgn: cost.toDouble(),
-          email: email,
-          uid: uid,
-          reference: reference,
-          onPaymentSuccess: (String paidReference) async {
-            setState(() => _isLoading = true);
-            try {
-              final callable = FirebaseFunctions.instance.httpsCallable('purchasePlan');
-              await callable.call({'plan': planId, 'reference': paidReference});
-              if (mounted) {
-                ref.invalidate(userProfileProvider);
-                ref.invalidate(walletProvider);
-                GkToast.show(context,
-                    message: 'Transaction successful! ${planId[0].toUpperCase()}${planId.substring(1)} Plan Activated 🎉',
-                    type: ToastType.success);
-              }
-            } catch (e) {
-              if (mounted) {
-                GkToast.show(context, message: 'Activation failed: $e', type: ToastType.error);
-              }
-            } finally {
-              if (mounted) setState(() => _isLoading = false);
-            }
-          },
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-    }
-    return RefreshIndicator(
-      color: AppColors.primary,
-      onRefresh: () async {
-        ref.invalidate(userProfileProvider);
-        await Future.delayed(const Duration(milliseconds: 800));
-      },
-      child: ListView(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 140),
-        children: [
-          Text(
-            'Initialize your Account',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Select a baseline subscription tier to start issuing cards. This is a one-time deduction.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
-          ),
-          const SizedBox(height: 24),
-          _buildPlanCard('Instant Plan', 'free', 700, ['1 Card Included', 'Basic Rules'], false),
-          const SizedBox(height: 16),
-          _buildPlanCard('Activation Plan', 'activation', 1400, ['2 Cards Included', 'Basic Rules', 'No limits on top-ups'], false),
-          const SizedBox(height: 16),
-          _buildPlanCard('Premium Plan', 'premium', 1999, [
-            'Smart Alert (breach, activity)',
-            'Savings insight',
-            'Night blocks',
-            'Geofencing',
-            'Advanced Rules',
-            'Scan for subscription patterns',
-          ], true),
-          const SizedBox(height: 16),
-          _buildPlanCard('Business Plan', 'business', 5000, ['5 Cards Included', 'Priority Protection', 'Team Access'], false),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlanCard(String name, String id, int price, List<String> features, bool isPopular) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isPopular ? AppColors.primary : AppColors.outlineVariant),
-        color: isPopular ? AppColors.primary.withValues(alpha: 0.05) : AppColors.surfaceContainerLowest,
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isPopular)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-              child: const Text('RECOMMENDED', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-            ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              Text('₦$price', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...features.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, color: AppColors.primary, size: 16),
-                const SizedBox(width: 8),
-                Expanded(child: Text(f, style: Theme.of(context).textTheme.bodyMedium)),
-              ],
-            ),
-          )),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                backgroundColor: isPopular ? AppColors.primary : Colors.transparent,
-                foregroundColor: isPopular ? Colors.white : AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () => _purchasePlan(id, price),
-              child: Text('Select $name', style: const TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Plan Paystack Checkout ─────────────────────────────────────────────────────
-/// A dedicated Paystack WebView checkout for plan purchases.
-/// Passes metadata.plan so the webhook can route the payment to plan activation.
-class _PlanPaystackCheckout extends StatefulWidget {
-  final String planId;
-  final String planName;
-  final double amountInNgn;
-  final String email;
-  final String uid;
-  final String reference;
-  final Future<void> Function(String reference) onPaymentSuccess;
-
-  const _PlanPaystackCheckout({
-    required this.planId,
-    required this.planName,
-    required this.amountInNgn,
-    required this.email,
-    required this.uid,
-    required this.reference,
-    required this.onPaymentSuccess,
-  });
-
-  @override
-  State<_PlanPaystackCheckout> createState() => _PlanPaystackCheckoutState();
-}
-
-class _PlanPaystackCheckoutState extends State<_PlanPaystackCheckout> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    final amountInKobo = (widget.amountInNgn * 100).toInt();
-
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageFinished: (_) => setState(() => _isLoading = false),
-        onNavigationRequest: (req) {
-          if (req.url.startsWith('gatekeepeer://payment-success')) {
-            final uri = Uri.parse(req.url);
-            final ref = uri.queryParameters['reference'] ?? widget.reference;
-            Navigator.pop(context);
-            widget.onPaymentSuccess(ref);
-            return NavigationDecision.prevent;
-          }
-          if (req.url.startsWith('gatekeepeer://payment-cancelled')) {
-            Navigator.pop(context);
-            return NavigationDecision.prevent;
-          }
-          return NavigationDecision.navigate;
-        },
-      ))
-      ..loadHtmlString(_buildHtml(amountInKobo));
-  }
-
-  String _buildHtml(int amountInKobo) {
-    final planLabel = widget.planName;
-    final amountNgn = (amountInKobo / 100).toStringAsFixed(0);
-    return '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Secure Payment</title>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 24px;
-    }
-    .card {
-      background: white;
-      border-radius: 20px;
-      padding: 32px 24px;
-      text-align: center;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-      width: 100%;
-      max-width: 400px;
-    }
-    .shield { font-size: 48px; margin-bottom: 16px; }
-    h1 { font-size: 22px; font-weight: 800; color: #1a6b47; margin-bottom: 4px; }
-    .plan-badge {
-      display: inline-block;
-      background: #e8f5ee;
-      color: #1a6b47;
-      border-radius: 20px;
-      padding: 4px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      margin: 8px 0 12px;
-    }
-    p { font-size: 14px; color: #6b7280; margin-bottom: 4px; }
-    .amount { font-size: 36px; font-weight: 800; color: #1a6b47; margin: 16px 0; }
-    .btn {
-      display: inline-block;
-      background: #1a6b47;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      padding: 16px 32px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 16px;
-    }
-    .btn:active { opacity: 0.85; }
-    .lock { font-size: 12px; color: #9ca3af; margin-top: 16px; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="shield">🛡️</div>
-    <h1>Gatekeepeer</h1>
-    <p style="font-size: 13px; font-weight: 600; color: #6b7280; margin-bottom: 4px;">Powered by Westgate</p>
-    <div class="plan-badge">$planLabel Plan</div>
-    <p>One-time plan activation fee</p>
-    <div class="amount">₦$amountNgn</div>
-    <p style="font-size:13px;color:#4b5563">${widget.email}</p>
-    <button class="btn" onclick="payWithPaystack()">Pay Securely</button>
-    <div class="lock">🔒 Secured by Westgate Stratagem · PCI DSS compliant</div>
-  </div>
-
-  <script>
-    function payWithPaystack() {
-      var handler = PaystackPop.setup({
-        key: '${AppConstants.paystackPublicKey}',
-        email: '${widget.email}',
-        amount: $amountInKobo,
-        currency: 'NGN',
-        ref: '${widget.reference}',
-        metadata: {
-          uid: '${widget.uid}',
-          plan: '${widget.planId}',
-          custom_fields: [
-            { display_name: 'Plan', variable_name: 'plan', value: '$planLabel' }
-          ]
-        },
-        onClose: function() {
-          window.location.href = 'gatekeepeer://payment-cancelled';
-        },
-        callback: function(response) {
-          window.location.href = 'gatekeepeer://payment-success?reference=' + response.reference;
-        }
-      });
-      handler.openIframe();
-    }
-
-    window.onload = function() {
-      setTimeout(payWithPaystack, 300);
-    };
-  </script>
-</body>
-</html>
-''';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: Text('Activate ${widget.planName} Plan',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800, color: AppColors.primary)),
-        leading: const BackButton(color: AppColors.onSurface),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(children: [
-              const Icon(Icons.lock_rounded, size: 14, color: AppColors.outline),
-              const SizedBox(width: 4),
-              Text('Westgate Stratagem',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontSize: 12, color: AppColors.outline)),
-            ]),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_isLoading)
-            const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: 16),
-                  Text('Loading secure checkout…'),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}

@@ -1,6 +1,6 @@
 // lib/core/widgets/transaction_status_widget.dart
 import 'package:flutter/material.dart';
-import 'package:gatekeepeer/features/wallet/models/transaction_orchestration_model.dart';
+import 'package:gatekipa/features/wallet/models/transaction_orchestration_model.dart';
 
 /// Displays a compact status indicator for a transaction that is in any
 /// lifecycle phase. Replaces optimistic "success assumed" UI with the real

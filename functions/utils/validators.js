@@ -1,5 +1,6 @@
 const { HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("./firebase");
+const crypto = require("crypto");
 
 function requireAuth(auth) {
   if (!auth || !auth.uid) {
@@ -36,10 +37,30 @@ function requireAdmin(auth) {
   }
 }
 
+async function requirePin(uid, pin) {
+  if (!pin) {
+    throw new HttpsError("unauthenticated", "Transaction PIN is required to authorize this action.");
+  }
+  const userDoc = await db.collection("users").doc(uid).get();
+  const security = userDoc.data()?.security || {};
+  
+  if (!security.pinHash) {
+    throw new HttpsError("failed-precondition", "No Transaction PIN is configured on your account. Please set up a PIN in your Profile settings first.");
+  }
+  
+  const [salt, storedHash] = security.pinHash.split(":");
+  const hash = crypto.scryptSync(pin, salt, 64).toString("hex");
+  
+  if (hash !== storedHash) {
+    throw new HttpsError("unauthenticated", "Invalid Transaction PIN.");
+  }
+}
+
 module.exports = {
   requireAuth,
   requireVerifiedEmail,
   requireKyc,
   requireFields,
-  requireAdmin
+  requireAdmin,
+  requirePin
 };

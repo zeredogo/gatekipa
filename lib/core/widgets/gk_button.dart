@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 enum GkButtonVariant { primary, secondary, ghost, danger }
 
@@ -64,6 +64,7 @@ class _GkButtonState extends State<GkButton>
         child: AnimatedContainer(
           duration: 200.ms,
           curve: Curves.easeOutCubic,
+          alignment: Alignment.center,
           width: widget.width ?? double.infinity,
           padding: widget.padding ??
               const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
@@ -81,35 +82,38 @@ class _GkButtonState extends State<GkButton>
                   ]
                 : [],
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.isLoading)
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: fg,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.isLoading)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: fg,
+                    ),
+                  )
+                else ...[
+                  if (widget.icon != null) ...[
+                    Icon(widget.icon, color: fg, size: 20),
+                    const SizedBox(width: AppSpacing.xs),
+                  ],
+                  Text(
+                    widget.label,
+                    style: GoogleFonts.manrope(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: fg,
+                      letterSpacing: -0.2,
+                    ),
                   ),
-                )
-              else ...[
-                if (widget.icon != null) ...[
-                  Icon(widget.icon, color: fg, size: 20),
-                  const SizedBox(width: AppSpacing.xs),
                 ],
-                Text(
-                  widget.label,
-                  style: GoogleFonts.manrope(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: fg,
-                    letterSpacing: -0.2,
-                  ),
-                ),
               ],
-            ],
+            ),
           ),
         ),
       ),

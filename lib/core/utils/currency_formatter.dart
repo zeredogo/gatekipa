@@ -1,23 +1,23 @@
 // lib/core/utils/currency_formatter.dart
 import 'package:intl/intl.dart';
-import 'package:gatekeepeer/core/constants/app_constants.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
 
 class CurrencyFormatter {
   static final _formatter = NumberFormat.currency(
     locale: 'en_NG',
-    symbol: AppConstants.currencySymbol,
+    symbol: '${AppConstants.currencySymbol} ',
     decimalDigits: 2,
   );
 
   static final _compact = NumberFormat.compactCurrency(
     locale: 'en_NG',
-    symbol: AppConstants.currencySymbol,
+    symbol: '${AppConstants.currencySymbol} ',
     decimalDigits: 1,
   );
 
   static final _noDecimal = NumberFormat.currency(
     locale: 'en_NG',
-    symbol: AppConstants.currencySymbol,
+    symbol: '${AppConstants.currencySymbol} ',
     decimalDigits: 0,
   );
 

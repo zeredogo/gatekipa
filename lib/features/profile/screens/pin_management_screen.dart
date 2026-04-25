@@ -4,11 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_button.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class PinManagementScreen extends ConsumerStatefulWidget {
   const PinManagementScreen({super.key});
@@ -20,8 +21,10 @@ class PinManagementScreen extends ConsumerStatefulWidget {
 class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
   final _formKey = GlobalKey<FormState>();
   final _pinCtrl = TextEditingController();
+  final _oldPinCtrl = TextEditingController();
   bool _isLoading = false;
   bool _hasExistingPin = false;
+  bool _needsManualOldPin = false;
 
   @override
   void initState() {
@@ -49,14 +52,18 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
       }
     }
 
+    final userProfile = ref.read(userProfileProvider).value;
+
     setState(() {
-      _hasExistingPin = securePin != null;
+      _hasExistingPin = securePin != null || (userProfile?.hasTransactionPin ?? false);
+      _needsManualOldPin = securePin == null && (userProfile?.hasTransactionPin == true);
     });
   }
 
   @override
   void dispose() {
     _pinCtrl.dispose();
+    _oldPinCtrl.dispose();
     super.dispose();
   }
 
@@ -64,18 +71,38 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 1));
     final user = ref.read(authStateProvider).value;
-    if (user != null) {
+    if (user == null) return;
+    
+    try {
       const storage = FlutterSecureStorage();
       final secureKey = '${user.uid}_transaction_pin';
+      final localOldPin = await storage.read(key: secureKey);
+      final finalOldPin = _needsManualOldPin ? _oldPinCtrl.text : localOldPin;
+      
+      // Sync cryptographically to the backend
+      final callable = FirebaseFunctions.instance.httpsCallable('setTransactionPin');
+      await callable.call({
+        'pin': _pinCtrl.text,
+        'oldPin': finalOldPin, // Will be null if on a new device and no backend PIN
+      });
+      
+      // Update local hardware storage only if backend accepts it
       await storage.write(key: secureKey, value: _pinCtrl.text);
-    }
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    GkToast.show(context, message: 'PIN configured successfully', type: ToastType.success);
-    context.pop();
+      if (!mounted) return;
+      GkToast.show(context, message: 'PIN configured securely', type: ToastType.success);
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      String errorMsg = "An error occurred.";
+      if (e is FirebaseFunctionsException) {
+        errorMsg = e.message ?? "Server rejected PIN change.";
+      }
+      GkToast.show(context, message: errorMsg, type: ToastType.error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -120,6 +147,55 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
                   height: 1.5,),
               ),
               const SizedBox(height: 36),
+              
+              if (_needsManualOldPin) ...[
+                Text(
+                  'Current PIN',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurfaceVariant,),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                TextFormField(
+                  controller: _oldPinCtrl,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  obscuringCharacter: '●',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
+                    letterSpacing: 16,
+                    fontWeight: FontWeight.w800,),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: '●●●●',
+                    hintStyle: const TextStyle(height: 1.2, fontFamily: 'Manrope', letterSpacing: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.outline, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.isEmpty || v.length != 4) return 'Enter your current 4-digit PIN';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
+              
               Text(
                 'New PIN',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,

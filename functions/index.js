@@ -8,7 +8,7 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 // Setting cpu to 0.16 to prevent exceeding regions total allowable CPU quota during multi-function deployment
 setGlobalOptions({ maxInstances: 1, memory: "256MiB", cpu: 0.16, enforceAppCheck: false });
 
-const { onUserCreated, purchasePlan, purchasePlanFromVault } = require("./services/authService");
+const { onUserCreated, purchasePlan, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset } = require("./services/authService");
 const { createAccount, inviteTeamMember, renameAccount, deleteAccount, switchActiveAccount, removeTeamMember } = require("./services/accountService");
 const { createVirtualCard, toggleCardStatus, activateKillSwitch, renameCard, adminGlobalKillSwitch, sendCardNotification } = require("./services/cardService");
 const { createRule, deleteRule, adminSimulateRuleEngine } = require("./services/ruleService");
@@ -18,7 +18,7 @@ const { detectSubscriptions } = require("./services/detectService");
 const { createVaultAccount, requestWithdrawal } = require("./services/walletService");
 const { verifyBvn, verifyKyc, qoreidWebhook } = require("./services/kycService");
 const { verifyPaystackPayment, paystackWebhook } = require("./services/paystackService");
-const { deleteUserAccount, initiatePremiumUpgrade, verifyPremiumPayment } = require("./services/userService");
+const { deleteUserAccount, initiatePremiumUpgrade, verifyPremiumPayment, setTransactionPin } = require("./services/userService");
 const {
   registerCardholder,
   createBridgecard,
@@ -29,16 +29,22 @@ const {
   revealCardDetails,
   getCardOtp,
 } = require("./services/bridgecardService");
-const { integritySweep } = require("./services/reconciliationCron");
-const { scanSubscriptionPatterns } = require("./services/subscriptionCron");
+const { integritySweep, pollMissingWebhooks, aggregateSystemStats } = require("./services/reconciliationCron");
+const { reconciliationDispatcher, processReconciliationBatch } = require("./services/reconciliationDispatcher");
+const { scanSubscriptionPatterns, sendRenewalReminders } = require("./services/subscriptionCron");
 const { expirationCron } = require("./services/expirationCron");
+const { ghostCardSweeper } = require("./services/ghostCardSweeper");
 const { adminSetSystemMode, adminGetSystemMode } = require("./services/systemService");
+const { getUserAnalytics } = require("./services/analyticsService");
 
 
 // 1. Auth / User Lifecycle
 exports.onUserCreated = onUserCreated;
 exports.purchasePlan  = purchasePlan;
 exports.purchasePlanFromVault = purchasePlanFromVault;
+exports.resendVerificationEmail = resendVerificationEmail;
+exports.requestPasswordReset = requestPasswordReset;
+exports.setTransactionPin = setTransactionPin;
 
 // 2. Account Management
 exports.createAccount = createAccount;
@@ -72,9 +78,15 @@ exports.searchEntities = searchEntities;
 exports.detectSubscriptions = detectSubscriptions;
 
 // 8. CRON & Automations
-exports.integritySweep = integritySweep;
-exports.scanSubscriptionPatterns = scanSubscriptionPatterns;
-exports.expirationCron = expirationCron;
+exports.integritySweep            = integritySweep;
+exports.pollMissingWebhooks       = pollMissingWebhooks;
+exports.aggregateSystemStats      = aggregateSystemStats;
+exports.reconciliationDispatcher  = reconciliationDispatcher;
+exports.processReconciliationBatch = processReconciliationBatch;
+exports.ghostCardSweeper          = ghostCardSweeper;
+exports.scanSubscriptionPatterns  = scanSubscriptionPatterns;
+exports.sendRenewalReminders      = sendRenewalReminders;
+exports.expirationCron            = expirationCron;
 
 // 9. System Mode Management (Admin Only)
 exports.adminSetSystemMode = adminSetSystemMode;
@@ -92,6 +104,9 @@ exports.qoreidWebhook = qoreidWebhook;
 // 10. Payment Verification
 exports.verifyPaystackPayment = verifyPaystackPayment;
 exports.paystackWebhook = paystackWebhook;
+
+// 11. Analytics
+exports.getUserAnalytics = getUserAnalytics;
 
 // 11. Bridgecard — Real NGN Virtual Card Issuing
 exports.registerCardholder = registerCardholder;

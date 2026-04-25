@@ -4,8 +4,10 @@ import DashboardClient from "./DashboardClient";
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
-  const stats = await getDashboardStats();
-  const transactions = await getRecentTransactions();
+  const [stats, transactions] = await Promise.all([
+    getDashboardStats(),
+    getRecentTransactions()
+  ]);
 
   return (
     <DashboardClient 

@@ -7,25 +7,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:gatekeepeer/core/constants/routes.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/utils/currency_formatter.dart';
-import 'package:gatekeepeer/core/utils/date_formatter.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/currency_formatter.dart';
+import 'package:gatekipa/core/utils/date_formatter.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
 
-import 'package:gatekeepeer/core/widgets/shimmer_loader.dart';
-import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
-import 'package:gatekeepeer/features/accounts/models/account_model.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
-import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
-import 'package:gatekeepeer/features/search/widgets/search_bar_widget.dart';
-import 'package:gatekeepeer/features/wallet/models/wallet_model.dart';
-import 'package:gatekeepeer/features/wallet/providers/wallet_provider.dart';
-import 'package:gatekeepeer/features/notifications/providers/notification_provider.dart';
-import 'package:gatekeepeer/core/widgets/gk_card_list_tile.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
-import 'package:gatekeepeer/core/providers/system_state_provider.dart';
+import 'package:gatekipa/core/widgets/shimmer_loader.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/accounts/models/account_model.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/search/widgets/search_bar_widget.dart';
+import 'package:gatekipa/features/wallet/models/wallet_model.dart';
+import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekipa/features/notifications/providers/notification_provider.dart';
+import 'package:gatekipa/core/widgets/gk_card_list_tile.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/providers/system_state_provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -174,6 +174,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   // ── System Mode Banner (hidden in NORMAL mode) ─────────────
                   if (!sysState.isOperational)
                     _SystemModeBanner(state: sysState),
+
+                  // ── KYC Action Banner ──
+                  if (userAsync.valueOrNull != null && userAsync.valueOrNull!.kycStatus != 'verified')
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, AppSpacing.lg),
+                      child: InkWell(
+                        onTap: () => context.push(Routes.kyc),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 24),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Action Required: Verify Identity', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
+                                    const SizedBox(height: 4),
+                                    Text('Complete KYC to unlock card creation and full access.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant)),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.primary),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
 
                   // Balance header
                   _BalanceSection(
@@ -930,8 +972,11 @@ class _GuardRulesWidget extends ConsumerWidget {
     final userAsync = ref.watch(userProfileProvider);
     final cardsAsync = ref.watch(cardsProvider);
     
-    // Check if user has active subscription card
-    final hasSubscriptionCard = cardsAsync.valueOrNull?.any((c) => !c.isTrial) ?? false;
+    // FIX: Night Lockdown and Geo-Fence are user-level settings (stored on the users doc) that
+    // ruleEngine.js applies to ALL cards regardless of type. Gating on "has non-trial card"
+    // blocked Sentinel Prime trial users from using these features entirely.
+    // Correct gate: user must have at least one card (any type) AND be Sentinel Prime.
+    final hasAnyCard = cardsAsync.valueOrNull?.isNotEmpty ?? false;
 
     return userAsync.when(
       data: (user) {
@@ -943,16 +988,17 @@ class _GuardRulesWidget extends ConsumerWidget {
               iconColor: Colors.indigo,
               title: 'Night Lockdown',
               sub: 'Block all charges 12 AM – 6 AM (WAT)',
-              value: hasSubscriptionCard ? user.nightLockdown : false,
+              value: hasAnyCard && user.isSentinelPrime ? user.nightLockdown : false,
               onChanged: (v) async {
-                if (!hasSubscriptionCard) {
+                if (!hasAnyCard) {
                   GkToast.show(context,
-                      message: '🚀 Create a subscription card first to unlock Night Lockdown.',
+                      message: '🚀 Create a card first to unlock Night Lockdown.',
                       type: ToastType.warning,
                       duration: const Duration(seconds: 4));
                   return;
                 }
-                if (user.planTier != 'premium' && user.planTier != 'business') {
+                // FIX #1: Use isSentinelPrime — covers premium, business, AND active trial
+                if (!user.isSentinelPrime) {
                   GkToast.show(context,
                       message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock Night Lockdown.',
                       type: ToastType.warning,
@@ -979,16 +1025,17 @@ class _GuardRulesWidget extends ConsumerWidget {
               iconColor: Colors.teal,
               title: 'Geo-Fence',
               sub: 'Block international charges',
-              value: hasSubscriptionCard ? user.geoFence : false,
+              value: hasAnyCard && user.isSentinelPrime ? user.geoFence : false,
               onChanged: (v) async {
-                if (!hasSubscriptionCard) {
+                if (!hasAnyCard) {
                   GkToast.show(context,
-                      message: '🚀 Create a subscription card first to unlock advanced geo-fencing protections.',
+                      message: '🚀 Create a card first to unlock geo-fencing protections.',
                       type: ToastType.warning,
                       duration: const Duration(seconds: 4));
                   return;
                 }
-                if (user.planTier != 'premium' && user.planTier != 'business') {
+                // FIX #1: Use isSentinelPrime — covers premium, business, AND active trial
+                if (!user.isSentinelPrime) {
                   GkToast.show(context,
                       message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock advanced geo-fencing protections.',
                       type: ToastType.warning,

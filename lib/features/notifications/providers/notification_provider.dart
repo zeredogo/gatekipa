@@ -2,9 +2,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekeepeer/features/notifications/models/notification_model.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/core/constants/app_constants.dart';
+import 'package:gatekipa/features/notifications/models/notification_model.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
 
 // ── Notifications Stream ────────────────────────────────────────────────────────
 final notificationsProvider = StreamProvider<List<NotificationModel>>((ref) {

@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/utils/date_formatter.dart';
-import 'package:gatekeepeer/features/notifications/models/notification_model.dart';
-import 'package:gatekeepeer/features/notifications/providers/notification_provider.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/date_formatter.dart';
+import 'package:gatekipa/features/notifications/models/notification_model.dart';
+import 'package:gatekipa/features/notifications/providers/notification_provider.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class NotificationCenterScreen extends ConsumerWidget {
   const NotificationCenterScreen({super.key});

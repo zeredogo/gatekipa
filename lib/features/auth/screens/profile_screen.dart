@@ -6,20 +6,19 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:gatekeepeer/core/constants/app_constants.dart';
-import 'package:gatekeepeer/core/constants/routes.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_button.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/features/auth/models/user_model.dart';
-import 'package:gatekeepeer/features/profile/screens/kyc_verification_screen.dart';
-
-import 'package:gatekeepeer/features/profile/screens/biometrics_screen.dart';
-import 'package:gatekeepeer/features/profile/screens/pin_management_screen.dart';
-import 'package:gatekeepeer/features/profile/screens/premium_upgrade_screen.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_button.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/auth/models/user_model.dart';
+import 'package:gatekipa/features/profile/screens/kyc_verification_screen.dart';
+import 'package:gatekipa/features/profile/screens/biometrics_screen.dart';
+import 'package:gatekipa/features/profile/screens/pin_management_screen.dart';
+import 'package:gatekipa/features/profile/screens/premium_upgrade_screen.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -144,9 +143,19 @@ class ProfileScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(
+                        // FIX #5: Show correct plan name per tier, not always 'Instant Plan'.
                         user?.isSentinelPrime == true
-                            ? '✦ Sentinel Prime'
-                            : 'Instant Plan',
+                            ? (user!.isTrialActive ? '⚡ Trial Active' : '✦ Sentinel Prime')
+                            : switch (user?.planTier) {
+                                'business'   => '🏢 Business Plan',
+                                'premium'    => '✦ Sentinel Prime',
+                                'activation' => '🔓 Activation Plan',
+                                'free'       => '⚡ Instant Plan',
+                                // FIX: 'none' is the downgraded state after expiry. Show a
+                                // clear prompt rather than the misleading "Basic Plan" label.
+                                'none' || null => '📭 No Active Plan',
+                                _              => '🔓 Basic Plan',
+                              },
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,),
@@ -182,7 +191,7 @@ class ProfileScreen extends ConsumerWidget {
                         label: 'Government Issued ID',
                         trailing:
                             _KycBadge(status: user?.kycStatus ?? 'pending'),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KycVerificationScreen())),
+                        onTap: () => context.push(Routes.kyc),
                       ),
                     ]),
                     const SizedBox(height: 20),
@@ -193,14 +202,14 @@ class ProfileScreen extends ConsumerWidget {
                         label: 'Biometrics',
                         trailing: const Icon(Icons.chevron_right_rounded,
                             color: AppColors.outline),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BiometricsScreen())),
+                        onTap: () => context.push(Routes.biometrics),
                       ),
                       _SettingsItem(
                         icon: Icons.key_rounded,
                         label: 'PIN Management',
                         trailing: const Icon(Icons.chevron_right_rounded,
                             color: AppColors.outline),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PinManagementScreen())),
+                        onTap: () => context.push(Routes.pinManagement),
                       ),
                     ]),
                     const SizedBox(height: 20),
@@ -285,7 +294,7 @@ class ProfileScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumUpgradeScreen())),
+                          onTap: () => context.push(Routes.premiumUpgrade),
                         ),
                       ]),
                       const SizedBox(height: 20),
@@ -297,12 +306,7 @@ class ProfileScreen extends ConsumerWidget {
                         label: 'Help & Support',
                         trailing: const Icon(Icons.chevron_right_rounded,
                             color: AppColors.outline),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const _SupportWebView(),
-                          ),
-                        ),
+                        onTap: () => context.push(Routes.support),
                       ),
                     ]),
                     const SizedBox(height: 20),
@@ -342,7 +346,7 @@ class ProfileScreen extends ConsumerWidget {
         ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('Error loading profile')),
+        error: (_, __) => const Center(child: Text('Could not load your profile. Please pull down to refresh.')),
       ),
     );
   }
@@ -512,6 +516,10 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
   late final TextEditingController _firstNameCtrl;
   late final TextEditingController _lastNameCtrl;
   late final TextEditingController _addressCtrl;
+  late final TextEditingController _cityCtrl;
+  late final TextEditingController _stateCtrl;
+  late final TextEditingController _postalCodeCtrl;
+  late final TextEditingController _houseNumberCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _phoneCtrl;
   bool _isLoading = false;
@@ -523,6 +531,10 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
     _firstNameCtrl = TextEditingController(text: widget.user.firstName ?? (parts.isNotEmpty ? parts.first : ''));
     _lastNameCtrl = TextEditingController(text: widget.user.lastName ?? (parts.length > 1 ? parts.sublist(1).join(' ') : ''));
     _addressCtrl = TextEditingController(text: widget.user.address ?? '');
+    _cityCtrl = TextEditingController(text: widget.user.city ?? '');
+    _stateCtrl = TextEditingController(text: widget.user.state ?? '');
+    _postalCodeCtrl = TextEditingController(text: widget.user.postalCode ?? '');
+    _houseNumberCtrl = TextEditingController(text: widget.user.houseNumber ?? '');
     _emailCtrl = TextEditingController(text: widget.user.email ?? '');
     _phoneCtrl = TextEditingController(text: widget.user.phoneNumber ?? '');
   }
@@ -532,6 +544,10 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
     _addressCtrl.dispose();
+    _cityCtrl.dispose();
+    _stateCtrl.dispose();
+    _postalCodeCtrl.dispose();
+    _houseNumberCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
@@ -541,6 +557,10 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
     final firstName = _firstNameCtrl.text.trim();
     final lastName = _lastNameCtrl.text.trim();
     final address = _addressCtrl.text.trim();
+    final city = _cityCtrl.text.trim();
+    final addrState = _stateCtrl.text.trim();
+    final postalCode = _postalCodeCtrl.text.trim();
+    final houseNumber = _houseNumberCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final phone = _phoneCtrl.text.trim();
     
@@ -560,6 +580,10 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
           'lastName': lastName,
           'displayName': displayName,
           'address': address.isNotEmpty ? address : null,
+          'city': city.isNotEmpty ? city : null,
+          'state': addrState.isNotEmpty ? addrState : null,
+          'postalCode': postalCode.isNotEmpty ? postalCode : null,
+          'houseNumber': houseNumber.isNotEmpty ? houseNumber : null,
           'email': email.isNotEmpty ? email : null,
           'phoneNumber': phone.isNotEmpty ? phone : null,
         },
@@ -570,7 +594,7 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
       }
     } catch (e) {
       if (mounted) {
-        GkToast.show(context, message: 'Failed to update profile', type: ToastType.error);
+        GkToast.show(context, message: 'Could not update your profile. Please check your connection and try again.', type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -639,11 +663,59 @@ class _UpdateProfileSheetState extends ConsumerState<_UpdateProfileSheet> {
             const SizedBox(height: AppSpacing.md),
             TextField(
               controller: _addressCtrl,
-              maxLines: 2,
               decoration: InputDecoration(
-                labelText: 'Address',
+                labelText: 'Street Address',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _cityCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'City',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: TextField(
+                    controller: _stateCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'State',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _houseNumberCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'House No.',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: TextField(
+                    controller: _postalCodeCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Postal Code',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.xl),
             GkButton(
@@ -692,12 +764,12 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
       // Sign out locally and redirect
       await widget.parentRef.read(authNotifierProvider.notifier).signOut();
       if (mounted) context.go(Routes.emailAuth);
-    } on FirebaseFunctionsException catch (e) {
+    } on FirebaseFunctionsException {
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
         GkToast.show(
           context,
-          message: e.message ?? 'Failed to delete account. Try again.',
+          message: 'Could not delete your account at this time. Please try again later or contact support.',
           type: ToastType.error,
         );
       }
@@ -747,50 +819,18 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
   }
 }
 
-// ── Support WebView ─────────────────────────────────────────────────────────
-class _SupportWebView extends StatefulWidget {
+// ── Native Support Screen ──────────────────────────────────────────────────
+class _SupportWebView extends StatelessWidget {
   const _SupportWebView();
 
-  @override
-  State<_SupportWebView> createState() => _SupportWebViewState();
-}
-
-class _SupportWebViewState extends State<_SupportWebView> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    final String supportHtml = '''
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  body { font-family: sans-serif; padding: 40px 24px; text-align: center; color: #111827; }
-  h2 { color: #027A48; font-weight: 800; margin-bottom: 8px; }
-  p { line-height: 1.6; color: #4B5563; margin-top: 0; }
-  .box { background: #F9FAFB; border-radius: 16px; padding: 24px; margin-top: 32px; border: 1px solid #E5E7EB; }
-  a { color: #027A48; text-decoration: none; font-weight: 700; font-size: 16px; }
-</style>
-</head>
-<body>
-  <h2>How can we help?</h2>
-  <p>Our support team is always ready to assist you.</p>
-  <div class="box">
-    <p><b>Email us at:</b><br><a href="mailto:hello@gatekipa.com">hello@gatekipa.com</a></p>
-  </div>
-</body>
-</html>
-''';
-
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageFinished: (_) => setState(() => _isLoading = false),
-      ))
-      ..loadRequest(Uri.dataFromString(supportHtml, mimeType: 'text/html'));
+  Future<void> _launchEmail() async {
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      path: 'hello@gatekipa.com',
+    );
+    if (!await launchUrl(emailLaunchUri)) {
+      debugPrint('Could not launch email client.');
+    }
   }
 
   @override
@@ -807,13 +847,78 @@ class _SupportWebViewState extends State<_SupportWebView> {
         ),
         leading: const CloseButton(color: AppColors.onSurface),
       ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_isLoading)
-            const Center(
-                child: CircularProgressIndicator(color: AppColors.primary)),
-        ],
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.support_agent_rounded,
+                  size: 64,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'How can we help?',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Our support team is always ready to assist you with any questions or issues.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+              ),
+              const SizedBox(height: 48),
+              InkWell(
+                onTap: _launchEmail,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.outline.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.email_outlined, color: AppColors.primary, size: 28),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Email us at',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'hello@gatekipa.com',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -31,8 +31,36 @@ class UserModel {
   final bool hasBvn;
   final bool blockAlerts;
   final bool subscriptionReminders;
+  final DateTime? sentinelTrialExpiryDate;
+  final DateTime? subscriptionExpiryDate;
+  final bool hasTransactionPin;
 
-  bool get isSentinelPrime => planTier == 'premium' || planTier == 'business';
+  bool get isSentinelPrime {
+    if (planTier == 'premium' || planTier == 'business') return true;
+    if (sentinelTrialExpiryDate != null && sentinelTrialExpiryDate!.isAfter(DateTime.now())) return true;
+    return false;
+  }
+
+  /// Days left on either sentinel trial or full subscription, whichever is active.
+  int get daysLeftOnPlan {
+    if (planTier == 'premium' || planTier == 'business') {
+      if (subscriptionExpiryDate != null) {
+        return subscriptionExpiryDate!.difference(DateTime.now()).inDays.clamp(0, 999);
+      }
+      return 0;
+    }
+    // Instant / Activation — trial period
+    if (sentinelTrialExpiryDate != null && sentinelTrialExpiryDate!.isAfter(DateTime.now())) {
+      return sentinelTrialExpiryDate!.difference(DateTime.now()).inDays.clamp(0, 5);
+    }
+    return 0;
+  }
+
+  bool get isTrialActive =>
+      sentinelTrialExpiryDate != null &&
+      sentinelTrialExpiryDate!.isAfter(DateTime.now()) &&
+      planTier != 'premium' &&
+      planTier != 'business';
 
   const UserModel({
     required this.uid,
@@ -63,6 +91,9 @@ class UserModel {
     this.hasBvn = false,
     this.blockAlerts = false,
     this.subscriptionReminders = false,
+    this.sentinelTrialExpiryDate,
+    this.subscriptionExpiryDate,
+    this.hasTransactionPin = false,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -101,6 +132,17 @@ class UserModel {
       hasBvn: data['hasBvn'] ?? false,
       blockAlerts: data['blockAlerts'] ?? false,
       subscriptionReminders: data['subscriptionReminders'] ?? false,
+      sentinelTrialExpiryDate: data['sentinel_trial_expiry_date'] != null
+          ? (data['sentinel_trial_expiry_date'] is Timestamp
+              ? (data['sentinel_trial_expiry_date'] as Timestamp).toDate()
+              : DateTime.fromMillisecondsSinceEpoch(data['sentinel_trial_expiry_date'] as int))
+          : null,
+      subscriptionExpiryDate: data['subscription_expiry_date'] != null
+          ? (data['subscription_expiry_date'] is Timestamp
+              ? (data['subscription_expiry_date'] as Timestamp).toDate()
+              : DateTime.fromMillisecondsSinceEpoch(data['subscription_expiry_date'] as int))
+          : null,
+      hasTransactionPin: data['security'] != null && data['security']['pinHash'] != null,
     );
     } catch (e) {
       debugPrint('[DataBoundary] Failed to parse UserModel for document ${doc.id}. Error: $e');
@@ -152,6 +194,11 @@ class UserModel {
     String? bridgecardCardholderId,
     String? kycStatus,
     bool? isPremium,
+    // FIX: planTier and cardsIncluded were missing from copyWith — any caller that needed
+    // to locally update the plan (e.g. optimistic UI after upgrade) silently fell back
+    // to stale values, keeping isSentinelPrime incorrect until a full Firestore refresh.
+    String? planTier,
+    int? cardsIncluded,
     String? avatarUrl,
     DateTime? lastLoginAt,
     bool? nightLockdown,
@@ -159,6 +206,9 @@ class UserModel {
     bool? hasBvn,
     bool? blockAlerts,
     bool? subscriptionReminders,
+    DateTime? sentinelTrialExpiryDate,
+    DateTime? subscriptionExpiryDate,
+    bool? hasTransactionPin,
   }) {
     return UserModel(
       uid: uid,
@@ -180,6 +230,8 @@ class UserModel {
       kycStatus: kycStatus ?? this.kycStatus,
       // ignore: deprecated_member_use_from_same_package
       isPremium: isPremium ?? this.isPremium,
+      planTier: planTier ?? this.planTier,
+      cardsIncluded: cardsIncluded ?? this.cardsIncluded,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       createdAt: createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
@@ -188,6 +240,9 @@ class UserModel {
       hasBvn: hasBvn ?? this.hasBvn,
       blockAlerts: blockAlerts ?? this.blockAlerts,
       subscriptionReminders: subscriptionReminders ?? this.subscriptionReminders,
+      sentinelTrialExpiryDate: sentinelTrialExpiryDate ?? this.sentinelTrialExpiryDate,
+      subscriptionExpiryDate: subscriptionExpiryDate ?? this.subscriptionExpiryDate,
+      hasTransactionPin: hasTransactionPin ?? this.hasTransactionPin,
     );
   }
 }

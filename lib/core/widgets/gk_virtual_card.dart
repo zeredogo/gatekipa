@@ -1,15 +1,17 @@
 // lib/core/widgets/gk_virtual_card.dart
 import 'package:flutter/material.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
-import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
 
 import 'package:local_auth/local_auth.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class GkVirtualCard extends ConsumerStatefulWidget {
   final VirtualCardModel card;
@@ -53,20 +55,106 @@ class _GkVirtualCardState extends ConsumerState<GkVirtualCard> {
     };
   }
 
+  Future<bool> _verifyTransactionPin() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    const storage = FlutterSecureStorage();
+    final secureKey = '${user.uid}_transaction_pin';
+    final savedPin = await storage.read(key: secureKey);
+
+    if (savedPin == null) {
+      if (mounted) {
+        GkToast.show(context, message: 'Please set up your Transaction PIN in Profile -> Settings first.', type: ToastType.error);
+      }
+      return false;
+    }
+
+    String enteredPin = '';
+    final bool? success = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text(
+            'Enter Card PIN',
+            style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Please enter your 4-digit transaction PIN to reveal card details.',
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                onChanged: (val) => enteredPin = val,
+                decoration: InputDecoration(
+                  hintText: '****',
+                  counterText: '',
+                  filled: true,
+                  fillColor: AppColors.surfaceContainerLowest,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                style: const TextStyle(letterSpacing: 8, fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.outline)),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (enteredPin == savedPin) {
+                  Navigator.pop(ctx, true);
+                } else {
+                  GkToast.show(ctx, message: 'Incorrect PIN', type: ToastType.error);
+                  Navigator.pop(ctx, false);
+                }
+              },
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('Verify'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return success ?? false;
+  }
+
   Future<void> _toggleReveal() async {
     if (_isRevealed) {
       setState(() => _isRevealed = false);
       return;
     }
     try {
-      final canAuth = await _localAuth.canCheckBiometrics || await _localAuth.isDeviceSupported();
-      bool authenticated = true;
-      if (canAuth) {
+      bool authenticated = false;
+      final canCheck = await _localAuth.canCheckBiometrics;
+      if (canCheck) {
         authenticated = await _localAuth.authenticate(
           localizedReason: 'Authenticate to reveal card details',
-          options: const AuthenticationOptions(stickyAuth: true, biometricOnly: false),
+          options: const AuthenticationOptions(stickyAuth: true, biometricOnly: true),
         );
       }
+      
+      // Fallback to Transaction PIN if biometric fails, cancels, or isn't available
+      if (!authenticated) {
+        authenticated = await _verifyTransactionPin();
+      }
+
       if (authenticated) {
         if (_liveCardNumber == null) {
           setState(() => _isLoadingDetails = true);

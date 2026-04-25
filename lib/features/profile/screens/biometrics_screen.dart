@@ -3,10 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/widgets/gk_toast.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/widgets/gk_toast.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class BiometricsScreen extends ConsumerStatefulWidget {
   const BiometricsScreen({super.key});
@@ -69,7 +69,7 @@ class _BiometricsScreenState extends ConsumerState<BiometricsScreen> {
       } catch (e) {
         if (mounted) {
           GkToast.show(context,
-              message: 'Biometrics unavailable: ${e.toString()}',
+              message: 'Biometrics are not set up on this device. Please enable Face ID or Fingerprint in your device settings.',
               type: ToastType.error);
         }
         return;

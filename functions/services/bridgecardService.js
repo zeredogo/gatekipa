@@ -15,14 +15,14 @@
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { defineString, defineSecret } = require("firebase-functions/params");
 const { db } = require("../utils/firebase");
-const { requireVerifiedEmail, requireAdmin, requireFields, requireKyc } = require("../utils/validators");
+const { requireVerifiedEmail, requireAdmin, requireFields, requireKyc, requirePin } = require("../utils/validators");
 const { FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const axios = require("axios");
 const AES256 = require("aes-everywhere");
 const crypto = require("crypto");
 const logger = require("firebase-functions/logger");
-const { evaluateTransaction } = require("../engines/ruleEngine");
+const { evaluateTransaction, userHasSentinelAccess } = require("../engines/ruleEngine");
 const { getSystemMode, assertSystemAllowsFinancialOps } = require("../core/systemState");
 const { assertValidTransition } = require("../core/stateMachine");
 // Loaded lazily to avoid circular require (transactionService ↔ bridgecardService)
@@ -40,7 +40,7 @@ const BRIDGECARD_ACCESS_TOKEN  = defineSecret("BRIDGECARD_ACCESS_TOKEN");
 const BRIDGECARD_SECRET_KEY    = defineSecret("BRIDGECARD_SECRET_KEY");
 const BRIDGECARD_WEBHOOK_SECRET = defineSecret("BRIDGECARD_WEBHOOK_SECRET");
 const BASE_URL        = process.env.BRIDGECARD_BASE_URL
-                        || "https://issuecards.api.bridgecard.co/v1/issuing/live";
+                        || "https://issuecards.api.bridgecard.co/v1/issuing";
 const ISSUING_APP_ID  = process.env.BRIDGECARD_ISSUING_APP_ID || "8ea9a4b4-26b1-4aa6-8e29-25648057ab7d";
 
 /** Shared axios instance with auth header */
@@ -75,6 +75,39 @@ exports.registerCardholder = onCall({ region: "us-central1", secrets: [BRIDGECAR
 
   requireFields(data, ["address", "city", "state", "postal_code", "house_no"]);
 
+  // ── Server-side data quality validation ──────────────────────────────────
+  const nameRe = /^[a-zA-Z\-' ]{2,}$/;
+  if (data.first_name && !nameRe.test(data.first_name.trim())) {
+    throw new HttpsError("invalid-argument", "First name must be at least 2 letters (no numbers or special characters).");
+  }
+  if (data.last_name && !nameRe.test(data.last_name.trim())) {
+    throw new HttpsError("invalid-argument", "Last name must be at least 2 letters (no numbers or special characters).");
+  }
+  if (data.address.trim().length < 5) {
+    throw new HttpsError("invalid-argument", "Street address must be at least 5 characters.");
+  }
+  if (data.city.trim().length < 2) {
+    throw new HttpsError("invalid-argument", "City must be at least 2 characters.");
+  }
+  if (data.state.trim().length < 2) {
+    throw new HttpsError("invalid-argument", "State must be at least 2 characters.");
+  }
+  if (!/^[0-9]{4,10}$/.test(data.postal_code.trim())) {
+    throw new HttpsError("invalid-argument", "Postal code must be 4-10 digits.");
+  }
+  if (data.house_no.trim().length < 1) {
+    throw new HttpsError("invalid-argument", "House number is required.");
+  }
+  if (data.phone !== undefined && data.phone !== null) {
+    if (data.phone.trim() === "") {
+      throw new HttpsError("invalid-argument", "Phone number cannot be empty.");
+    }
+    const cleanedPhone = data.phone.trim().replace(/[\s\-]/g, "");
+    if (!/^\+?[0-9]{10,15}$/.test(cleanedPhone)) {
+      throw new HttpsError("invalid-argument", "Phone number must be a valid format (e.g. +2348012345678).");
+    }
+  }
+
   // --- Check if already registered ---
   const userDoc = await db.collection("users").doc(uid).get();
   const userData = userDoc.data() || {};
@@ -106,7 +139,7 @@ exports.registerCardholder = onCall({ region: "us-central1", secrets: [BRIDGECAR
     // If the user has completed the generalized upload flow, use their stored document or fallback
     identityObject = {
       id_type: "PASSPORT",
-      id_no: userData.qoreIdMeta?.idNumber || "A00000000",
+      id_no: userData.kycMeta?.idNumber || "A00000000",
       id_image: userData.kycMeta?.photo || "https://via.placeholder.com/150",
       selfie_image: userData.kycMeta?.selfie || "https://via.placeholder.com/150",
     };
@@ -156,8 +189,16 @@ exports.registerCardholder = onCall({ region: "us-central1", secrets: [BRIDGECAR
 
     return { success: true, cardholder_id };
   } catch (err) {
+    const status = err.response?.status;
     const msg = err.response?.data?.message || err.message;
-    console.error("[Bridgecard] registerCardholder error:", msg);
+    logger.error("[Bridgecard] registerCardholder error:", { status, message: msg, url: "/cardholder/register_cardholder_synchronously" });
+    
+    // Auto-heal: If Bridgecard rejects the ID details, revert the local KYC lock
+    // so the user can re-submit their documents via the Profile screen.
+    if (userData.kycStatus === "verified") {
+      await db.collection("users").doc(uid).update({ kycStatus: "unverified" }).catch(() => {});
+    }
+
     throw new HttpsError("failed-precondition", msg);
   }
 });
@@ -173,10 +214,13 @@ exports.createBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_
   const uid = request.auth.uid;
   const data = request.data;
 
-  requireFields(data, ["card_id", "pin"]);  // card_id = our Firestore card doc ID
+  requireFields(data, ["card_id", "pin", "transactionPin"]);  // pin = Card ATM PIN, transactionPin = Gatekipa Security PIN
 
   // IAM Enforcement
   await requireKyc(uid);
+  
+  // SECURE TRANSACTION PIN ENFORCEMENT
+  await requirePin(uid, data.transactionPin);
 
   const { card_id, pin } = data;
 
@@ -210,13 +254,8 @@ exports.createBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_
   let feeToDeductNGN = 0;
   let deductCardsIncluded = false;
 
-  const userData = userSnap.data();
-  const cardsIncluded = userData?.cardsIncluded || 0;
-
   if (cardCurrency === "USD") {
-    // 1. Fetch live bridgecard FX rate
     try {
-      // Best-effort mapping on Bridgecard typical FX structure
       const fxRes = await client.get("/issuing/cards/fx");
       const rateStr = fxRes.data?.data?.rate_to_naira || fxRes.data?.data?.rate || 1600; 
       const rate = Number(rateStr);
@@ -225,46 +264,74 @@ exports.createBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_
       console.warn("Bridgecard FX check failed, falling back to baseline 1600.", e.message);
       feeToDeductNGN = Math.ceil(3.5 * 1600);
     }
-  } else {
-    // NGN Card Logic: Subsidize via plan
-    if (cardsIncluded > 0) {
-      feeToDeductNGN = 0;
-      deductCardsIncluded = true;
-    } else {
-      feeToDeductNGN = 700;
-      // Also verify if their plan allows exceeding limits based on maxCards allowed
-      const planTier = userData?.planTier || "none";
-      if (planTier === "none" || planTier === "free") {
-         throw new HttpsError("failed-precondition", "Free tier members cannot purchase additional cards. Please upgrade your plan.");
-      }
-    }
   }
 
-  let didDeduct = false;
   const transaction_reference = `gk_card_fee_${card_id}_${Date.now()}`;
   const walletRef = db.collection("users").doc(uid).collection("wallet").doc("balance");
-  const ledgerRef = db.collection("users").doc(uid).collection("wallet_transactions").doc(transaction_reference);
+  const userRef = db.collection("users").doc(uid);
+  const ledgerRef = db.collection("wallet_ledger").doc(transaction_reference);
 
-  if (feeToDeductNGN > 0) {
-    await db.runTransaction(async (t) => {
-      const doc = await t.get(walletRef);
-      if (!doc.exists) throw new HttpsError("failed-precondition", "Wallet not initialized.");
-      if ((doc.data().balance || 0) < feeToDeductNGN) {
+  let didDeductBalance = false;
+
+  // ── ATOMIC FEE / QUOTA DEDUCTION ──────────────────────────────────────────
+  await db.runTransaction(async (t) => {
+    const userDoc = await t.get(userRef);
+    const userData = userDoc.data() || {};
+    
+    if (cardCurrency === "NGN") {
+      const cardsIncluded = userData.cardsIncluded || 0;
+      if (cardsIncluded > 0) {
+        feeToDeductNGN = 0;
+        deductCardsIncluded = true;
+        // Atomically decrement card quota
+        t.update(userRef, { cardsIncluded: FieldValue.increment(-1) });
+      } else {
+        feeToDeductNGN = 700;
+        const planTier = userData.planTier || "none";
+        if (planTier === "none" || planTier === "free") {
+           throw new HttpsError("failed-precondition", "Free tier members cannot purchase additional cards. Please upgrade your plan.");
+        }
+      }
+    }
+
+    if (feeToDeductNGN > 0) {
+      const walletDoc = await t.get(walletRef);
+      if (!walletDoc.exists) throw new HttpsError("failed-precondition", "Wallet not initialized.");
+      if ((walletDoc.data().balance || 0) < feeToDeductNGN) {
         throw new HttpsError("failed-precondition", `Insufficient funds. Needed: ~${feeToDeductNGN} NGN.`);
       }
       
+      // Atomically deduct fee
       t.set(walletRef, { balance: FieldValue.increment(-feeToDeductNGN) }, { merge: true });
       t.set(ledgerRef, {
         type: "debit",
         amount: feeToDeductNGN,
         status: "successful",
         context: cardCurrency === "USD" ? "usd_card_creation" : "ngn_card_creation",
+        user_id: uid,
         card_id,
         created_at: Date.now()
       });
-    });
-    didDeduct = true;
-  }
+      didDeductBalance = true;
+    }
+  });
+
+  const queueId = `cpq_${card_id}_${Date.now()}`;
+  const provisioningQueueRef = db.collection("card_provisioning_queue").doc(queueId);
+
+  // Phase 3: Pre-flight lock — written BEFORE the Bridgecard API call.
+  // The ghostCardSweeper queries for items stuck in PENDING for > 5 minutes
+  // and auto-heals or auto-refunds them without human intervention.
+  await provisioningQueueRef.set({
+    queue_id: queueId,
+    uid,
+    card_id,
+    cardholder_id,
+    card_currency: cardCurrency,
+    fee_deducted_kobo: Math.round(feeToDeductNGN * 100),
+    status: "PENDING",
+    created_at: Date.now(),
+  });
 
   const payload = {
     cardholder_id,
@@ -277,8 +344,8 @@ exports.createBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_
   };
 
   try {
-    const client = bridgecardClient();
-    const res = await client.post("/cards/create_card", payload);
+    const bridgecardClientAuth = bridgecardClient();
+    const res = await bridgecardClientAuth.post("/cards/create_card", payload);
     const bridgecard_card_id = res.data?.data?.card_id;
 
     if (!bridgecard_card_id) {
@@ -295,28 +362,34 @@ exports.createBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_
       { merge: true }
     );
 
-    if (deductCardsIncluded) {
-      await db.collection("users").doc(uid).update({
-        cardsIncluded: FieldValue.increment(-1)
-      });
-    }
+    // Phase 3: Mark DLQ queue item as COMPLETED — sweeper will ignore this
+    await provisioningQueueRef.set({ status: "COMPLETED", bridgecard_card_id, completed_at: Date.now() }, { merge: true });
 
     return { success: true, bridgecard_card_id, currency: cardCurrency, deducted: feeToDeductNGN };
   } catch (err) {
-    if (didDeduct) {
-      console.warn(`[Bridgecard] createBridgecard failed. Rolling back ${feeToDeductNGN} NGN for ${uid}`);
-      try {
-        await db.runTransaction(async (rollbackT) => {
+    // ── ATOMIC ROLLBACK ON BRIDGECARD API FAILURE ─────────────────────────
+    console.warn(`[Bridgecard] createBridgecard failed. Rolling back for ${uid}`);
+    try {
+      await db.runTransaction(async (rollbackT) => {
+        if (deductCardsIncluded) {
+          rollbackT.update(userRef, { cardsIncluded: FieldValue.increment(1) });
+        }
+        if (didDeductBalance && feeToDeductNGN > 0) {
           rollbackT.set(walletRef, { balance: FieldValue.increment(feeToDeductNGN) }, { merge: true });
           rollbackT.set(ledgerRef, { status: "reversed", metadata: "Bridgecard API failure", reversed_at: Date.now() }, { merge: true });
-        });
-      } catch (rollbackErr) {
-        console.error(`[CRITICAL] FAILED TO ROLLBACK FAILED CARD FEE FOR UID ${uid}`, rollbackErr);
-      }
+        }
+      });
+    } catch (rollbackErr) {
+      console.error(`[CRITICAL] FAILED TO ROLLBACK CARD CREATION (Quota/Fee) FOR UID ${uid}`, rollbackErr);
     }
-    const msg = err.response?.data?.message || err.message;
-    console.error("[Bridgecard] createBridgecard error:", msg);
-    throw new HttpsError("failed-precondition", msg);
+    
+    // Phase 3: Mark DLQ queue item as FAILED — sweeper won't try to auto-refund
+    // (explicit rollback already ran above, so no double-refund)
+    await provisioningQueueRef.set({ status: "EXPLICIT_ROLLBACK", error: msg, failed_at: Date.now() }, { merge: true });
+
+    const msg2 = err.response?.data?.message || err.message;
+    console.error("[Bridgecard] createBridgecard error:", msg2);
+    throw new HttpsError("failed-precondition", msg2);
   }
 });
 
@@ -408,15 +481,26 @@ exports.fundBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_AC
       bridgecard_response: res.data,
     };
   } catch (err) {
-    logger.error("[Bridgecard] fundBridgecard error, triggering atomic rollback:", err);
+    const isNetworkOrTimeout = !err.response || err.response.status >= 500;
+    
+    if (isNetworkOrTimeout) {
+      logger.warn(`[Bridgecard] Network timeout/5xx for ${transaction_reference}. Skipping rollback, marking for reconciliation.`);
+      await db.collection("card_funding_requests").doc(transaction_reference).update({
+        status: "requires_reconciliation",
+        error: "Network timeout or 5xx error."
+      });
+      throw new HttpsError("internal", "The issuing network timed out. Your funds are secure while we verify the transaction status.");
+    }
 
-    // 2. Critical Fallback: ROBUST Rollback wallet deduction if Bridgecard fails
+    logger.error("[Bridgecard] fundBridgecard 4xx error, triggering atomic rollback:", err);
+
+    // 2. Critical Fallback: ROBUST Rollback wallet deduction if Bridgecard fails synchronously (4xx)
     try {
       await db.runTransaction(async (rollbackT) => {
         rollbackT.set(walletRef, { balance: FieldValue.increment(amount) }, { merge: true });
         rollbackT.set(
           db.collection("card_funding_requests").doc(transaction_reference),
-          { status: "failed", error: err.message },
+          { status: "failed", error: err.response?.data?.message || err.message },
           { merge: true }
         );
       });
@@ -577,20 +661,44 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
         const amount_kobo = Number(eventData?.amount || 0);
         const amount_ngn = amount_kobo / 100;
         const merchant = eventData?.merchant_name || "Unknown";
+        const merchantCountry = eventData?.merchant_country || "";
+        const transactionCurrency = eventData?.currency || eventData?.transaction_currency || "";
+        // Round to nearest second to tolerate minor timestamp drift between retries
+        const txnTimeSec = Math.floor(Number(eventData?.transaction_date || eventData?.created_at || Date.now()) / 1000);
         let approved = eventData?.status === "approved";
         let declineReason = eventData?.decline_reason || "Unknown";
         const authEventId = event?.id || `txn_${Date.now()}`;
 
-        // ── Webhook deduplication (check before any DB writes) ─────────────
+        // ── Phase 4: Composite idempotency hash ────────────────────────────
+        // Deduplicates by logical charge identity rather than Bridgecard's event ID.
+        // Survives webhook retries that rotate the event ID for the same card swipe.
+        const compositeHash = crypto
+          .createHash("sha256")
+          .update(`${bridgecard_card_id}:${amount_kobo}:${merchant}:${txnTimeSec}`)
+          .digest("hex");
+        const compositeIdempotencyKey = `bc_charge:${compositeHash}`;
+
+        // ── Webhook deduplication — primary guard on composite hash ─────────
+        const hashRef = db.collection("webhook_events").doc(compositeIdempotencyKey);
+        const existingHash = await hashRef.get();
+        if (existingHash.exists) {
+          logger.info(`[Bridgecard Webhook] Duplicate charge (composite hash ${compositeHash.slice(0,12)}…) — skipping.`);
+          return res.status(200).json({ received: true, skipped: "duplicate_hash" });
+        }
+
+        // Secondary guard on raw event ID (catches rapid-fire identical event IDs)
         const eventRef = db.collection("webhook_events").doc(authEventId);
         const existingEvent = await eventRef.get();
         if (existingEvent.exists) {
           logger.info(`[Bridgecard Webhook] Duplicate event ${authEventId} — skipping.`);
           return res.status(200).json({ received: true, skipped: "duplicate" });
         }
-        // Reserve the event slot immediately (best-effort, not in a txn here;
-        // the orchestrator's idempotency key provides the final guard)
-        await eventRef.set({ event: eventType, received_at: FieldValue.serverTimestamp(), status: "processing" });
+
+        // Reserve both slots atomically (best-effort before DB writes)
+        await Promise.all([
+          hashRef.set({ event: eventType, received_at: FieldValue.serverTimestamp(), status: "processing", authEventId }),
+          eventRef.set({ event: eventType, received_at: FieldValue.serverTimestamp(), status: "processing", compositeHash }),
+        ]);
 
         // Find the Firestore card doc by bridgecard_card_id
         const cardsSnap = await db.collection("cards")
@@ -605,7 +713,7 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
 
           // ── Rule engine — only runs if Bridgecard approved AND card is active ──
           if (approved && cardStatus === "active") {
-            const ruleEvaluation = await evaluateTransaction(cardDoc.id, amount_ngn, merchant);
+            const ruleEvaluation = await evaluateTransaction(cardDoc.id, amount_ngn, merchant, { merchantCountry, transactionCurrency });
             if (!ruleEvaluation.approved) {
               approved = false;
               declineReason = ruleEvaluation.reason;
@@ -644,19 +752,27 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
                 type: "card_charge",
                 userId: ownerUid,
                 amount: amount_ngn,
-                idempotencyKey: `${ownerUid}:card_charge:${authEventId}`,
+                // Phase 4: Use composite hash as idempotency key — immune to event ID rotation
+                idempotencyKey: compositeIdempotencyKey,
                 metadata: {
                   cardId: cardDoc.id,
                   accountId: card.account_id,
                   merchantName: merchant,
                   bridgecardRef: authEventId,
+                  compositeHash,
                 },
                 correlationId: `bridgecardWebhook:${authEventId}`,
               });
-              await eventRef.set({ status: "completed" }, { merge: true });
+              await Promise.all([
+                eventRef.set({ status: "completed" }, { merge: true }),
+                hashRef.set({ status: "completed" }, { merge: true }),
+              ]);
             } catch (orchErr) {
               logger.error(`[Webhook] Orchestrator failed for ${authEventId}:`, orchErr.message);
-              await eventRef.set({ status: "failed", error: orchErr.message }, { merge: true });
+              await Promise.all([
+                eventRef.set({ status: "failed", error: orchErr.message }, { merge: true }),
+                hashRef.set({ status: "failed", error: orchErr.message }, { merge: true }),
+              ]);
               // Don't throw — we must return 200 to Bridgecard to prevent retries
               // that could double-charge. The UNKNOWN status in the txn document
               // will be caught by the reconciliation cron.
@@ -702,13 +818,18 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
               
               let shouldSendPush = true;
               if (!approved) {
-                const ruleSnap = await db.collection("rules")
-                  .where("card_id", "==", cardDoc.id)
-                  .where("sub_type", "==", "instant_breach_alert")
-                  .limit(1)
-                  .get();
-                if (ruleSnap.empty) {
+                const isSentinel = userHasSentinelAccess(uDoc.data());
+                if (!isSentinel) {
                   shouldSendPush = false;
+                } else {
+                  const ruleSnap = await db.collection("rules")
+                    .where("card_id", "==", cardDoc.id)
+                    .where("sub_type", "==", "instant_breach_alert")
+                    .limit(1)
+                    .get();
+                  if (ruleSnap.empty) {
+                    shouldSendPush = false;
+                  }
                 }
               }
               
@@ -757,13 +878,44 @@ exports.bridgecardWebhook = onRequest({ region: "us-central1", secrets: [BRIDGEC
       case "naira_card_credit_event.failed": {
         const txRef = eventData?.transaction_reference;
         if (txRef) {
-          await db.collection("card_funding_requests")
-            .where("transaction_reference", "==", txRef)
-            .limit(1)
-            .get()
-            .then(snap => {
-              if (!snap.empty) snap.docs[0].ref.update({ status: "failed" });
-            });
+          const snap = await db.collection("card_funding_requests").where("transaction_reference", "==", txRef).limit(1).get();
+          if (!snap.empty) {
+            const reqDoc = snap.docs[0];
+            const reqData = reqDoc.data();
+            // Prevent double refunds
+            if (reqData.status !== "failed" && reqData.status !== "explicit_rollback") {
+              const uid = reqData.uid;
+              const amountNgn = reqData.amount_ngn || (reqData.amount_kobo / 100);
+              const walletRef = db.doc(`users/${uid}/wallet/balance`);
+              const ledgerRef = db.collection("wallet_ledger").doc();
+              
+              try {
+                await db.runTransaction(async (t) => {
+                  const reqCurrent = await t.get(reqDoc.ref);
+                  if (reqCurrent.data().status === "failed" || reqCurrent.data().status === "explicit_rollback") return;
+                  
+                  // Refund wallet
+                  t.set(walletRef, { balance: FieldValue.increment(amountNgn) }, { merge: true });
+                  
+                  // Record ledger entry
+                  t.set(ledgerRef, {
+                    user_id: uid,
+                    type: "credit",
+                    amount: amountNgn,
+                    status: "success",
+                    metadata: { reason: "bridgecard_funding_failed_refund", transaction_reference: txRef },
+                    created_at: Date.now()
+                  });
+                  
+                  // Update request
+                  t.update(reqDoc.ref, { status: "failed", refunded_at: Date.now() });
+                });
+                logger.info(`[Webhook] Async Refunded ${amountNgn} NGN to ${uid} for failed funding ${txRef}`);
+              } catch (e) {
+                logger.error(`[Webhook] CRITICAL - Failed to refund ${txRef} for ${uid}`, e);
+              }
+            }
+          }
         }
         break;
       }

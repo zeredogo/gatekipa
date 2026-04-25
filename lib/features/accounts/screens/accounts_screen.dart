@@ -96,8 +96,9 @@ class AccountsScreen extends ConsumerWidget {
                   onRename: () => _showRenameSheet(context, ref, account),
                   onManageTeam: () {
                     final user = ref.read(userProfileProvider).valueOrNull;
-                    if (user != null && user.planTier != 'business') {
-                      GkToast.show(context, message: '🏢 Business Plan Required: Upgrade your plan to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
+                    // FIX #1: Use isSentinelPrime — Sentinel Prime (premium) was wrongly excluded.
+                    if (user != null && !user.isSentinelPrime) {
+                      GkToast.show(context, message: '🏢 Sentinel Prime or Business Plan required to manage teams.', type: ToastType.warning, duration: const Duration(seconds: 4));
                       return;
                     }
                     context.push('/home/accounts/${account.id}/team', extra: account);
@@ -136,13 +137,7 @@ class AccountsScreen extends ConsumerWidget {
   }
 
   void _showCreateAccountSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CreateAccountSheet(),
-    );
+    showCreateAccountSheet(context);
   }
 
   void _showRenameSheet(BuildContext context, WidgetRef ref, AccountModel account) {
@@ -340,15 +335,39 @@ class _AccountTile extends ConsumerWidget {
 }
 
 // ── Create Account Sheet ────────────────────────────────────────────────────────
+Future<String?> showCreateAccountSheet(BuildContext context, {String? planTier}) {
+  return showModalBottomSheet<String>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _CreateAccountSheet(planTier: planTier),
+  );
+}
+
 class _CreateAccountSheet extends ConsumerStatefulWidget {
+  final String? planTier;
+  const _CreateAccountSheet({this.planTier});
+
   @override
   ConsumerState<_CreateAccountSheet> createState() => _CreateAccountSheetState();
 }
 
 class _CreateAccountSheetState extends ConsumerState<_CreateAccountSheet> {
   final _nameCtrl = TextEditingController();
-  String _type = 'personal';
+  late String _type;
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final plan = widget.planTier;
+    if (plan == 'premium' || plan == 'business') {
+      _type = 'business';
+    } else {
+      _type = 'personal';
+    }
+  }
 
   @override
   void dispose() {
@@ -363,19 +382,23 @@ class _CreateAccountSheetState extends ConsumerState<_CreateAccountSheet> {
           name: _nameCtrl.text.trim(),
           type: _type,
         );
+    if (!mounted) return;
     setState(() => _loading = false);
     if (mounted) {
       if (id != null) {
         GkToast.show(context, message: 'Account created!', type: ToastType.success);
-        Navigator.pop(context);
+        Navigator.pop(context, id);
       } else {
-        final e = ref.read(accountNotifierProvider).error; GkToast.show(context, message: 'Failed: $e', type: ToastType.error);
+        GkToast.show(context, message: 'Could not create account. Please check your connection and try again.', type: ToastType.error);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProfileProvider).valueOrNull;
+    final activePlan = widget.planTier ?? user?.planTier;
+
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
@@ -415,6 +438,11 @@ class _CreateAccountSheetState extends ConsumerState<_CreateAccountSheet> {
               const SizedBox(height: 16),
               Row(
                 children: ['personal', 'business'].map((t) {
+                  // Restrictions: Activation Plan cannot select business
+                  if (t == 'business' && activePlan == 'activation') return const SizedBox.shrink();
+                  // Sentinel Prime and Business Plan cannot select personal (individual)
+                  if (t == 'personal' && (activePlan == 'premium' || activePlan == 'business')) return const SizedBox.shrink();
+
                   final selected = _type == t;
                   return Expanded(
                     child: Padding(
@@ -497,6 +525,7 @@ class _RenameAccountSheetState extends ConsumerState<_RenameAccountSheet> {
           accountId: widget.account.id,
           newName: _ctrl.text.trim(),
         );
+    if (!mounted) return;
     setState(() => _loading = false);
     if (mounted) {
       GkToast.show(context,

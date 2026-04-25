@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:gatekeepeer/core/constants/routes.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
+import 'package:gatekipa/core/constants/routes.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -45,7 +45,14 @@ class _SplashScreenState extends State<SplashScreen> {
           return;
         }
       }
-      if (mounted) context.go(Routes.dashboard);
+
+      if (mounted) {
+        if (!user.emailVerified) {
+          context.go(Routes.emailVerifyPending, extra: user.email);
+        } else {
+          context.go(Routes.dashboard);
+        }
+      }
       return;
     }
 

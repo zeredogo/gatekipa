@@ -132,12 +132,26 @@ exports.initiatePremiumUpgrade = onCall(
     requireVerifiedEmail(request.auth);
     const uid = request.auth.uid;
 
+    // FIX: Accept optional plan param so the Business plan can also be purchased via this flow.
+    // Defaults to 'premium' (Sentinel Prime) to preserve backward compatibility.
+    const { plan = "premium" } = request.data || {};
+    if (!["premium", "business"].includes(plan)) {
+      throw new HttpsError("invalid-argument", "Invalid upgrade plan. Must be 'premium' or 'business'.");
+    }
+
+    const UPGRADE_CONFIG = {
+      premium:  { amountKobo: 199900, label: "Sentinel Prime", cards: 3 },
+      business: { amountKobo: 500000, label: "Business Plan",  cards: 5 },
+    };
+    const config = UPGRADE_CONFIG[plan];
+
     const userSnap = await db.collection("users").doc(uid).get();
     if (!userSnap.exists) throw new HttpsError("not-found", "User not found.");
 
     const userData = userSnap.data();
-    if (userData.isPremium) {
-      throw new HttpsError("already-exists", "You are already a Sentinel Prime member.");
+    // FIX: isPremium is a legacy field — planTier is the authoritative source of truth.
+    if (userData.planTier === 'premium' || userData.planTier === 'business') {
+      throw new HttpsError("already-exists", "You are already on this plan or higher.");
     }
 
     const secretKey = PAYSTACK_SECRET_KEY.value();
@@ -149,7 +163,6 @@ exports.initiatePremiumUpgrade = onCall(
     }
 
     const email = userData.email || `${uid}@gatekipa.internal`;
-    const amountKobo = 200000; // ₦2,000 in kobo
 
     let response;
     try {
@@ -163,12 +176,12 @@ exports.initiatePremiumUpgrade = onCall(
         },
         body: JSON.stringify({
           email,
-          amount: amountKobo,
+          amount: config.amountKobo,
           metadata: {
             uid,
-            plan: "sentinel_prime",
+            plan,
             custom_fields: [
-              { display_name: "Plan", variable_name: "plan", value: "Sentinel Prime" },
+              { display_name: "Plan", variable_name: "plan", value: config.label },
             ],
           },
           callback_url: "https://gatekipa.com/premium/success",
@@ -188,6 +201,8 @@ exports.initiatePremiumUpgrade = onCall(
     return {
       authorizationUrl: body.data.authorization_url,
       reference: body.data.reference,
+      amountNgn: config.amountKobo / 100,
+      label: config.label,
     };
   }
 );
@@ -234,7 +249,100 @@ exports.verifyPremiumPayment = onCall(
       throw new HttpsError("permission-denied", "Payment does not belong to this account.");
     }
 
-    await db.collection("users").doc(uid).update({ isPremium: true });
+    // FIX: Read the plan from metadata to correctly set planTier and cardsIncluded.
+    // Previously always set planTier: 'premium' and cardsIncluded: 3 regardless of
+    // the plan actually purchased (Business = 5 cards).
+    const upgradedPlan = (meta?.plan && ["premium", "business"].includes(meta.plan))
+      ? meta.plan
+      : "premium";
+    const PLAN_CONFIG = {
+      premium:  { cards: 3 },
+      business: { cards: 5 },
+    };
+
+    const userRef = db.collection("users").doc(uid);
+    const idempotencyRef = db.collection("users").doc(uid).collection("plan_purchases").doc(reference);
+    const nowMs = Date.now();
+
+    try {
+      await db.runTransaction(async (t) => {
+        const existing = await t.get(idempotencyRef);
+        if (existing.exists) {
+          throw new HttpsError("already-exists", "This payment reference has already been processed.");
+        }
+
+        t.set(idempotencyRef, {
+          reference,
+          plan: upgradedPlan,
+          amountKobo: body.data.amount,
+          status: "success",
+          timestamp: nowMs,
+          source: "client_verify",
+        });
+
+        // FIX: Set planTier, subscription_expiry_date (30 days), and clear legacy isPremium field.
+        // Without subscription_expiry_date, expirationCron would downgrade the user immediately.
+        t.update(userRef, { 
+          isPremium: true,            // kept for legacy compatibility
+          planTier: upgradedPlan,
+          cardsIncluded: PLAN_CONFIG[upgradedPlan].cards,
+          subscription_expiry_date: nowMs + (30 * 24 * 60 * 60 * 1000),
+          sentinel_trial_expiry_date: null, // not needed — planTier grant gives full access
+        });
+      });
+    } catch (err) {
+      if (err.code === "already-exists") {
+        throw err;
+      }
+      console.error("[Premium] Idempotency transaction failed:", err);
+      throw new HttpsError("internal", "Failed to securely process the plan upgrade.");
+    }
+
+    return { success: true };
+  }
+);
+
+/**
+ * setTransactionPin — Cryptographically hashes and sets the user's Transaction PIN.
+ * This ensures the raw PIN is never stored on the backend, only a salted hash.
+ */
+exports.setTransactionPin = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    requireVerifiedEmail(request.auth);
+    const uid = request.auth.uid;
+    const { pin, oldPin } = request.data;
+
+    if (!pin || pin.length < 4) {
+      throw new HttpsError("invalid-argument", "PIN must be at least 4 characters.");
+    }
+
+    const userRef = db.collection("users").doc(uid);
+    const userDoc = await userRef.get();
+    const security = userDoc.data()?.security || {};
+
+    const crypto = require("crypto");
+
+    // If changing an existing PIN, require the old one (prevent session hijacking)
+    if (security.pinHash) {
+      if (!oldPin) {
+        throw new HttpsError("permission-denied", "You must provide your current PIN to change it.");
+      }
+      const [oldSalt, oldStoredHash] = security.pinHash.split(":");
+      const hashAttempt = crypto.scryptSync(oldPin, oldSalt, 64).toString("hex");
+      if (hashAttempt !== oldStoredHash) {
+        throw new HttpsError("permission-denied", "Current PIN is incorrect.");
+      }
+    }
+
+    // Generate new salted hash
+    const newSalt = crypto.randomBytes(16).toString("hex");
+    const newHash = crypto.scryptSync(pin, newSalt, 64).toString("hex");
+
+    await userRef.update({
+      "security.pinHash": `${newSalt}:${newHash}`,
+      "security.pinUpdatedAt": Date.now(),
+    });
 
     return { success: true };
   }

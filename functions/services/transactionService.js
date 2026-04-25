@@ -18,7 +18,7 @@
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
-const { requireVerifiedEmail } = require("../utils/validators");
+const { requireAdmin, requireVerifiedEmail, requirePin } = require("../utils/validators");
 const { FieldValue } = require("firebase-admin/firestore");
 const { getSystemMode, assertSystemAllowsFinancialOps } = require("../core/systemState");
 const { checkIdempotency, storeIdempotencyResult } = require("../core/idempotency");
@@ -83,7 +83,20 @@ async function processTransactionInternal({
         throw new Error(`IDEMPOTENT_RETURN:${existingId}`);
       }
 
-      // ── 4b. Reserve the idempotency key INSIDE the transaction ──────────
+      // ── 4b. Execute the type-specific financial mutation (which performs READS) ─
+      // Firestore transactions require ALL reads to be executed before ANY writes.
+      // Therefore, we must call the type-specific handlers BEFORE we write to idempotencyRef and txnRef.
+      if (type === "wallet_to_card") {
+        await _processWalletToCard(firestoreTxn, txnRef.id, userId, amount, metadata);
+      } else if (type === "wallet_funding") {
+        await _processWalletFunding(firestoreTxn, txnRef.id, userId, amount, metadata);
+      } else if (type === "card_charge") {
+        await _processCardCharge(firestoreTxn, txnRef.id, userId, amount, metadata);
+      } else {
+        throw new Error(`UNKNOWN_TYPE: Unrecognized transaction type '${type}'.`);
+      }
+
+      // ── 4c. Reserve the idempotency key INSIDE the transaction (WRITES) ────────
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
       firestoreTxn.set(idempotencyRef, {
@@ -94,7 +107,7 @@ async function processTransactionInternal({
         expires_at: expiresAt,
       });
 
-      // ── 4c. Create the transaction document ─────────────────────────────
+      // ── 4d. Create the transaction document (WRITES) ───────────────────────────
       firestoreTxn.set(txnRef, {
         user_id: userId,
         type,
@@ -105,17 +118,6 @@ async function processTransactionInternal({
         created_at: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
       });
-
-      // ── 4d. Execute the type-specific financial mutation ────────────────
-      if (type === "wallet_to_card") {
-        await _processWalletToCard(firestoreTxn, txnRef.id, userId, amount, metadata);
-      } else if (type === "wallet_funding") {
-        await _processWalletFunding(firestoreTxn, txnRef.id, userId, amount, metadata);
-      } else if (type === "card_charge") {
-        await _processCardCharge(firestoreTxn, txnRef.id, userId, amount, metadata);
-      } else {
-        throw new Error(`UNKNOWN_TYPE: Unrecognized transaction type '${type}'.`);
-      }
     });
 
     // ── 5. Mark SUCCESS (outside transaction — txn already committed) ──────
@@ -155,11 +157,17 @@ async function processTransactionInternal({
 
     const finalStatus = isNetworkError ? "UNKNOWN" : "FAILED";
 
-    await txnRef.update({
+    await txnRef.set({
+      user_id: userId,
+      type,
       status: finalStatus,
+      amount,
+      idempotency_key: idempotencyKey,
+      metadata,
       error_message: message,
+      created_at: FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
-    }).catch(() => {}); // Don't throw if this update also fails
+    }, { merge: true });
 
     // Clean up the idempotency key so the user can retry on genuine failures
     if (finalStatus === "FAILED") {
@@ -177,8 +185,11 @@ async function _processWalletToCard(firestoreTxn, txnId, userId, amount, metadat
   const { cardId, accountId } = metadata;
   if (!cardId || !accountId) throw new Error("wallet_to_card requires cardId and accountId in metadata.");
 
-  // a. Rule evaluation (done outside transaction in evaluateTransaction,
-  //    but we still check card status inside the transaction for safety)
+  // Phase 1 (Kobo): Convert to integer kobo once — all arithmetic uses integers
+  const amountKobo = Math.round(amount * 100);
+  if (amountKobo <= 0) throw new Error("Amount must be a positive value.");
+
+  // a. Rule evaluation — check card status inside the transaction for safety
   const cardRef = db.collection("cards").doc(cardId);
   const cardSnap = await firestoreTxn.get(cardRef);
 
@@ -189,31 +200,40 @@ async function _processWalletToCard(firestoreTxn, txnId, userId, amount, metadat
     throw new Error(`Card is ${cardStatus} — cannot fund.`);
   }
 
-  // b. Read wallet balance
+  // b. Read wallet balance — prefer balance_kobo, fallback to legacy NGN * 100
   const walletRef = db.doc(`users/${userId}/wallet/balance`);
   const walletSnap = await firestoreTxn.get(walletRef);
-  const currentBalance = (walletSnap.data()?.cached_balance ?? walletSnap.data()?.balance ?? 0);
+  const walletData = walletSnap.data() || {};
+  const currentBalanceKobo = walletData.balance_kobo
+    ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
 
-  if (currentBalance < amount) {
-    throw new Error(`INSUFFICIENT_BALANCE: Wallet has ₦${currentBalance}, needs ₦${amount}.`);
+  if (currentBalanceKobo < amountKobo) {
+    const currentNgn = (currentBalanceKobo / 100).toFixed(2);
+    const neededNgn = (amountKobo / 100).toFixed(2);
+    throw new Error(`INSUFFICIENT_BALANCE: Wallet has ₦${currentNgn}, needs ₦${neededNgn}.`);
   }
+
+  const balanceAfterKobo = currentBalanceKobo - amountKobo;
 
   // c. Wallet debit ledger entry
   const walletLedgerRef = db.collection("wallet_ledger").doc();
   firestoreTxn.set(walletLedgerRef, {
     user_id: userId,
     type: "debit",
-    amount,
+    amount_kobo: amountKobo,
+    amount: amountKobo / 100,                // legacy NGN field (dual-write)
     reference: txnId,
-    balance_after: currentBalance - amount,
+    balance_after_kobo: balanceAfterKobo,
+    balance_after: balanceAfterKobo / 100,   // legacy NGN field (dual-write)
     source: "wallet_to_card",
     created_at: FieldValue.serverTimestamp(),
   });
 
-  // d. Update cached wallet balance
+  // d. Update wallet balance — integer kobo + legacy NGN dual-write
   firestoreTxn.set(walletRef, {
-    cached_balance: FieldValue.increment(-amount),
-    balance: FieldValue.increment(-amount), // dual-write for migration window
+    balance_kobo: FieldValue.increment(-amountKobo),
+    cached_balance: FieldValue.increment(-amount),  // legacy NGN (dual-write)
+    balance: FieldValue.increment(-amount),          // legacy NGN (dual-write)
   }, { merge: true });
 
   // e. Card funding ledger entry
@@ -222,42 +242,53 @@ async function _processWalletToCard(firestoreTxn, txnId, userId, amount, metadat
     card_id: cardId,
     account_id: accountId,
     type: "funding",
-    amount,
+    amount_kobo: amountKobo,
+    amount: amountKobo / 100,                // legacy NGN (dual-write)
     merchant_name: "Wallet Transfer",
     reference: txnId,
     created_at: FieldValue.serverTimestamp(),
   });
 
-  // f. Update card allocated_amount (cached display field)
+  // f. Update card cached display fields
   firestoreTxn.update(cardRef, {
     allocated_amount: FieldValue.increment(amount),
-    balance_limit: FieldValue.increment(amount), // dual-write for migration window
+    balance_limit: FieldValue.increment(amount),
   });
 }
 
 async function _processWalletFunding(firestoreTxn, txnId, userId, amount, metadata) {
   const { paystackRef, source = "paystack" } = metadata;
 
+  // Phase 1 (Kobo): Convert to integer kobo — all arithmetic uses integers
+  const amountKobo = Math.round(amount * 100);
+
   const walletRef = db.doc(`users/${userId}/wallet/balance`);
   const walletSnap = await firestoreTxn.get(walletRef);
-  const currentBalance = (walletSnap.data()?.cached_balance ?? walletSnap.data()?.balance ?? 0);
+  const walletData = walletSnap.data() || {};
+  const currentBalanceKobo = walletData.balance_kobo
+    ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
+
+  const balanceAfterKobo = currentBalanceKobo + amountKobo;
 
   // a. Wallet credit ledger entry
   const walletLedgerRef = db.collection("wallet_ledger").doc();
   firestoreTxn.set(walletLedgerRef, {
     user_id: userId,
     type: "credit",
-    amount,
+    amount_kobo: amountKobo,
+    amount: amountKobo / 100,              // legacy NGN (dual-write)
     reference: paystackRef || txnId,
-    balance_after: currentBalance + amount,
+    balance_after_kobo: balanceAfterKobo,
+    balance_after: balanceAfterKobo / 100, // legacy NGN (dual-write)
     source,
     created_at: FieldValue.serverTimestamp(),
   });
 
-  // b. Update cached wallet balance
+  // b. Update wallet balance — integer kobo + legacy NGN dual-write
   firestoreTxn.set(walletRef, {
-    cached_balance: FieldValue.increment(amount),
-    balance: FieldValue.increment(amount), // dual-write for migration window
+    balance_kobo: FieldValue.increment(amountKobo),
+    cached_balance: FieldValue.increment(amount),  // legacy NGN (dual-write)
+    balance: FieldValue.increment(amount),          // legacy NGN (dual-write)
   }, { merge: true });
 }
 
@@ -265,13 +296,17 @@ async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata)
   const { cardId, accountId, merchantName = "Unknown", bridgecardRef } = metadata;
   if (!cardId) throw new Error("card_charge requires cardId in metadata.");
 
+  // Phase 1 (Kobo): Convert to integer kobo once
+  const amountKobo = Math.round(amount * 100);
+
   // Card ledger entry
   const cardLedgerRef = db.collection("card_ledger").doc();
   firestoreTxn.set(cardLedgerRef, {
     card_id: cardId,
     account_id: accountId || "",
     type: "charge",
-    amount,
+    amount_kobo: amountKobo,
+    amount, // legacy NGN
     merchant_name: merchantName,
     reference: bridgecardRef || txnId,
     created_at: FieldValue.serverTimestamp(),
@@ -280,7 +315,8 @@ async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata)
   // Update cached spent_amount and charge_count (display only)
   const cardRef = db.collection("cards").doc(cardId);
   firestoreTxn.update(cardRef, {
-    spent_amount: FieldValue.increment(amount),
+    spent_amount_kobo: FieldValue.increment(amountKobo),
+    spent_amount: FieldValue.increment(amount), // legacy NGN
     charge_count: FieldValue.increment(1),
   });
 
@@ -371,6 +407,9 @@ exports.fundCard = onCall({ region: "us-central1" }, async (request) => {
   if (amount > 500000) {
     throw new HttpsError("invalid-argument", "Cannot fund more than ₦500,000 in a single operation.");
   }
+  
+  // SECURE TRANSACTION PIN ENFORCEMENT
+  await requirePin(uid, request.data.pin);
 
   // Verify card ownership before the orchestrator runs
   const cardSnap = await db.collection("cards").doc(card_id).get();

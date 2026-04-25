@@ -1,5 +1,5 @@
 {
-  "name": "gatekeepeer-functions",
+  "name": "gatekipa-functions",
   "version": "1.0.0",
   "description": "Gatekeeper Cloud Functions Backend",
   "main": "index.js",
@@ -14,6 +14,7 @@
     "logs": "firebase functions:log"
   },
   "dependencies": {
+    "@google-cloud/tasks": "^6.2.1",
     "aes-everywhere": "^1.0.0",
     "axios": "^1.14.0",
     "dotenv": "^17.4.0",

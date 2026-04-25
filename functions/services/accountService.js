@@ -1,6 +1,8 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
 const { requireAuth, requireFields } = require("../utils/validators");
+const { internalFreezeBridgecard } = require("./bridgecardService");
+const logger = require("firebase-functions/logger");
 
 
 exports.createAccount = onCall({ region: "us-central1" }, async (request) => {
@@ -56,10 +58,19 @@ exports.inviteTeamMember = onCall({ region: "us-central1" }, async (request) => 
   const accSnap = await db.collection("accounts").doc(account_id).get();
   if (!accSnap.exists) throw new HttpsError("not-found", "Account not found");
   
-  // Verify Business Tier
+  // Verify Business or Sentinel Prime Tier (including active trial)
+  // FIX #2: Team access is a Sentinel/Business feature — 'premium' was wrongly excluded.
   const ownerDoc = await db.collection("users").doc(accSnap.data().owner_user_id).get();
-  if (!ownerDoc.exists || ownerDoc.data().planTier !== "business") {
-    throw new HttpsError("permission-denied", "Team access requires the Business Plan upgrade.");
+  const TEAM_ELIGIBLE = ['premium', 'business'];
+  const ownerData = ownerDoc.exists ? ownerDoc.data() : null;
+  const ownerTier = ownerData?.planTier ?? 'none';
+  const trialExpiry = ownerData?.sentinel_trial_expiry_date;
+  // FIX #3: Firestore Timestamp objects must use .toMillis() — direct > Date.now() is always false.
+  const trialExpiryMs = trialExpiry?.toMillis ? trialExpiry.toMillis() : (typeof trialExpiry === 'number' ? trialExpiry : 0);
+  const hasTrialAccess = trialExpiryMs > Date.now();
+  
+  if (!ownerData || (!TEAM_ELIGIBLE.includes(ownerTier) && !hasTrialAccess)) {
+    throw new HttpsError("permission-denied", "Team access requires Sentinel Prime or Business Plan.");
   }
   
   if (accSnap.data().owner_user_id !== uid) {
@@ -196,9 +207,21 @@ exports.deleteAccount = onCall({ region: "us-central1" }, async (request) => {
   // we push all the refs to be deleted into an array and chunk them.
   const refsToDelete = [];
 
-  // 1. Collect all cards and their associated rules
+  // 1. Collect all cards and their associated rules, and freeze active Bridgecards
   const cardsSnap = await db.collection("cards").where("account_id", "==", account_id).get();
   for (const cardDoc of cardsSnap.docs) {
+    const cardData = cardDoc.data();
+    
+    // Guard: Actually terminate/freeze on the issuing network before wiping local state
+    if ((cardData.status === "active" || cardData.local_status === "active") && cardData.bridgecard_card_id) {
+      try {
+        await internalFreezeBridgecard(cardData.bridgecard_card_id, true);
+        logger.info(`[AccountService] Froze Bridgecard ${cardData.bridgecard_card_id} during force-delete of account ${account_id}`);
+      } catch (e) {
+        logger.error(`[AccountService] Failed to freeze Bridgecard ${cardData.bridgecard_card_id} during account deletion:`, e);
+      }
+    }
+
     const rulesSnap = await db.collection("rules").where("card_id", "==", cardDoc.id).get();
     rulesSnap.docs.forEach(ruleDoc => refsToDelete.push(ruleDoc.ref));
     refsToDelete.push(cardDoc.ref);

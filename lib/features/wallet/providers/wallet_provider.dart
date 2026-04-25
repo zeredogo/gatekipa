@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gatekeepeer/features/wallet/models/wallet_model.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:gatekipa/features/wallet/models/wallet_model.dart';
 
 
 // ── Wallet Stream ───────────────────────────────────────────────────────────────
@@ -93,12 +94,24 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not authenticated");
+      
+      const storage = FlutterSecureStorage();
+      final secureKey = '${user.uid}_transaction_pin';
+      final pin = await storage.read(key: secureKey);
+      
+      if (pin == null || pin.isEmpty) {
+        throw Exception("No local Transaction PIN found. Please set one up in Profile.");
+      }
+
       final callable = _functions.httpsCallable('fundCard');
       await callable.call({
         'card_id': cardId,
         'account_id': accountId,
         'amount': amount,
         'idempotency_key': idempotencyKey,
+        'pin': pin,
       });
       state = const AsyncValue.data(null);
       return true;

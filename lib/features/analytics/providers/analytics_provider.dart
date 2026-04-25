@@ -1,7 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class TrialData {
   final String name;
@@ -61,6 +66,35 @@ class AnalyticsModel {
   });
 }
 
+final serverAnalyticsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return {};
+
+  final accountsAsync = ref.watch(accountsStreamProvider);
+  final accounts = accountsAsync.valueOrNull ?? [];
+  final accountIds = accounts.map((a) => a.id).toList();
+
+  try {
+    final callable = FirebaseFunctions.instance.httpsCallable('getUserAnalytics');
+    final res = await callable.call({'accountIds': accountIds});
+    final data = (res.data['data'] as Map).cast<String, dynamic>();
+    
+    // Cache the successful payload to prevent Offline Amnesia
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cached_analytics_${user.uid}', jsonEncode(data));
+    
+    return data;
+  } catch (e) {
+    // If offline, return the cached true totals instead of a capped local calculation
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString('cached_analytics_${user.uid}');
+    if (cached != null) {
+      return (jsonDecode(cached) as Map).cast<String, dynamic>();
+    }
+    return {};
+  }
+});
+
 final analyticsProvider = Provider.autoDispose<AsyncValue<AnalyticsModel>>((ref) {
   // Keep the computed analytics alive for 30 s after last listener leaves.
   // This prevents flicker when the user switches away from the analytics tab
@@ -70,8 +104,9 @@ final analyticsProvider = Provider.autoDispose<AsyncValue<AnalyticsModel>>((ref)
 
   final transactionsAsync = ref.watch(transactionsProvider);
   final cardsAsync = ref.watch(cardsProvider);
+  final serverAsync = ref.watch(serverAnalyticsProvider);
 
-  if (transactionsAsync.isLoading || cardsAsync.isLoading) {
+  if (transactionsAsync.isLoading || cardsAsync.isLoading || serverAsync.isLoading) {
     return const AsyncValue.loading();
   }
 
@@ -85,18 +120,32 @@ final analyticsProvider = Provider.autoDispose<AsyncValue<AnalyticsModel>>((ref)
 
   final transactions = transactionsAsync.value ?? [];
   final cards = cardsAsync.value ?? [];
+  final serverData = serverAsync.value ?? {};
 
-  double recoveredCapital = 0;
-  double totalSpend = 0;
-  int chargesBlocked = 0;
-  int txCount = transactions.length;
+  // Fetch true lifetime values from the server
+  double recoveredCapital = (serverData['recoveredCapital'] as num?)?.toDouble() ?? 0.0;
+  double totalSpend = (serverData['totalSpend'] as num?)?.toDouble() ?? 0.0;
+  int chargesBlocked = (serverData['chargesBlocked'] as num?)?.toInt() ?? 0;
+  int txCount = (serverData['txCount'] as num?)?.toInt() ?? 0;
+  
   List<TrialData> blockedTrials = [];
 
+  // If server data failed to load, fallback to client-side recent computation
+  if (serverData.isEmpty) {
+    txCount = transactions.length;
+    for (final tx in transactions) {
+      if (tx.isDeclined) {
+        recoveredCapital += tx.amount;
+        chargesBlocked++;
+      } else if (tx.isApproved) {
+        totalSpend += tx.amount;
+      }
+    }
+  }
+
+  // Still build trend and trials from recent local transactions
   for (final tx in transactions) {
     if (tx.isDeclined) {
-      recoveredCapital += tx.amount;
-      chargesBlocked++;
-
       final isTrialCard = cards.any((c) => c.id == tx.cardId && c.isTrial);
       if (isTrialCard) {
         blockedTrials.add(TrialData(
@@ -106,8 +155,6 @@ final analyticsProvider = Provider.autoDispose<AsyncValue<AnalyticsModel>>((ref)
           true,
         ));
       }
-    } else if (tx.isApproved) {
-      totalSpend += tx.amount;
     }
   }
 

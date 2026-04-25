@@ -1,7 +1,7 @@
-name: gatekeepeer
+name: gatekipa
 description: A rule-based virtual card system that gives users control over recurring payments.
 publish_to: 'none'
-version: 1.0.2+3
+version: 1.0.7+12
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -42,6 +42,7 @@ dependencies:
   intl: ^0.19.0
   uuid: ^4.5.0
   shared_preferences: ^2.3.2
+  url_launcher: ^6.3.1
 
   # Notifications
   flutter_local_notifications: ^17.2.3

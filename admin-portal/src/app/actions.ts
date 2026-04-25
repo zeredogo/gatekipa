@@ -7,19 +7,22 @@ import { revalidatePath } from 'next/cache';
 export async function getDashboardStats() {
   const db = getAdminDb();
   
-  // Get Lockdown State
-  const globalRef = await db.doc('system_state/global').get();
-  const isLockdown = globalRef.exists ? globalRef.data()?.mode === 'LOCKDOWN' : false;
+  // Fetch all stats concurrently to avoid network waterfalls
+  const [globalRef, statsRef, cardsSnap, webhooksSnap] = await Promise.all([
+    db.doc('system_state/global').get(),
+    db.doc('system_stats/summary').get(),
+    db.collection('cards').count().get(),
+    db.collection('webhook_events').count().get()
+  ]);
 
-  // Get Wallet Balance (aggregate from wallet_ledger if available, or just mock sum for now)
-  // To avoid huge reads, we'll just count the cards and webhooks and provide a dummy balance,
-  // or read an aggregation doc if it exists.
-  const cardsCount = (await db.collection('cards').count().get()).data().count;
-  const webhooksCount = (await db.collection('webhook_events').count().get()).data().count;
+  const isLockdown = globalRef.exists ? globalRef.data()?.mode === 'LOCKDOWN' : false;
+  const totalBalance = statsRef.exists ? (statsRef.data()?.total_balance ?? 0) : 0;
+  const cardsCount = cardsSnap.data().count;
+  const webhooksCount = webhooksSnap.data().count;
 
   return {
     isLockdown,
-    totalBalance: 12400000, // Hardcoded for demo until aggregation pipelines are built
+    totalBalance,
     activeCards: cardsCount,
     webhookEvents: webhooksCount
   };
@@ -117,13 +120,22 @@ export async function approveWithdrawal(withdrawalId: string) {
   const withdrawalRef = db.collection('withdrawal_requests').doc(withdrawalId);
   
   try {
-    const doc = await withdrawalRef.get();
-    if (!doc.exists) throw new Error("Withdrawal request not found");
-    
-    const data = doc.data()!;
-    if (data.status !== "PENDING_ADMIN_APPROVAL") {
-      throw new Error(`Cannot approve withdrawal in status: ${data.status}`);
-    }
+    let data: any = null;
+    await db.runTransaction(async (t) => {
+      const doc = await t.get(withdrawalRef);
+      if (!doc.exists) throw new Error("Withdrawal request not found");
+      
+      data = doc.data()!;
+      if (data.status !== "PENDING_ADMIN_APPROVAL") {
+        throw new Error(`Cannot approve withdrawal in status: ${data.status}`);
+      }
+      
+      // Atomically lock the withdrawal request to prevent double-spending
+      t.update(withdrawalRef, {
+        status: "PROCESSING_APPROVAL",
+        updated_at: FieldValue.serverTimestamp()
+      });
+    });
     
     const { amount, bank_code, account_number, account_name, user_id } = data;
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -173,6 +185,11 @@ export async function approveWithdrawal(withdrawalId: string) {
     
     const transferData = await transferRes.json();
     if (!transferData.status) {
+      // Revert status on API failure
+      await withdrawalRef.update({
+        status: "PENDING_ADMIN_APPROVAL",
+        updated_at: FieldValue.serverTimestamp()
+      });
       throw new Error(`Transfer failed: ${transferData.message}`);
     }
     

@@ -1,7 +1,7 @@
 // lib/core/widgets/gk_screen_header.dart
 import 'package:flutter/material.dart';
-import 'package:gatekeepeer/core/theme/app_colors.dart';
-import 'package:gatekeepeer/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/theme/app_spacing.dart';
 
 /// A unified page hero header widget used across all top-level screens.
 /// Renders a gradient banner with an icon, title, and subtitle.

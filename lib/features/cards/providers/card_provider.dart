@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:gatekeepeer/features/cards/models/virtual_card_model.dart';
-import 'package:gatekeepeer/features/auth/providers/auth_provider.dart';
-import 'package:gatekeepeer/features/accounts/providers/account_provider.dart';
-import 'package:gatekeepeer/features/wallet/models/transaction_orchestration_model.dart';
+import 'package:gatekipa/features/cards/models/virtual_card_model.dart';
+import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gatekipa/features/accounts/providers/account_provider.dart';
+import 'package:gatekipa/features/wallet/models/transaction_orchestration_model.dart';
 
 // ── Rules Stream for a single card ─────────────────────────────────────────────
 final cardRulesProvider = StreamProvider.autoDispose.family<List<CardRule>, String>((ref, cardId) {
@@ -177,9 +179,21 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+      
+      const storage = FlutterSecureStorage();
+      final secureKey = '${user.uid}_transaction_pin';
+      final transactionPin = await storage.read(key: secureKey);
+      
+      if (transactionPin == null || transactionPin.isEmpty) {
+        throw Exception("No Transaction PIN configured. Please set one up in Profile.");
+      }
+
       await FirebaseFunctions.instance.httpsCallable('createBridgecard').call({
         'card_id': cardId,
         'pin': pin,
+        'transactionPin': transactionPin,
         if (cardCurrency != null) 'card_currency': cardCurrency,
       });
       state = const AsyncValue.data(null);
@@ -359,7 +373,7 @@ class TransactionModel {
       cardId: data['card_id'] ?? '',
       accountId: data['account_id'] ?? '',
       merchantName: data['merchant_name'] ?? 'Unknown',
-      amount: (data['amount'] ?? 0).toDouble(),
+      amount: num.tryParse(data['amount']?.toString() ?? '0')?.toDouble() ?? 0.0,
       status: data['status'] ?? 'declined',
       declineReason: data['decline_reason'],
       timestamp: parseTimestamp(data['timestamp']),

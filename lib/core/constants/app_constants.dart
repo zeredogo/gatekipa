@@ -10,7 +10,7 @@ class AppConstants {
 
   // Premium pricing
   static const double premiumPriceMonthly = 1999;
-  static const String premiumPriceLabel = '₦1999/mo';
+  static const String premiumPriceLabel = '₦ 1999/mo';
 
   // Paystack — live production key
   // Get yours at: https://dashboard.paystack.com/#/settings/developers

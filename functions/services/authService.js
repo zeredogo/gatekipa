@@ -1,5 +1,7 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { db } = require("../utils/firebase");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { db, admin } = require("../utils/firebase");
+const { requirePin } = require("../utils/validators");
 const { FieldValue } = require("firebase-admin/firestore");
 const { sendEmail } = require("./emailService");
 const { defineSecret } = require("firebase-functions/params");
@@ -55,33 +57,142 @@ exports.onUserCreated = onDocumentCreated(
       });
     }
 
-    // ── 3. Send Welcome Email ───────────────────────────────────────────────
+    // ── 3. Send Welcome & Verification Email ───────────────────────────────
     if (data.email) {
+      try {
+        const verifyLink = await admin.auth().generateEmailVerificationLink(data.email);
+
+        const emailHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #333;">
+            <h1 style="color: #1a1a1a;">Welcome to Gatekipa! 🚀</h1>
+            <p>Hi ${data.display_name || data.name || "there"},</p>
+            <p>Welcome to <strong>Gatekipa</strong>! We're thrilled to have you join us.</p>
+            <p>Your wallet has been successfully initialized. To fully unlock your account and start creating cards seamlessly, please verify your email address by clicking the link below:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verifyLink}" style="background-color: #0d6efd; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Email Address</a>
+            </div>
+
+            <p style="font-size: 13px; color: #666;">If the button doesn't work, copy and paste this link into your browser:<br/>
+            <a href="${verifyLink}" style="color: #0d6efd; word-break: break-all;">${verifyLink}</a></p>
+
+            <div style="background: #f4f4f5; padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <p style="margin: 0;">If you have any questions or need help exploring the platform, simply reply to this email or visit our help center.</p>
+            </div>
+            <p>Best regards,<br/><strong>The Gatekipa Team</strong></p>
+          </div>
+        `;
+        
+        // Dispatch non-blocking email
+        sendEmail({
+          to: data.email,
+          subject: "Action Required: Verify your Gatekipa Account 🎉",
+          html: emailHtml,
+        }).catch(err => logger.error("Failed to send welcome email:", err));
+      } catch (e) {
+        logger.error("Failed to generate verify link or send email:", e);
+      }
+    }
+  }
+);
+
+// ── Manual Resend Verification Email ───────────────────────────────────────
+
+exports.resendVerificationEmail = onCall(
+  { region: "us-central1", secrets: [RESEND_API_KEY] },
+  async (request) => {
+    const uid = request.auth?.uid;
+    const email = request.auth?.token?.email;
+    if (!uid || !email) {
+      throw new HttpsError("unauthenticated", "User must be authenticated with an email address.");
+    }
+
+    try {
+      const verifyLink = await admin.auth().generateEmailVerificationLink(email);
+
       const emailHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #333;">
-          <h1 style="color: #1a1a1a;">Welcome to Gatekipa! 🚀</h1>
-          <p>Hi ${data.display_name || data.name || "there"},</p>
-          <p>Welcome to <strong>Gatekipa</strong>! We're thrilled to have you join us.</p>
-          <p>Your wallet has been successfully initialized and you're ready to start taking control of your subscriptions.</p>
-          <div style="background: #f4f4f5; padding: 20px; border-radius: 12px; margin: 20px 0;">
-            <p style="margin: 0;">If you have any questions or need help exploring the platform, simply reply to this email or visit our help center.</p>
+          <h1 style="color: #1a1a1a;">Verify your Gatekipa Account 🚀</h1>
+          <p>Hi,</p>
+          <p>You recently requested to resend your email verification link.</p>
+          <p>To fully unlock your account and start creating cards seamlessly, please verify your email address by clicking the link below:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verifyLink}" style="background-color: #0d6efd; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Email Address</a>
           </div>
+
+          <p style="font-size: 13px; color: #666;">If the button doesn't work, copy and paste this link into your browser:<br/>
+          <a href="${verifyLink}" style="color: #0d6efd; word-break: break-all;">${verifyLink}</a></p>
+
           <p>Best regards,<br/><strong>The Gatekipa Team</strong></p>
         </div>
       `;
       
       // Dispatch non-blocking email
-      sendEmail({
-        to: data.email,
-        subject: "Welcome to Gatekipa! 🎉",
+      await sendEmail({
+        to: email,
+        subject: "Action Required: Verify your Gatekipa Account 🎉",
         html: emailHtml,
-      }).catch(err => console.error("Failed to send welcome email:", err));
+      });
+
+      return { success: true };
+    } catch (e) {
+      logger.error("[resendVerificationEmail] Failed to generate verify link or send email:", e);
+      throw new HttpsError("internal", "Failed to send verification email.");
+    }
+  }
+);
+
+// ── Secure Password Reset via Resend ───────────────────────────────────────
+
+exports.requestPasswordReset = onCall(
+  { region: "us-central1", secrets: [RESEND_API_KEY] },
+  async (request) => {
+    const email = request.data?.email;
+    if (!email) {
+      throw new HttpsError("invalid-argument", "Email address is required.");
+    }
+
+    try {
+      // 1. Generate the reset link via Firebase Admin
+      const resetLink = await admin.auth().generatePasswordResetLink(email);
+
+      // 2. Format a professional HTML email
+      const emailHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #333;">
+          <h1 style="color: #1a1a1a;">Reset Your Password 🔒</h1>
+          <p>Hi,</p>
+          <p>We received a request to reset your Gatekipa password. If you didn't make this request, you can safely ignore this email.</p>
+          <p>Click the secure link below to choose a new password:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" style="background-color: #027A48; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Password</a>
+          </div>
+
+          <p style="font-size: 13px; color: #666;">If the button doesn't work, copy and paste this link into your browser:<br/>
+          <a href="${resetLink}" style="color: #027A48; word-break: break-all;">${resetLink}</a></p>
+
+          <p>Best regards,<br/><strong>The Gatekipa Team</strong></p>
+        </div>
+      `;
+
+      // 3. Dispatch non-blocking email via Resend
+      await sendEmail({
+        to: email,
+        subject: "Action Required: Reset Your Gatekipa Password",
+        html: emailHtml,
+      });
+
+      return { success: true };
+    } catch (e) {
+      logger.error("[requestPasswordReset] Failed to generate link or send email:", e);
+      // We purposefully throw a generic error to prevent email enumeration
+      throw new HttpsError("internal", "If your email is registered, a reset link will be sent.");
     }
   }
 );
 
 // ── Secure Plan Upgrade via Paystack ───────────────────────────────────────
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
 /**
  * purchasePlan
@@ -193,13 +304,18 @@ exports.purchasePlan = onCall(
           created_at: Date.now(),
         });
 
-        // Activate the plan (30 days validity)
-        const expiryDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
-        t.set(userRef, {
+        const isTrial = (plan === "free" || plan === "activation");
+        const updates = {
           planTier: plan,
           cardsIncluded: cardsToAllocate,
-          subscription_expiry_date: expiryDate,
-        }, { merge: true });
+          subscription_expiry_date: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30-day base plan
+        };
+        
+        if (isTrial) {
+          updates.sentinel_trial_expiry_date = Date.now() + (5 * 24 * 60 * 60 * 1000);
+        }
+
+        t.set(userRef, updates, { merge: true });
       });
     } catch (err) {
       if (err.message === "ALREADY_PROCESSED") {
@@ -226,10 +342,13 @@ exports.purchasePlanFromVault = onCall(
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "User must be authenticated.");
 
-    const { plan } = request.data;
+    const { plan, pin } = request.data;
     if (!["free", "activation", "premium", "business"].includes(plan)) {
       throw new HttpsError("invalid-argument", "Invalid plan type requested.");
     }
+
+    // SECURE TRANSACTION PIN ENFORCEMENT
+    await requirePin(uid, pin);
 
     const planConfig = {
       free:       { price: 700,  cards: 1 },
@@ -271,13 +390,19 @@ exports.purchasePlanFromVault = onCall(
           created_at: Date.now(),
         });
 
-        // 2. Activate the plan (30 days validity)
-        const expiryDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
-        t.set(userRef, {
+        // 2. Activate the plan
+        const isTrial = (plan === "free" || plan === "activation");
+        const updates = {
           planTier: plan,
           cardsIncluded: cardsToAllocate,
-          subscription_expiry_date: expiryDate,
-        }, { merge: true });
+          subscription_expiry_date: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30-day base plan
+        };
+        
+        if (isTrial) {
+          updates.sentinel_trial_expiry_date = Date.now() + (5 * 24 * 60 * 60 * 1000);
+        }
+
+        t.set(userRef, updates, { merge: true });
       });
     } catch (err) {
       if (err.message === "INSUFFICIENT_FUNDS") {
