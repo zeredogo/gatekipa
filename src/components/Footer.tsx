@@ -37,7 +37,21 @@ const Footer = () => {
           <p className="text-lg text-foreground/50 max-w-sm font-medium italic">
             Taking back control of your subscriptions, one card at a time. Built for Nigeria, for individuals and businesses. Block the next charge before it happens.
           </p>
-          <div className="text-sm font-bold text-primary/60 uppercase tracking-widest">
+          <div className="pt-2">
+            <a 
+              href="https://play.google.com/store/apps/details?id=com.gatekipa.gatekeeper" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block hover:opacity-90 transition-opacity"
+            >
+              <img 
+                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" 
+                alt="Get it on Google Play" 
+                className="h-14 w-auto" 
+              />
+            </a>
+          </div>
+          <div className="text-sm font-bold text-primary/60 uppercase tracking-widest mt-4">
             © {currentYear} Westgate Stratagem. All rights reserved.
           </div>
         </div>
