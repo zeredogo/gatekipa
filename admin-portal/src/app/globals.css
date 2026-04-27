@@ -1,68 +1,63 @@
 @import "tailwindcss";
 
-:root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --panel: rgba(20, 20, 25, 0.7);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --accent: #3b82f6;
-  --accent-glow: rgba(59, 130, 246, 0.4);
-  --danger: #ef4444;
-  --success: #10b981;
+@theme {
+  --color-background: #0f1115;
+  --color-foreground: #ffffff;
+  --color-primary: #003629;
+  
+  /* Gatekipa Forest Green Palette */
+  --color-forest-300: #8abda9;
+  --color-forest-400: #61c680;
+  --color-forest-500: #1b4d3e;
+  --color-forest-600: #003629;
+  --color-forest-700: #00210c;
+  --color-forest-800: #001206;
+  
+  --color-surface: rgba(255, 255, 255, 0.05);
+  --color-surface-hover: rgba(255, 255, 255, 0.1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-panel: var(--panel);
-  --color-panel-border: var(--panel-border);
-  --color-accent: var(--accent);
-  --color-danger: var(--danger);
-  --color-success: var(--success);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: #0f1115;
+  --foreground: #ffffff;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, sans-serif;
-  min-height: 100vh;
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 25%);
-  background-attachment: fixed;
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Utilities */
 .glass-panel {
-  background: var(--panel);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--panel-border);
-  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.glass-card:hover {
+.glass-panel-hover:hover {
   background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* Animations */
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 15px var(--accent-glow); }
-  50% { box-shadow: 0 0 30px var(--accent-glow); }
+/* Custom scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

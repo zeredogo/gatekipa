@@ -230,7 +230,7 @@ class _OnboardingPageWidget extends StatelessWidget {
                           const Icon(Icons.contactless_outlined,
                               color: Colors.white70, size: 28),
                           Text(
-                            'GATEKEEPEER',
+                            'GATEKIPA',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                               fontWeight: FontWeight.w800,
                               fontSize: 14,
@@ -269,7 +269,7 @@ class _OnboardingPageWidget extends StatelessWidget {
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600)),
                                   const SizedBox(height: AppSpacing.xxs),
-                                  Text('GATEKEEPEER USER',
+                                  Text('GATEKIPA USER',
                                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,

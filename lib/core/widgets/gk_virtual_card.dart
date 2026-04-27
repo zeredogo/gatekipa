@@ -71,6 +71,7 @@ class _GkVirtualCardState extends ConsumerState<GkVirtualCard> {
     }
 
     String enteredPin = '';
+    if (!mounted) return false;
     final bool? success = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -203,7 +204,7 @@ class _GkVirtualCardState extends ConsumerState<GkVirtualCard> {
     // Look up the account by ID to show to the user
     final accounts = ref.watch(accountsStreamProvider).valueOrNull ?? [];
     final account = accounts.where((a) => a.id == widget.card.accountId).firstOrNull;
-    final accountName = account?.name.toUpperCase() ?? 'GATEKEEPEER CARD';
+    final accountName = account?.name.toUpperCase() ?? 'GATEKIPA CARD';
 
     return GestureDetector(
       onTap: widget.onTap,

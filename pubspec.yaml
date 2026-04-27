@@ -1,7 +1,7 @@
 name: gatekipa
 description: A rule-based virtual card system that gives users control over recurring payments.
 publish_to: 'none'
-version: 1.0.7+12
+version: 1.0.7+16
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -11,13 +11,13 @@ dependencies:
     sdk: flutter
 
   # Firebase
-  firebase_core: ^3.6.0
-  firebase_app_check: ^0.3.1+3
-  firebase_auth: ^5.3.1
-  cloud_firestore: ^5.4.3
-  cloud_functions: ^5.6.2
-  firebase_messaging: ^15.1.3
-  firebase_storage: ^12.3.0
+  firebase_core: ^4.7.0
+  firebase_app_check: ^0.4.3
+  firebase_auth: ^6.4.0
+  cloud_firestore: ^6.3.0
+  cloud_functions: ^6.2.0
+  firebase_messaging: ^16.2.0
+  firebase_storage: ^13.3.0
 
   # Image & Files picker
   image_picker: ^1.1.2
@@ -54,6 +54,8 @@ dependencies:
 
   # Payments
   webview_flutter: ^4.13.1
+  intl_phone_field: ^3.2.0
+  tutorial_coach_mark: ^1.3.3
 
 dev_dependencies:
   flutter_test:

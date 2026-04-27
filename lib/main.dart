@@ -36,9 +36,9 @@ Future<void> main() async {
   // App Check Initialization
   try {
     await FirebaseAppCheck.instance.activate(
-      androidProvider: kReleaseMode ? AndroidProvider.playIntegrity : AndroidProvider.debug,
-      appleProvider: kReleaseMode ? AppleProvider.appAttest : AppleProvider.debug,
-      webProvider: kIsWeb ? ReCaptchaV3Provider('recaptcha-v3-site-key') : null,
+      providerAndroid: kReleaseMode ? const AndroidPlayIntegrityProvider() : const AndroidDebugProvider(),
+      providerApple: kReleaseMode ? const AppleAppAttestProvider() : const AppleDebugProvider(),
+      providerWeb: kIsWeb ? ReCaptchaV3Provider('recaptcha-v3-site-key') : null,
     );
   } catch (e) {
     debugPrint("App Check initialization failed (likely due to sideloading): $e");

@@ -86,12 +86,16 @@ class WalletScreen extends ConsumerWidget {
                           const SizedBox(height: AppSpacing.sm),
                           // Balance
                           walletAsync.when(
-                            data: (w) => Text(
-                              CurrencyFormatter.format(w?.balance ?? 0),
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
-                                fontSize: 40,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -1.5,),
+                            data: (w) => FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                CurrencyFormatter.format(w?.balance ?? 0),
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -1.0,),
+                              ),
                             )
                                 .animate()
                                 .fadeIn()
@@ -100,11 +104,15 @@ class WalletScreen extends ConsumerWidget {
                                     end: const Offset(1, 1)),
                             loading: () => const ShimmerLoader(
                                 width: 180, height: 44, radius: 8),
-                            error: (_, __) => Text(
-                              '₦ 0.00',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.w800),
+                            error: (_, __) => FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '₦ 0.00',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w800),
+                              ),
                             ),
                           ),
                           const Spacer(),

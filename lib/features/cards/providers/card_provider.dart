@@ -176,6 +176,7 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
     required String cardId,
     required String pin,
     String? cardCurrency,
+    String? cardLimit,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -195,6 +196,7 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
         'pin': pin,
         'transactionPin': transactionPin,
         if (cardCurrency != null) 'card_currency': cardCurrency,
+        if (cardLimit != null) 'card_limit': cardLimit,
       });
       state = const AsyncValue.data(null);
       return true;
@@ -276,11 +278,11 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Blocks all active cards belonging to the current user's accounts.
-  Future<String?> activateKillSwitch(String uid) async {
+  /// Freezes all active cards belonging to the current user's accounts.
+  Future<String?> freezeAllCards(String uid) async {
     state = const AsyncValue.loading();
     try {
-      await FirebaseFunctions.instance.httpsCallable('activateKillSwitch').call();
+      await FirebaseFunctions.instance.httpsCallable('freezeAllCards').call();
       state = const AsyncValue.data(null);
       return null;
     } catch (e) {

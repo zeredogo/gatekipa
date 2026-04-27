@@ -34,6 +34,8 @@ class UserModel {
   final DateTime? sentinelTrialExpiryDate;
   final DateTime? subscriptionExpiryDate;
   final bool hasTransactionPin;
+  final bool spendingLock;
+  final bool allowAutoDeductions;
 
   bool get isSentinelPrime {
     if (planTier == 'premium' || planTier == 'business') return true;
@@ -94,6 +96,8 @@ class UserModel {
     this.sentinelTrialExpiryDate,
     this.subscriptionExpiryDate,
     this.hasTransactionPin = false,
+    this.spendingLock = false,
+    this.allowAutoDeductions = false,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -143,6 +147,8 @@ class UserModel {
               : DateTime.fromMillisecondsSinceEpoch(data['subscription_expiry_date'] as int))
           : null,
       hasTransactionPin: data['security'] != null && data['security']['pinHash'] != null,
+      spendingLock: data['spending_lock'] ?? false,
+      allowAutoDeductions: data['allow_auto_deductions'] ?? false,
     );
     } catch (e) {
       debugPrint('[DataBoundary] Failed to parse UserModel for document ${doc.id}. Error: $e');
@@ -167,10 +173,30 @@ class UserModel {
       'geoFence': geoFence,
       'blockAlerts': blockAlerts,
       'subscriptionReminders': subscriptionReminders,
+      'allow_auto_deductions': allowAutoDeductions,
+      'bridgecardNuban': bridgecardNuban,
+      'bridgecardBankName': bridgecardBankName,
+      'bridgecardAccountName': bridgecardAccountName,
+      'bridgecard_status': bridgecardStatus,
+      'bridgecard_cardholder_id': bridgecardCardholderId,
+      'kycStatus': kycStatus,
+      'isPremium': planTier == 'premium' || planTier == 'business',
+      'planTier': planTier,
+      'cardsIncluded': cardsIncluded,
+      'spending_lock': spendingLock,
+      'hasBvn': hasBvn,
     };
     
     if (lastLoginAt != null) {
       map['lastLoginAt'] = FieldValue.serverTimestamp();
+    }
+    
+    if (sentinelTrialExpiryDate != null) {
+      map['sentinel_trial_expiry_date'] = sentinelTrialExpiryDate;
+    }
+    
+    if (subscriptionExpiryDate != null) {
+      map['subscription_expiry_date'] = subscriptionExpiryDate;
     }
     
     return map;
@@ -209,6 +235,8 @@ class UserModel {
     DateTime? sentinelTrialExpiryDate,
     DateTime? subscriptionExpiryDate,
     bool? hasTransactionPin,
+    bool? spendingLock,
+    bool? allowAutoDeductions,
   }) {
     return UserModel(
       uid: uid,
@@ -243,6 +271,8 @@ class UserModel {
       sentinelTrialExpiryDate: sentinelTrialExpiryDate ?? this.sentinelTrialExpiryDate,
       subscriptionExpiryDate: subscriptionExpiryDate ?? this.subscriptionExpiryDate,
       hasTransactionPin: hasTransactionPin ?? this.hasTransactionPin,
+      spendingLock: spendingLock ?? this.spendingLock,
+      allowAutoDeductions: allowAutoDeductions ?? this.allowAutoDeductions,
     );
   }
 }

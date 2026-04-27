@@ -288,7 +288,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   }
                   final uid = user?.uid;
                   if (uid == null) return;
-                  if (user?.kycStatus != 'verified') {
+                  if (user?.kycStatus != 'verified' && user?.kycStatus != 'approved') {
                     GkToast.show(context,
                         message: 'Please verify your identity to generate an account.',
                         type: ToastType.warning);
@@ -382,7 +382,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                         type: ToastType.warning);
                     return;
                   }
-                  if (user?.kycStatus != 'verified') {
+                  if (user?.kycStatus != 'verified' && user?.kycStatus != 'approved') {
                     GkToast.show(context,
                         message: 'Please verify your identity to add funds.',
                         type: ToastType.warning);

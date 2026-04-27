@@ -250,11 +250,20 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
     return { approved: false, reason: `Card is ${cardStatus}` };
   }
 
-  // 3. Fetch account + owner
+  // BUG FIX: Personal cards have account_id === uid with NO accounts/{uid} document.
+  // Old code: accountSnap.exists === false → return { approved: false, reason: "Account not found" }
+  // This broke adminSimulateRuleEngine for all personal card holders.
+  // Fix: fallback to account_id as ownerUid when no accounts document exists.
   const accountSnap = await db.collection("accounts").doc(card.account_id).get();
-  if (!accountSnap.exists) return { approved: false, reason: "Account not found" };
-  const accountData = accountSnap.data();
-  const ownerUid = accountData.owner_user_id;
+  let ownerUid;
+  if (accountSnap.exists) {
+    ownerUid = accountSnap.data().owner_user_id;
+  } else if (card.account_id) {
+    // Personal card — account_id IS the owner's UID
+    ownerUid = card.account_id;
+  } else {
+    return { approved: false, reason: "Account not found" };
+  }
 
   const evaluations = [];
   let isGlobalBlocked = false;

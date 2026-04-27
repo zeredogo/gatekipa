@@ -57,45 +57,63 @@ exports.createVaultAccount = onCall({ region: "us-central1", secrets: [PAYSTACK_
         metadata: { uid: uid }
       };
 
-      const custRes = await axios.post("https://api.paystack.co/customer", custObj, {
-        headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
-      });
+      let custRes;
+      try {
+        custRes = await axios.post("https://api.paystack.co/customer", custObj, {
+          headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        // If it failed because customer already exists, fetch the customer by email
+        logger.warn(`[Wallet] Failed to create customer, attempting to fetch by email: ${email}. Error:`, err.response?.data?.message || err.message);
+        custRes = await axios.get(`https://api.paystack.co/customer/${encodeURIComponent(email)}`, {
+          headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
+        });
+      }
       
       if (!custRes.data.status) {
-        throw new Error(custRes.data.message || "Failed to create Paystack customer");
+        throw new Error(custRes.data.message || "Failed to create or fetch Paystack customer");
       }
       
       paystackCustomerId = custRes.data.data.customer_code;
       await db.collection("users").doc(uid).update({ paystack_customer_id: paystackCustomerId });
-    } else {
-      // Overwrite/patch the customer details in Paystack in case they were originally
-      // created without a phone number (which will cause the DVA endpoint to crash).
-      const updateObj = {
-        first_name: firstName,
-        last_name: lastName,
-        phone: phone,
-      };
-      try {
-        await axios.put(`https://api.paystack.co/customer/${paystackCustomerId}`, updateObj, {
-          headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
-        });
-      } catch (e) {
-        logger.warn(`Failed to update customer ${paystackCustomerId} before DVA creation`, e.response?.data || e.message);
-      }
+    }
+
+    // Always update/patch the customer details in Paystack. 
+    // This handles cases where the customer was originally created with an old name or without a phone number.
+    const updateObj = {
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone,
+    };
+    try {
+      await axios.put(`https://api.paystack.co/customer/${paystackCustomerId}`, updateObj, {
+        headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
+      });
+    } catch (e) {
+      logger.warn(`Failed to update customer ${paystackCustomerId} before DVA creation`, e.response?.data || e.message);
     }
 
     // 2. Create Dedicated Virtual Account (DVA)
-    const dvaPayload = {
-      customer: paystackCustomerId,
-      preferred_bank: "titan-paystack" // Usually titan-paystack or wema-bank
-    };
+    // titan-paystack is the preferred bank but is sometimes unavailable — fall back to wema-bank.
+    let dvaRes;
+    const dvabanks = ["titan-paystack", "wema-bank"];
+    let lastDvaError;
+    for (const bank of dvabanks) {
+      try {
+        const dvaPayload = { customer: paystackCustomerId, preferred_bank: bank };
+        dvaRes = await axios.post("https://api.paystack.co/dedicated_account", dvaPayload, {
+          headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
+        });
+        if (dvaRes.data.status) break; // success — stop trying
+        lastDvaError = new Error(dvaRes.data.message || `DVA creation failed with bank ${bank}`);
+      } catch (e) {
+        lastDvaError = e;
+        logger.warn(`[Wallet] DVA creation failed with bank ${bank}, trying next...`, e.response?.data || e.message);
+      }
+    }
 
-    const dvaRes = await axios.post("https://api.paystack.co/dedicated_account", dvaPayload, {
-      headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
-    });
-
-    if (!dvaRes.data.status) {
-      throw new Error(dvaRes.data.message || "Failed to create dedicated account");
+    if (!dvaRes?.data?.status) {
+      throw lastDvaError || new Error("All DVA bank options exhausted");
     }
 
     const accountData = dvaRes.data.data;
@@ -116,6 +134,90 @@ exports.createVaultAccount = onCall({ region: "us-central1", secrets: [PAYSTACK_
     throw new HttpsError("internal", error.response?.data?.message || error.message);
   }
 });
+
+exports.recreateVaultAccount = onCall({ region: "us-central1", secrets: [PAYSTACK_SECRET_KEY] }, async (request) => {
+  requireAuth(request.auth);
+  const uid = request.auth.uid;
+  const secretKey = PAYSTACK_SECRET_KEY.value();
+  
+  try {
+    const userSnap = await db.collection("users").doc(uid).get();
+    if (!userSnap.exists) throw new HttpsError("not-found", "User not found");
+    const userData = userSnap.data();
+    
+    const paystackCustomerId = userData.paystack_customer_id;
+    if (!paystackCustomerId) {
+       throw new HttpsError("failed-precondition", "User has no existing vault account.");
+    }
+
+    const email = userData.email || request.auth.token.email;
+    const firstName = userData.firstName || userData.first_name || "Gatekipa";
+    const lastName = userData.lastName || userData.last_name || "User";
+    const phone = userData.phoneNumber || userData.phone || "08000000000";
+
+    // 1. Update Customer Profile
+    const updateObj = { first_name: firstName, last_name: lastName, phone: phone };
+    await axios.put(`https://api.paystack.co/customer/${paystackCustomerId}`, updateObj, {
+      headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
+    });
+
+    // 2. Fetch and Deactivate Existing DVAs
+    const accountsRes = await axios.get(`https://api.paystack.co/dedicated_account?customer=${paystackCustomerId}`, {
+      headers: { Authorization: `Bearer ${secretKey}` }
+    });
+    
+    if (accountsRes.data.status && accountsRes.data.data.length > 0) {
+       for (const account of accountsRes.data.data) {
+           try {
+               await axios.delete(`https://api.paystack.co/dedicated_account/${account.id}`, {
+                   headers: { Authorization: `Bearer ${secretKey}` }
+               });
+           } catch (e) {
+               logger.warn(`Failed to deactivate old DVA ${account.id}`, e.response?.data || e.message);
+           }
+       }
+    }
+
+    // 3. Create a New Dedicated Virtual Account
+    let dvaRes;
+    const dvabanks = ["titan-paystack", "wema-bank"];
+    let lastDvaError;
+    for (const bank of dvabanks) {
+      try {
+        dvaRes = await axios.post("https://api.paystack.co/dedicated_account", 
+          { customer: paystackCustomerId, preferred_bank: bank }, 
+          { headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" } }
+        );
+        if (dvaRes.data.status) break;
+        lastDvaError = new Error(dvaRes.data.message || `DVA creation failed with bank ${bank}`);
+      } catch (e) {
+        lastDvaError = e;
+      }
+    }
+
+    if (!dvaRes?.data?.status) {
+      throw lastDvaError || new Error("Failed to regenerate DVA");
+    }
+
+    const accountData = dvaRes.data.data;
+    const nuban = accountData.account_number;
+    const bankName = accountData.bank.name;
+    const accountName = accountData.account_name;
+
+    await db.collection("users").doc(uid).update({
+      bridgecardNuban: nuban,
+      bridgecardBankName: bankName,
+      bridgecardAccountName: accountName,
+    });
+
+    return { success: true, nuban: nuban, bankName: bankName, accountName: accountName };
+    
+  } catch (error) {
+    logger.error(`[Wallet] recreateVaultAccount failed for ${uid}:`, error.response?.data || error.message);
+    throw new HttpsError("internal", error.response?.data?.message || error.message);
+  }
+});
+
 
 exports.requestWithdrawal = onCall({ region: "us-central1" }, async (request) => {
   requireVerifiedEmail(request.auth);

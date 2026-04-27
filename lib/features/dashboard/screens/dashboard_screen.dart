@@ -14,6 +14,8 @@ import 'package:gatekipa/core/utils/date_formatter.dart';
 import 'package:gatekipa/core/widgets/gk_toast.dart';
 
 import 'package:gatekipa/core/widgets/shimmer_loader.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gatekipa/features/accounts/providers/account_provider.dart';
 import 'package:gatekipa/features/accounts/models/account_model.dart';
 import 'package:gatekipa/features/auth/providers/auth_provider.dart';
@@ -36,11 +38,165 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with WidgetsBindingObserver {
+  final GlobalKey _balanceKey = GlobalKey();
+  final GlobalKey _cardsKey = GlobalKey();
+  final GlobalKey _freezeAllCardsKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTutorial();
+    });
+  }
+
+  Future<void> _checkTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool('has_seen_dashboard_tutorial') ?? false;
+    if (!hasSeenTutorial && mounted) {
+      _showTutorial();
+      await prefs.setBool('has_seen_dashboard_tutorial', true);
+    }
+  }
+
+  void _showTutorial() {
+    TutorialCoachMark(
+      targets: [
+        TargetFocus(
+          identify: "Balance",
+          keyTarget: _balanceKey,
+          alignSkip: Alignment.topRight,
+          shape: ShapeLightFocus.RRect,
+          radius: 28,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder: (context, controller) {
+                return Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        "Fund your Vault",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 20.0,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(top: 10.0),
+                        child: Text(
+                          "Tap here to copy your vault account number and transfer funds to it. You need funds to create virtual cards.",
+                          style: TextStyle(color: Colors.white, fontSize: 16.0),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "Cards",
+          keyTarget: _cardsKey,
+          alignSkip: Alignment.topRight,
+          shape: ShapeLightFocus.RRect,
+          radius: 16,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder: (context, controller) {
+                return Container(
+                  padding: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.only(top: 16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        "Manage Cards",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 20.0,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(top: 10.0),
+                        child: Text(
+                          "Here you can see your active cards, or create new ones to safely pay for subscriptions.",
+                          style: TextStyle(color: Colors.white, fontSize: 16.0),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "FreezeAllCards",
+          keyTarget: _freezeAllCardsKey,
+          alignSkip: Alignment.topRight,
+          shape: ShapeLightFocus.RRect,
+          radius: 16,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              builder: (context, controller) {
+                return Container(
+                  padding: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        "Panic Button",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 20.0,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(top: 10.0),
+                        child: Text(
+                          "If you ever suspect a breach, use the panic button to instantly freeze all your cards and lock your vault.",
+                          style: TextStyle(color: Colors.white, fontSize: 16.0),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+      colorShadow: AppColors.primary,
+      textSkip: "SKIP",
+      paddingFocus: 10,
+      opacityShadow: 0.8,
+    ).show(context: context);
   }
 
   @override
@@ -176,7 +332,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     _SystemModeBanner(state: sysState),
 
                   // ── KYC Action Banner ──
-                  if (userAsync.valueOrNull != null && userAsync.valueOrNull!.kycStatus != 'verified')
+                  if (userAsync.valueOrNull != null && userAsync.valueOrNull!.kycStatus != 'verified' && userAsync.valueOrNull!.kycStatus != 'approved')
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 0, 24, AppSpacing.lg),
                       child: InkWell(
@@ -215,10 +371,93 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           ),
                         ),
                       ),
-                    ),
+                    )
+                  // ── Next Steps / Walkthrough Banner (for Verified Users) ──
+                  else if ((userAsync.valueOrNull?.kycStatus == 'verified' || userAsync.valueOrNull?.kycStatus == 'approved'))
+                    Builder(builder: (context) {
+                      final hasCards = !(cardsAsync.valueOrNull?.isEmpty ?? true);
+                      final hasBalance = (walletAsync.valueOrNull?.balance ?? 0) > 0;
+                      final hasPin = userAsync.valueOrNull?.hasTransactionPin ?? false;
+
+                      String title = '';
+                      String subtitle = '';
+                      IconData icon = Icons.lightbulb_outline_rounded;
+                      VoidCallback? onTap;
+
+                      if (!hasBalance && !hasCards) {
+                        title = 'Next Step: Fund Your Vault';
+                        subtitle = 'Tap "Fund Vault" to add money to your account.';
+                        onTap = null;
+                      } else if (hasBalance && !hasCards) {
+                        title = 'Next Step: Create a Card';
+                        subtitle = 'Tap the "+" button in My Cards to create your first virtual card.';
+                        onTap = null;
+                      } else if (!hasPin) {
+                        title = 'Next Step: Secure Your Account';
+                        subtitle = 'Set up a Transaction PIN in your Profile Security settings.';
+                        icon = Icons.security_rounded;
+                        onTap = () => context.push(Routes.pinManagement);
+                      } else {
+                        return const SizedBox.shrink(); // All steps complete!
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, AppSpacing.lg),
+                        child: InkWell(
+                          onTap: onTap,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.error.withValues(alpha: 0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(icon, color: AppColors.error, size: 24),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w900, // Make it extra bold
+                                          color: AppColors.error
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        subtitle,
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          fontWeight: FontWeight.w600, // Make subtitle bold too
+                                          color: AppColors.onSurfaceVariant
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (onTap != null)
+                                  const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.error),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
 
                   // Balance header
                   _BalanceSection(
+                    key: _balanceKey,
                     walletAsync: walletAsync,
                     cardsAsync: cardsAsync,
                   ),
@@ -238,13 +477,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     onAction: () => context.go(Routes.cards),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  _CardsCarousel(cardsAsync: cardsAsync),
+                  _CardsCarousel(key: _cardsKey, cardsAsync: cardsAsync),
                   const SizedBox(height: AppSpacing.xxl),
 
-                  // Kill switch widget
+                  // Freeze toggle widget
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _KillSwitchWidget(),
+                    child: _FreezeAllCardsWidget(key: _freezeAllCardsKey),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   // Recent Activity
@@ -350,7 +589,7 @@ class _BalanceSection extends StatelessWidget {
   final AsyncValue<WalletModel?> walletAsync;
   final AsyncValue<List<VirtualCardModel>> cardsAsync;
 
-  const _BalanceSection({required this.walletAsync, required this.cardsAsync});
+  const _BalanceSection({super.key, required this.walletAsync, required this.cardsAsync});
 
   @override
   Widget build(BuildContext context) {
@@ -412,24 +651,32 @@ class _BalanceSection extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           walletAsync.when(
-            data: (wallet) => Text(
-              CurrencyFormatter.format(wallet?.balance ?? 0),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
-                fontSize: 38,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -1,),
+            data: (wallet) => FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                CurrencyFormatter.format(wallet?.balance ?? 0),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1,),
+              ),
             ).animate().fadeIn().scale(
                   begin: const Offset(0.95, 0.95),
                   end: const Offset(1, 1),
                 ),
             loading: () =>
                 const ShimmerLoader(width: 200, height: 40, radius: 8),
-            error: (_, __) => Text(
-              CurrencyFormatter.format(0),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
-                fontSize: 38,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -1,),
+            error: (_, __) => FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                CurrencyFormatter.format(0),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1,),
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -700,7 +947,7 @@ class _DashboardStatSheet extends StatelessWidget {
 // ── Cards Carousel ──────────────────────────────────────────────────────────────
 class _CardsCarousel extends ConsumerWidget {
   final AsyncValue<List<VirtualCardModel>> cardsAsync;
-  const _CardsCarousel({required this.cardsAsync});
+  const _CardsCarousel({super.key, required this.cardsAsync});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -785,13 +1032,14 @@ class _EmptyCardsPlaceholder extends StatelessWidget {
   }
 }
 
-// ── Kill Switch ─────────────────────────────────────────────────────────────────
-class _KillSwitchWidget extends ConsumerStatefulWidget {
+// ── Freeze All Cards ─────────────────────────────────────────────────────────────────
+class _FreezeAllCardsWidget extends ConsumerStatefulWidget {
+  const _FreezeAllCardsWidget({super.key});
   @override
-  ConsumerState<_KillSwitchWidget> createState() => _KillSwitchWidgetState();
+  ConsumerState<_FreezeAllCardsWidget> createState() => _FreezeAllCardsWidgetState();
 }
 
-class _KillSwitchWidgetState extends ConsumerState<_KillSwitchWidget> {
+class _FreezeAllCardsWidgetState extends ConsumerState<_FreezeAllCardsWidget> {
   final _localAuth = LocalAuthentication();
   bool _activating = false;
 
@@ -821,7 +1069,7 @@ class _KillSwitchWidgetState extends ConsumerState<_KillSwitchWidget> {
                 color: AppColors.error, size: 26),
           ),
           title: Text(
-            'Emergency Kill Switch',
+            'Emergency Freeze All Cards',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
               fontSize: 15,
               color: AppColors.onSurface,),
@@ -847,7 +1095,7 @@ class _KillSwitchWidgetState extends ConsumerState<_KillSwitchWidget> {
                   FilledButton(
                     onPressed: (_activating || activeCardCount == 0)
                         ? null
-                        : () => _showKillSwitchDialog(context),
+                        : () => _showFreezeAllCardsDialog(context),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.error,
                       disabledBackgroundColor: AppColors.error.withValues(alpha: 0.4),
@@ -895,14 +1143,14 @@ class _KillSwitchWidgetState extends ConsumerState<_KillSwitchWidget> {
     ).animate().fadeIn(delay: 200.ms);
   }
 
-  Future<void> _showKillSwitchDialog(BuildContext context) async {
+  Future<void> _showFreezeAllCardsDialog(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         icon: const Icon(Icons.warning_amber_rounded,
             color: AppColors.error, size: 40),
-        title: Text('Activate Kill Switch?',
+        title: Text('Activate Freeze All Cards?',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
         content: Text(
           'All your active virtual cards will be blocked immediately. This action cannot be undone automatically.',
@@ -929,7 +1177,7 @@ class _KillSwitchWidgetState extends ConsumerState<_KillSwitchWidget> {
       final canAuth = await _localAuth.canCheckBiometrics;
       if (canAuth) {
         final authenticated = await _localAuth.authenticate(
-          localizedReason: 'Confirm Kill Switch activation',
+          localizedReason: 'Confirm Freeze All Cards activation',
           options: const AuthenticationOptions(stickyAuth: true),
         );
         if (!authenticated) return;
@@ -950,14 +1198,14 @@ class _KillSwitchWidgetState extends ConsumerState<_KillSwitchWidget> {
 
     setState(() => _activating = true);
     final errorStr =
-        await ref.read(cardNotifierProvider.notifier).activateKillSwitch(uid);
+        await ref.read(cardNotifierProvider.notifier).freezeAllCards(uid);
     if (!context.mounted) return;
     setState(() => _activating = false);
     GkToast.show(
       context,
       message: errorStr == null
-          ? 'All cards blocked. Vault secured.'
-          : 'Kill switch alert: $errorStr',
+          ? 'All cards frozen. Vault secured.'
+          : 'Freeze All Cards alert: $errorStr',
       type: errorStr == null ? ToastType.success : ToastType.error,
       title: errorStr == null ? '🛡️ Vault Secured' : 'Action Required',
     );

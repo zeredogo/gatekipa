@@ -10,12 +10,12 @@ setGlobalOptions({ maxInstances: 1, memory: "256MiB", cpu: 0.16, enforceAppCheck
 
 const { onUserCreated, purchasePlan, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset } = require("./services/authService");
 const { createAccount, inviteTeamMember, renameAccount, deleteAccount, switchActiveAccount, removeTeamMember } = require("./services/accountService");
-const { createVirtualCard, toggleCardStatus, activateKillSwitch, renameCard, adminGlobalKillSwitch, sendCardNotification } = require("./services/cardService");
+const { createVirtualCard, toggleCardStatus, freezeAllCards, renameCard, adminGlobalFreeze, sendCardNotification } = require("./services/cardService");
 const { createRule, deleteRule, adminSimulateRuleEngine } = require("./services/ruleService");
-const { processTransaction, fundCard } = require("./services/transactionService");
+const { processTransaction, fundCard, toggleSpendingLock } = require("./services/transactionService");
 const { searchEntities } = require("./services/searchService");
 const { detectSubscriptions } = require("./services/detectService");
-const { createVaultAccount, requestWithdrawal } = require("./services/walletService");
+const { createVaultAccount, requestWithdrawal, recreateVaultAccount } = require("./services/walletService");
 const { verifyBvn, verifyKyc, qoreidWebhook } = require("./services/kycService");
 const { verifyPaystackPayment, paystackWebhook } = require("./services/paystackService");
 const { deleteUserAccount, initiatePremiumUpgrade, verifyPremiumPayment, setTransactionPin } = require("./services/userService");
@@ -57,10 +57,15 @@ exports.removeTeamMember = removeTeamMember;
 // 3. Card Management
 exports.createVirtualCard = createVirtualCard;
 exports.toggleCardStatus = toggleCardStatus;
-exports.activateKillSwitch = activateKillSwitch;
+exports.freezeAllCards = freezeAllCards;
 exports.renameCard = renameCard;
-exports.adminGlobalKillSwitch = adminGlobalKillSwitch;
+exports.adminGlobalFreeze = adminGlobalFreeze;
 exports.sendCardNotification = sendCardNotification;
+
+// 3.5. Notifications
+const { adminBroadcastMessage, adminSendInAppNotification } = require("./services/notificationService");
+exports.adminBroadcastMessage = adminBroadcastMessage;
+exports.adminSendInAppNotification = adminSendInAppNotification;
 
 // 4. Rule Engine Configuration
 exports.createRule = createRule;
@@ -70,6 +75,7 @@ exports.adminSimulateRuleEngine = adminSimulateRuleEngine;
 // 5. Transaction & Evaluation Core
 exports.processTransaction = processTransaction;
 exports.fundCard = fundCard;
+exports.toggleSpendingLock = toggleSpendingLock;
 
 // 6. Search Service
 exports.searchEntities = searchEntities;
@@ -94,6 +100,7 @@ exports.adminGetSystemMode = adminGetSystemMode;
 
 // 8. Wallet Operations
 exports.createVaultAccount = createVaultAccount;
+exports.recreateVaultAccount = recreateVaultAccount;
 exports.requestWithdrawal = requestWithdrawal;
 
 // 9. KYC / Identity Verification

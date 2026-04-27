@@ -34,7 +34,13 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
   const { account_id, name, is_trial = false, category = 'personal', currency = 'NGN' } = data;
 
   const userDoc = await db.collection("users").doc(uid).get();
-  const currentPlan = userDoc.exists ? (userDoc.data().planTier || "free") : "free";
+  // 'none' must NOT default to 'free' — a user with no plan should not be
+  // allowed to create cards at all without going through the plan purchase flow.
+  const currentPlan = userDoc.exists ? (userDoc.data().planTier || "none") : "none";
+
+  if (currentPlan === "none") {
+    throw new HttpsError("failed-precondition", "You must purchase a plan before creating a virtual card.");
+  }
 
   // Verify account ownership or membership
   let accountData = {};
@@ -103,7 +109,7 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
   await db.runTransaction(async (t) => {
     // ENFORCE PLAN LOGIC ON BACKEND ATOMICALLY
     const activeCardsQuery = db.collection("cards")
-      .where("account_id", "==", account_id)
+      .where("created_by", "==", uid)
       .where("status", "in", ["active", "pending_issuance"]);
       
     const activeCardsSnap = await t.get(activeCardsQuery);
@@ -168,9 +174,14 @@ exports.toggleCardStatus = onCall({ region: "us-central1" }, async (request) => 
   const cardSnap = await db.collection("cards").doc(card_id).get();
   if (!cardSnap.exists) throw new HttpsError("not-found", "Card not found");
 
-  const accountDoc = await db.collection("accounts").doc(cardSnap.data().account_id).get();
-  if (!accountDoc.exists || accountDoc.data().owner_user_id !== uid) {
-    throw new HttpsError("permission-denied", "Only the account owner can toggle card status.");
+  // Personal cards (free plan) use account_id === uid as ownership proof.
+  // No separate accounts/{uid} document exists for these cards.
+  const cardAccountId = cardSnap.data().account_id;
+  if (cardAccountId !== uid) {
+    const accountDoc = await db.collection("accounts").doc(cardAccountId).get();
+    if (!accountDoc.exists || accountDoc.data().owner_user_id !== uid) {
+      throw new HttpsError("permission-denied", "Only the account owner can toggle card status.");
+    }
   }
 
   // State machine enforcement — no skipping allowed
@@ -218,16 +229,18 @@ exports.renameCard = onCall({ region: "us-central1" }, async (request) => {
   const cardSnap = await db.collection("cards").doc(card_id).get();
   if (!cardSnap.exists) throw new HttpsError("not-found", "Card not found");
 
-  // Verify the caller owns or is a member of the associated account
+  // Verify the caller owns or is a member of the associated account.
+  // BUG FIX (Bug D): Personal cards use account_id === uid with no accounts document.
   const accountId = cardSnap.data().account_id;
-  const accountDoc = await db.collection("accounts").doc(accountId).get();
-  if (!accountDoc.exists) throw new HttpsError("not-found", "Account not found");
-
-  const isOwner = accountDoc.data().owner_user_id === uid;
-  if (!isOwner) {
-    const memberSnap = await db.collection("team_members").doc(`${accountId}_${uid}`).get();
-    if (!memberSnap.exists) {
-      throw new HttpsError("permission-denied", "You do not have access to rename this card.");
+  if (accountId !== uid) {
+    const accountDoc = await db.collection("accounts").doc(accountId).get();
+    if (!accountDoc.exists) throw new HttpsError("not-found", "Account not found");
+    const isOwner = accountDoc.data().owner_user_id === uid;
+    if (!isOwner) {
+      const memberSnap = await db.collection("team_members").doc(`${accountId}_${uid}`).get();
+      if (!memberSnap.exists) {
+        throw new HttpsError("permission-denied", "You do not have access to rename this card.");
+      }
     }
   }
 
@@ -247,10 +260,10 @@ exports.disableCard = async function(cardId) {
 };
 
 /**
- * activateKillSwitch — blocks all active cards across all accounts owned by the caller.
- * Called via httpsCallable('activateKillSwitch') from the Flutter app (biometric-gated).
+ * freezeAllCards — freezes all active cards across all accounts owned by the caller.
+ * Called via httpsCallable('freezeAllCards') from the Flutter app (biometric-gated).
  */
-exports.activateKillSwitch = onCall({ region: "us-central1" }, async (request) => {
+exports.freezeAllCards = onCall({ region: "us-central1" }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
 
@@ -315,7 +328,9 @@ exports.activateKillSwitch = onCall({ region: "us-central1" }, async (request) =
       const batch = db.batch();
       for (const doc of cardsSnap.docs) {
         batch.update(doc.ref, { 
-          status: "blocked",
+          local_status: "frozen",
+          status: "frozen", // backward compat
+          lifecycle_version: FieldValue.increment(1),
           ...(doc.data().bridgecard_card_id && { bridgecard_status: "frozen" }),
         });
 
@@ -323,7 +338,7 @@ exports.activateKillSwitch = onCall({ region: "us-central1" }, async (request) =
           try {
             await internalFreezeBridgecard(doc.data().bridgecard_card_id, true, doc.data().currency);
           } catch (e) {
-            logger.error(`[KillSwitch] Failed to freeze card ${doc.id} at Bridgecard`, e);
+            logger.error(`[FreezeAllCards] Failed to freeze card ${doc.id} at Bridgecard`, e);
             failedFreezes.push(doc.id);
           }
         }
@@ -333,33 +348,41 @@ exports.activateKillSwitch = onCall({ region: "us-central1" }, async (request) =
     }
   }
 
+  // The Firestore batch is already committed above. If some Bridgecard API
+  // calls failed, the cards are still blocked in our DB — throwing here would
+  // make the caller think the entire operation failed when it mostly succeeded.
+  // Return partial success so the admin can see which cards need manual review.
   if (failedFreezes.length > 0) {
-    throw new HttpsError(
-      "internal",
-      `FAILED STATE: Could not freeze ${failedFreezes.length} cards (${failedFreezes.join(', ')}). Manual intervention required.`
-    );
+    logger.error(`[FreezeAllCards] ${failedFreezes.length} cards frozen in Firestore but NOT frozen at Bridgecard. Manual review needed.`, failedFreezes);
+    return {
+      success: true,
+      blocked: totalBlocked,
+      partial: true,
+      bridgecard_freeze_failed: failedFreezes,
+      message: `${totalBlocked} cards frozen. ${failedFreezes.length} could not be frozen at Bridgecard and require manual review.`,
+    };
   }
 
-  return { success: true, blocked: totalBlocked };
+  return { success: true, frozen: totalBlocked };
 });
 
 /**
- * adminGlobalKillSwitch — blocks ALL active cards across the absolute entire platform.
+ * adminGlobalFreeze — freezes ALL active cards across the absolute entire platform.
  * Protected by strict `requireAdmin` custom claim validation.
  */
-exports.adminGlobalKillSwitch = onCall({ region: "us-central1", enforceAppCheck: false }, async (request) => {
+exports.adminGlobalFreeze = onCall({ region: "us-central1", enforceAppCheck: false }, async (request) => {
   requireAdmin(request.auth);
 
   // ── STEP 1: Write system_state/global FIRST — instant gate ─────────────────
   // All Cloud Functions now reject immediately before a single card is touched.
   await db.doc("system_state/global").set({
     mode: "LOCKDOWN",
-    reason: "Admin Global Kill Switch activated via Cloud Function",
+    reason: "Admin Global Freeze activated via Cloud Function",
     activated_by: request.auth.uid,
     updated_at: FieldValue.serverTimestamp(),
   });
 
-  logger.info("[AdminKillSwitch] System mode set to LOCKDOWN — gate closed.");
+  logger.info("[AdminGlobalFreeze] System mode set to LOCKDOWN — gate closed.");
 
   // ── STEP 2: Card document sweep (best-effort UI consistency) ────────────────
   const cardsSnap = await db.collection("cards")
@@ -416,7 +439,7 @@ exports.adminGlobalKillSwitch = onCall({ region: "us-central1", enforceAppCheck:
     created_at: FieldValue.serverTimestamp(),
   });
 
-  logger.info(`[AdminKillSwitch] Froze ${totalFrozen} cards. Bridgecard freeze queued.`);
+  logger.info(`[AdminGlobalFreeze] Froze ${totalFrozen} cards. Bridgecard freeze queued.`);
 
   return {
     success: true,
@@ -445,11 +468,14 @@ exports.sendCardNotification = onCall({ region: "us-central1" }, async (request)
   if (!cardSnap.exists) throw new HttpsError("not-found", "Card not found.");
 
   const accountId = cardSnap.data().account_id;
-  const accountSnap = await db.collection("accounts").doc(accountId).get();
-  if (!accountSnap.exists) throw new HttpsError("not-found", "Account not found.");
-
-  if (accountSnap.data().owner_user_id !== request.auth.uid) {
-    throw new HttpsError("permission-denied", "You can only notify on your own cards.");
+  // BUG FIX (Bug C): Personal cards use account_id === uid with no accounts document.
+  // Old code threw not-found unconditionally for personal card holders.
+  if (accountId !== request.auth.uid) {
+    const accountSnap = await db.collection("accounts").doc(accountId).get();
+    if (!accountSnap.exists) throw new HttpsError("not-found", "Account not found.");
+    if (accountSnap.data().owner_user_id !== request.auth.uid) {
+      throw new HttpsError("permission-denied", "You can only notify on your own cards.");
+    }
   }
 
   await sendNotification(accountId, body, { title, type });

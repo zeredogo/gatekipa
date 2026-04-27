@@ -57,6 +57,19 @@ async function processTransactionInternal({
   const mode = await getSystemMode();
   assertSystemAllowsFinancialOps(mode);
 
+  // ── 1.5. Spending Lock gate — user-controlled transaction kill-switch ───────
+  // If the user has toggled their Spending Lock ON (spending_lock: true),
+  // ALL debit transactions are blocked here before any money moves.
+  // Wallet funding (top-up) is exempt — the lock only blocks OUTGOING money.
+  const SPENDING_LOCK_EXEMPT_TYPES = ["wallet_funding"];
+  if (!SPENDING_LOCK_EXEMPT_TYPES.includes(type)) {
+    const userSnap = await db.collection("users").doc(userId).get();
+    if (userSnap.exists && userSnap.data().spending_lock === true) {
+      logger.warn("[Orchestrator] Spending Lock active — transaction blocked.", { userId, type, correlationId });
+      throw new Error("SPENDING_LOCK_ACTIVE: Transactions are blocked. Disable Spending Lock in Settings to proceed.");
+    }
+  }
+
   // ── 2. Fast-path idempotency check (non-blocking, catches obvious retries) ─
   const existingTxnId = await checkIdempotency(idempotencyKey);
   if (existingTxnId) {
@@ -331,6 +344,41 @@ async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata)
       updated_at: FieldValue.serverTimestamp(),
     }, { merge: true });
   }
+
+  // --- GATEKIPA TRANSACTION FEE ---
+  const flatFeeNGN = 100; // Flat 100 NGN fee regardless of transaction volume
+  const flatFeeKobo = flatFeeNGN * 100;
+
+  const walletRef = db.doc(`users/${userId}/wallet/balance`);
+  const walletSnap = await firestoreTxn.get(walletRef);
+  
+  // Best-effort extraction of wallet balance, defaults to 0
+  const walletData = walletSnap.exists ? walletSnap.data() : {};
+  const currentBalanceKobo = walletData.balance_kobo
+    ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
+
+  const balanceAfterKobo = currentBalanceKobo - flatFeeKobo;
+
+  const feeLedgerRef = db.collection("wallet_ledger").doc();
+  firestoreTxn.set(feeLedgerRef, {
+    user_id: userId,
+    type: "debit",
+    amount_kobo: flatFeeKobo,
+    amount: flatFeeNGN,
+    reference: `fee_${bridgecardRef || txnId}`,
+    balance_after_kobo: balanceAfterKobo,
+    balance_after: balanceAfterKobo / 100,
+    source: "card_transaction_fee",
+    merchant_name: "Gatekipa Trans. Fee",
+    created_at: FieldValue.serverTimestamp(),
+  });
+
+  // Dual-write deduction for the fee
+  firestoreTxn.set(walletRef, {
+    balance_kobo: FieldValue.increment(-flatFeeKobo),
+    cached_balance: FieldValue.increment(-flatFeeNGN),
+    balance: FieldValue.increment(-flatFeeNGN),
+  }, { merge: true });
 }
 
 // ── Post-processing (best-effort, non-atomic) ──────────────────────────────────
@@ -351,9 +399,12 @@ async function _postProcess(type, txnId, userId, amount, metadata) {
     }
 
     // FCM + in-app notification for card charges
+    // BUG FIX (Bug B): Personal cards have account_id === uid but no accounts document.
+    // Old code: accountSnap.exists === false → ownerUid undefined → notification silently skipped.
+    // Fix: fallback to card.account_id as ownerUid when no accounts document exists.
     const accountSnap = await db.collection("accounts").doc(card.account_id).get();
-    if (accountSnap.exists) {
-      const ownerUid = accountSnap.data().owner_user_id;
+    const ownerUid = accountSnap.exists ? accountSnap.data().owner_user_id : card.account_id;
+    if (ownerUid) {
       const ownerSnap = await db.collection("users").doc(ownerUid).get();
       const fcmToken = ownerSnap.data()?.fcm_token;
 
@@ -465,3 +516,75 @@ exports.processTransaction = onCall({ region: "us-central1", enforceAppCheck: fa
 
 // Export the internal function for use by paystackService and bridgecardService
 exports.processTransactionInternal = processTransactionInternal;
+
+/**
+ * toggleSpendingLock — lets a user enable or disable their Spending Lock.
+ *
+ * When spending_lock = true:
+ *   - card_charge (Bridgecard webhook debit) is BLOCKED
+ *   - wallet_to_card (card funding) is BLOCKED
+ *   - wallet_funding (Paystack top-up) is ALLOWED
+ *
+ * The lock is enforced inside processTransactionInternal, so it cannot
+ * be bypassed by calling any other function directly.
+ */
+exports.toggleSpendingLock = onCall({ region: "us-central1" }, async (request) => {
+  requireVerifiedEmail(request.auth);
+  const uid = request.auth.uid;
+  const { lock } = request.data; // boolean: true = locked, false = unlocked
+
+  if (typeof lock !== "boolean") {
+    throw new HttpsError("invalid-argument", "'lock' must be a boolean.");
+  }
+
+  // PIN enforcement — require the user's transaction PIN to change the lock
+  // This prevents an attacker who has physical access to the phone from unlocking
+  await requirePin(uid, request.data.pin);
+
+  await db.collection("users").doc(uid).update({
+    spending_lock: lock,
+    spending_lock_updated_at: FieldValue.serverTimestamp(),
+  });
+
+  logger.info(`[SpendingLock] User ${uid} set spending_lock = ${lock}`);
+
+  // Auto-freeze/unfreeze Bridgecards to enforce the lock synchronously at the issuer level
+  try {
+    const { internalFreezeBridgecard } = require("./bridgecardService");
+    const cardsSnap = await db.collection("cards")
+      .where("created_by", "==", uid)
+      .where("bridgecard_card_id", ">", "")
+      .get();
+      
+    const promises = [];
+    for (const doc of cardsSnap.docs) {
+      const cardData = doc.data();
+      // Only toggle cards that are in a valid state
+      if (lock && (cardData.status === "active" || cardData.local_status === "active")) {
+        promises.push(internalFreezeBridgecard(cardData.bridgecard_card_id, true)
+          .then(() => doc.ref.update({ status: "frozen", local_status: "frozen", bridgecard_status: "frozen" }))
+          .catch(e => logger.error(`Failed to freeze card ${doc.id}:`, e))
+        );
+      } else if (!lock && (cardData.status === "frozen" || cardData.local_status === "frozen")) {
+        promises.push(internalFreezeBridgecard(cardData.bridgecard_card_id, false)
+          .then(() => doc.ref.update({ status: "active", local_status: "active", bridgecard_status: "active" }))
+          .catch(e => logger.error(`Failed to unfreeze card ${doc.id}:`, e))
+        );
+      }
+    }
+    if (promises.length > 0) {
+      await Promise.allSettled(promises);
+      logger.info(`[SpendingLock] Synced freeze state for ${promises.length} cards.`);
+    }
+  } catch (err) {
+    logger.error("[SpendingLock] Error syncing card freeze state:", err);
+  }
+
+  return {
+    success: true,
+    spending_lock: lock,
+    message: lock
+      ? "Spending Lock enabled. All debit transactions are now blocked."
+      : "Spending Lock disabled. Transactions are now allowed.",
+  };
+});

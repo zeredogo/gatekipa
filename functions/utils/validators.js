@@ -17,8 +17,21 @@ function requireVerifiedEmail(auth) {
 
 async function requireKyc(uid) {
   const userDoc = await db.collection("users").doc(uid).get();
-  if (!userDoc.exists || (userDoc.data().kycStatus !== "verified" && userDoc.data().bridgecard_status !== "verified")) {
-    throw new HttpsError("permission-denied", "You must complete identity verification (KYC/BVN) to perform this action.");
+  if (!userDoc.exists) {
+    throw new HttpsError("permission-denied", "User profile not found. Please contact support.");
+  }
+  const data = userDoc.data();
+  
+  // A user must have completed INTERNAL KYC (kycStatus = "verified") to pass.
+  // bridgecard_status alone is not sufficient — it's set by the Bridgecard
+  // webhook after cardholder registration, but does NOT prove internal KYC was done.
+  const isInternallyVerified = data.kycStatus === "verified";
+  
+  if (!isInternallyVerified) {
+    throw new HttpsError(
+      "permission-denied",
+      "You must complete identity verification (KYC) before performing this action. Please go to your Profile to complete verification."
+    );
   }
 }
 

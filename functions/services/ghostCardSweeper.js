@@ -73,7 +73,7 @@ exports.ghostCardSweeper = onSchedule(
           baseURL: BASE_URL,
           headers: {
             "accept": "application/json",
-            "token": `Bearer ${BRIDGECARD_ACCESS_TOKEN.value()}`,
+            "token": `Bearer ${BRIDGECARD_ACCESS_TOKEN.value().trim()}`,
             "issuing-app-id": ISSUING_APP_ID,
           },
           timeout: 30_000,

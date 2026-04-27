@@ -206,8 +206,8 @@ exports.requestPasswordReset = onCall(
  * Plan prices:
  *   free       — ₦700
  *   activation — ₦1,400
- *   premium    — ₦2,000
- *   business   — ₦5,000
+ *   premium    — ₦1,999  (Sentinel Prime)
+ *   business   — ₦5,000  (Business Plan)
  */
 exports.purchasePlan = onCall(
   { region: "us-central1", secrets: [PAYSTACK_SECRET_KEY] },
@@ -368,14 +368,23 @@ exports.purchasePlanFromVault = onCall(
     try {
       await db.runTransaction(async (t) => {
         const walletSnap = await t.get(walletRef);
-        if (!walletSnap.exists) throw new Error("NO_WALLET");
+        if (!walletSnap.exists) throw new Error("WALLET_NOT_INITIALIZED");
         
-        const currentBalance = walletSnap.data().balance || 0;
-        if (currentBalance < cost) throw new Error("INSUFFICIENT_FUNDS");
+        const walletData = walletSnap.data() || {};
+        const currentBalanceKobo = walletData.balance_kobo 
+          ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
+          
+        const currentBalanceNgn = currentBalanceKobo / 100;
+        
+        if (currentBalanceNgn < cost) throw new Error("INSUFFICIENT_FUNDS");
 
-        // Deduct from wallet
+        const costKobo = Math.round(cost * 100);
+
+        // Deduct from wallet (Dual Write)
         t.update(walletRef, { 
-          balance: FieldValue.increment(-cost) 
+          balance_kobo: FieldValue.increment(-costKobo),
+          cached_balance: FieldValue.increment(-cost),
+          balance: FieldValue.increment(-cost)
         });
 
         // 1. Immutable ledger entry
@@ -405,8 +414,11 @@ exports.purchasePlanFromVault = onCall(
         t.set(userRef, updates, { merge: true });
       });
     } catch (err) {
+      if (err.message === "WALLET_NOT_INITIALIZED") {
+        throw new HttpsError("failed-precondition", "Your wallet has not been set up yet. Please contact support or restart the app.");
+      }
       if (err.message === "INSUFFICIENT_FUNDS") {
-        throw new HttpsError("failed-precondition", "Insufficient funds in your vault.");
+        throw new HttpsError("failed-precondition", "Insufficient funds in your vault. Please top up and try again.");
       }
       logger.error("[purchasePlanFromVault] Transaction failed:", err);
       throw new HttpsError("internal", "Failed to activate plan from vault.");

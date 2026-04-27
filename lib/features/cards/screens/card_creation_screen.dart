@@ -81,6 +81,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
   bool _useProfileAddress = true;
 
   String _cardCurrency = 'NGN';
+  String _cardLimit = '500000';
   String _country = 'Nigeria';
 
   String? _selectedAccountId;
@@ -421,6 +422,22 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
 
     // STEP 1: Plan Selection (If needed)
     if (hasNoPlan) {
+        // Pre-flight: ensure the user has a Transaction PIN before letting
+        // them go through the entire plan selection flow only to fail at the
+        // deduction step with a confusing error message.
+        const pinStorage = FlutterSecureStorage();
+        final pinKey = '${user.uid}_transaction_pin';
+        final existingPin = await pinStorage.read(key: pinKey);
+        if (existingPin == null || existingPin.isEmpty) {
+          if (!mounted) return;
+          GkToast.show(
+            context,
+            message: 'A Transaction PIN is required to purchase a plan. Please go to Profile → Security to set one up first.',
+            type: ToastType.warning,
+          );
+          return;
+        }
+
         final result = await _showPlanSelectionSheet();
         if (result == null) return; // user cancelled
         selectedPlanId = result['id'];
@@ -444,10 +461,15 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
 
     final cardName = _cardNameCtrl.text.trim().isNotEmpty ? _cardNameCtrl.text.trim() : 'New Virtual Card';
     
-    // Total needed: plan cost + minimum card funding
+    // Total needed: plan cost + minimum card funding + issuance fee
     double totalNeeded = planCost.toDouble();
+    final cardsIncluded = user.cardsIncluded;
+    
     if (_cardCurrency == 'USD') {
-        totalNeeded += 8000; // Minimum USD card funding
+        totalNeeded += (_cardLimit == '1000000') ? 8500 : 6500; // Minimum USD card funding
+    } else if (cardsIncluded == 0 && planCost == 0) {
+        // If they have no cards included, and are not buying a new plan, they pay the base 700 NGN issuance fee
+        totalNeeded += 700;
     }
 
     double currentBalance = wallet?.balance ?? 0.0;
@@ -523,14 +545,38 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         } catch (e) {
             if (!mounted) return;
             setState(() => _isLoading = false);
-            GkToast.show(context, message: 'Could not activate your plan. Please ensure you have sufficient vault balance and try again.', type: ToastType.error);
+
+            // Extract the real error from the backend instead of
+            // blindly showing a misleading "vault balance" message.
+            String planErrMsg;
+            if (e is FirebaseFunctionsException) {
+              final msg = (e.message ?? '').toLowerCase();
+              if (msg.contains('pin') || msg.contains('transaction')) {
+                planErrMsg = e.message ?? 'Transaction PIN error. Please check your PIN in Profile → Security.';
+              } else if (msg.contains('insufficient') || msg.contains('funds')) {
+                planErrMsg = 'Insufficient vault balance. Please fund your wallet and try again.';
+              } else {
+                planErrMsg = e.message?.isNotEmpty == true
+                    ? e.message!
+                    : 'Could not activate your plan. Please try again.';
+              }
+            } else {
+              final raw = e.toString();
+              if (raw.contains('No Transaction PIN')) {
+                planErrMsg = 'You haven\'t set a Transaction PIN yet. Go to Profile → Security to set one up first.';
+              } else {
+                planErrMsg = 'Could not activate your plan. Please try again.';
+              }
+            }
+
+            GkToast.show(context, message: planErrMsg, type: ToastType.error);
             return;
         }
     }
 
     // STEP 5: KYC / Bridgecard Registration
     if (user.bridgecardCardholderId == null) {
-      if (user.kycStatus != 'verified') {
+      if (user.kycStatus != 'verified' && user.kycStatus != 'approved') {
         if (!mounted) return;
         setState(() => _isLoading = false);
         GkToast.show(context, message: 'Please complete your identity verification in Profile first.', type: ToastType.error);
@@ -580,7 +626,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     final selectedAcc = accounts.where((a) => a.id == _selectedAccountId).firstOrNull;
     final derivedCategory = selectedAcc?.type ?? 'personal';
     
-    final resolvedAccountId = selectedAcc?.id ?? (accounts.isNotEmpty ? accounts.first.id : user.uid);
+    final resolvedAccountId = _selectedAccountId ?? selectedAcc?.id ?? (accounts.isNotEmpty ? accounts.first.id : user.uid);
 
     final cardId = await ref.read(cardNotifierProvider.notifier).createCard(
           accountId: resolvedAccountId,
@@ -609,6 +655,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         cardId: cardId,
         pin: pin,
         cardCurrency: _cardCurrency,
+        cardLimit: _cardCurrency == 'USD' ? _cardLimit : null,
       );
 
       if (!bridgecardSuccess) {
@@ -840,6 +887,42 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
+
+              if (_cardCurrency == 'USD') ...[
+                const _FieldLabel('Card Limit'),
+                const SizedBox(height: AppSpacing.xs),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: '500000', label: Text('\$5,000 Limit')),
+                    ButtonSegment(value: '1000000', label: Text('\$10,000 Limit')),
+                  ],
+                  selected: {_cardLimit},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setState(() => _cardLimit = newSelection.first);
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith<Color>(
+                      (Set<WidgetState> states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppColors.primaryContainer;
+                        }
+                        return AppColors.surfaceContainerLowest;
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  _cardLimit == '1000000' 
+                      ? 'Requires a minimum funding of \$4.00 + \$0.50 fee (~8,500 NGN required buffer)'
+                      : 'Requires a minimum funding of \$3.00 + \$0.50 fee (~6,500 NGN required buffer)',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 12,
+                    color: AppColors.outline,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
 
               const _FieldLabel('Card Type'),
               const SizedBox(height: AppSpacing.xs),

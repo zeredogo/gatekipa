@@ -38,7 +38,7 @@ class SupportScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -72,9 +72,9 @@ class SupportScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant.withOpacity(0.5),
+                    color: AppColors.surfaceVariant.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.outline.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.outline.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     children: [

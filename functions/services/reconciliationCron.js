@@ -151,7 +151,7 @@ exports.integritySweep = onSchedule("every 12 hours", async () => {
 // ── 4. Webhook Drift Synchronization (Active Polling) ─────────────────────────
 // This actively queries Bridgecard for missing transactions to ensure 
 // Night Lockdown and Sentinel security engines never go blind due to dropped webhooks.
-exports.pollMissingWebhooks = onSchedule("every 1 hours", async () => {
+exports.pollMissingWebhooks = onSchedule({ schedule: "every 1 hours", secrets: ["BRIDGECARD_ACCESS_TOKEN", "BRIDGECARD_SECRET_KEY"] }, async () => {
   logger.info("[PollMissingWebhooks] Starting active Bridgecard synchronization...");
   
   const { bridgecardClient } = require("./bridgecardService");

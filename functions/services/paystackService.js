@@ -77,11 +77,14 @@ exports.verifyPaystackPayment = onCall(
       }
 
       // Enforce Identity Parity (Crucial anti-spoofing mechanism)
+      // FIX: Only reject when Paystack actually returns a customer email AND it mismatches.
+      // Old code: `paystackEmail !== userEmail` threw permission-denied when Paystack
+      // returned null for the customer email field (no customer object on DVA top-ups).
       const paystackEmail = data.customer?.email?.toLowerCase();
       const userEmail = request.auth.token.email?.toLowerCase();
-      
+
       if (!userEmail) {
-        // Fallback to strict UID metadata verification if email is missing from Auth claims
+        // Fallback: no email on Auth token — verify via UID in transaction metadata
         const txUid = data.metadata?.uid;
         if (txUid !== uid) {
           throw new HttpsError(
@@ -89,11 +92,12 @@ exports.verifyPaystackPayment = onCall(
             "Identity mismatch: Paystack transaction metadata UID does not match the active caller."
           );
         }
-      } else if (paystackEmail !== userEmail) {
-         throw new HttpsError(
-           "permission-denied",
-           "Identity mismatch: The Paystack transaction email does not match the active account."
-         );
+      } else if (paystackEmail && paystackEmail !== userEmail) {
+        // Only enforce when Paystack actually returned a customer email
+        throw new HttpsError(
+          "permission-denied",
+          "Identity mismatch: The Paystack transaction email does not match the active account."
+        );
       }
     } catch (err) {
       if (err instanceof HttpsError) throw err;
@@ -170,7 +174,7 @@ exports.paystackWebhook = onRequest(
     // Route by payment type
     try {
       if (event.event === "charge.success") {
-      const data = event.data;
+      const data = event.data;  // Scoped to this block
       const reference = data.reference;
       const amountKobo = data.amount;
       const plan = data.metadata?.plan; // set when purchasing a plan
@@ -188,6 +192,21 @@ exports.paystackWebhook = onRequest(
           }
         } catch (err) {
           logger.error("[Paystack Webhook] Failed to look up user by customer_code:", err);
+        }
+      }
+
+      // Fallback: look up by email (handles DVA transfers where customer_code is also missing)
+      if (!uid && data.customer?.email) {
+        try {
+          const emailQuery = await db.collection("users")
+            .where("email", "==", data.customer.email)
+            .limit(1).get();
+          if (!emailQuery.empty) {
+            uid = emailQuery.docs[0].id;
+            logger.info(`[Paystack Webhook] UID resolved via email fallback for ref: ${reference}`);
+          }
+        } catch (err) {
+          logger.error("[Paystack Webhook] Failed to look up user by email:", err);
         }
       }
 
@@ -299,28 +318,45 @@ exports.paystackWebhook = onRequest(
         }
       } // end else (Standard wallet top-up)
       } // end charge.success
-      else if (event.event === "charge.refunded" || event.event === "refund.processed") {
-        let uid = data.metadata?.uid || data.customer?.metadata?.uid;
+      // BUG FIX: `charge.refunded` does NOT exist in Paystack's event catalog.
+      // The correct event for refunds is `refund.processed`.
+      else if (event.event === "refund.processed") {
+        // Re-declare `data` in this scope — it is NOT accessible from the charge.success block above.
+        const refundData = event.data;
+        const reference = refundData.transaction?.reference || refundData.transaction_reference;
+        const amountKobo = refundData.amount;
 
-        if (!uid && data.customer?.customer_code) {
+        let uid = refundData.customer?.metadata?.uid;
+
+        if (!uid && refundData.customer?.customer_code) {
           try {
             const userQuery = await db.collection("users")
-              .where("paystack_customer_id", "==", data.customer.customer_code)
+              .where("paystack_customer_id", "==", refundData.customer.customer_code)
               .limit(1).get();
-            if (!userQuery.empty) {
-              uid = userQuery.docs[0].id;
-            }
+            if (!userQuery.empty) uid = userQuery.docs[0].id;
           } catch (err) {
             logger.error("[Paystack Webhook] Failed to look up user by customer_code for refund:", err);
           }
         }
 
+        // Fallback: email lookup for refunds
+        if (!uid && refundData.customer?.email) {
+          try {
+            const emailQuery = await db.collection("users")
+              .where("email", "==", refundData.customer.email)
+              .limit(1).get();
+            if (!emailQuery.empty) uid = emailQuery.docs[0].id;
+          } catch (err) {
+            logger.error("[Paystack Webhook] Failed to look up user by email for refund:", err);
+          }
+        }
+
         if (!uid) {
-          console.warn(`[Paystack Webhook] Missing metadata.uid for refund ref: ${reference}`);
+          console.warn(`[Paystack Webhook] Missing uid for refund ref: ${reference}`);
           return res.status(200).json({ status: "ignored_missing_uid" });
         }
 
-        const plan = data.metadata?.plan;
+        const plan = refundData.metadata?.plan;
         
         // Only process wallet refunds if it wasn't a plan purchase
         if (!plan) {
@@ -343,8 +379,15 @@ exports.paystackWebhook = onRequest(
                 timestamp: Date.now(),
               });
 
-              // Subtract the refunded amount from the user's wallet
-              t.set(walletRef, { balance: FieldValue.increment(-refundedAmount) }, { merge: true });
+              // BUG FIX: Must write all 3 balance fields atomically.
+              // Only writing `balance` left `balance_kobo` and `cached_balance` out of sync,
+              // causing the user's displayed wallet balance to be wrong after a refund.
+              const refundKobo = Math.round(refundedAmount * 100);
+              t.set(walletRef, {
+                balance_kobo: FieldValue.increment(-refundKobo),
+                cached_balance: FieldValue.increment(-refundedAmount),
+                balance: FieldValue.increment(-refundedAmount),
+              }, { merge: true });
 
               const ledgerRef = db.collection("users").doc(uid).collection("wallet_transactions").doc(`refund_${reference}`);
               t.set(ledgerRef, {
@@ -365,6 +408,23 @@ exports.paystackWebhook = onRequest(
             }
           }
         }
+      }
+
+      // ── DVA assignment events ──────────────────────────────────────────────────
+      // Paystack fires these when a bank transfer to a Dedicated Virtual Account is
+      // processed. `charge.success` is also fired and handles the wallet credit,
+      // so we only need to handle the failure case here for audit logging.
+      else if (event.event === "dedicatedaccount.assign.failed") {
+        const assignData = event.data;
+        logger.error(`[Paystack DVA] Assignment failed for customer: ${assignData?.customer?.customer_code}`, assignData);
+        // Best-effort audit log only — no wallet mutation needed
+        await db.collection("dva_assignment_failures").add({
+          customer_code: assignData?.customer?.customer_code,
+          account_number: assignData?.dedicated_account?.account_number,
+          reason: assignData?.reason || "Unknown",
+          raw: JSON.stringify(assignData),
+          created_at: FieldValue.serverTimestamp(),
+        }).catch(e => logger.error("[Paystack DVA] Failed to log assignment failure:", e));
       }
 
       return res.status(200).json({ received: true });

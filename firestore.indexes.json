@@ -229,6 +229,14 @@
         { "fieldPath": "user_id",    "order": "ASCENDING" },
         { "fieldPath": "expires_at", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "card_provisioning_queue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

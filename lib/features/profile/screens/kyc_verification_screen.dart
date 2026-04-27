@@ -223,7 +223,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       body: userAsync.when(
         data: (user) {
           if (user == null) return const SizedBox.shrink();
-          final isVerified = user.kycStatus == 'verified';
+          final isVerified = user.kycStatus == 'verified' || user.kycStatus == 'approved';
 
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
@@ -268,106 +268,138 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Country Dropdown ──
-                        Text(
-                          'Country',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedCountry,
-                          isExpanded: true,
-                          decoration: _inputDecoration(hint: 'Select country'),
-                          items: _kCountries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                          onChanged: (v) {
-                            if (v != null) {
-                              setState(() {
-                                _selectedCountry = v;
-                                _selectedState = null; // reset state on country change
-                              });
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ── State / Province Dropdown ──
-                        Text(
-                          'State / Province',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedState,
-                          isExpanded: true,
-                          decoration: _inputDecoration(hint: 'Select state / province'),
-                          items: _getStatesForCountry(_selectedCountry)
-                              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                              .toList(),
-                          onChanged: (v) {
-                            if (v != null) setState(() => _selectedState = v);
-                          },
-                          validator: (v) => v == null ? 'Please select a state / province' : null,
-                        ),
-                        const SizedBox(height: 16),
-
-
-
-                        const SizedBox(height: 16),
-
-                        if (_selectedCountry == 'Nigeria') ...[
+                  if (!isVerified)
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ── Country Dropdown ──
                           Text(
-                            'Identification Number',
+                            'Country',
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Please provide your BVN or NIN.',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: AppColors.outline,
-                              height: 1.4,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _idNumberController,
-                            keyboardType: TextInputType.text,
-                            textCapitalization: TextCapitalization.characters,
-                            decoration: _inputDecoration(
-                              hint: 'Enter your ID number',
-                              prefixIcon: const Icon(Icons.badge_rounded, color: AppColors.outlineVariant),
-                            ),
-                            validator: (v) {
-                              if (_selectedCountry == 'Nigeria' && (v == null || v.trim().isEmpty)) {
-                                return 'Please enter an ID number';
+                          DropdownButtonFormField<String>(
+                            initialValue: _selectedCountry,
+                            isExpanded: true,
+                            decoration: _inputDecoration(hint: 'Select country'),
+                            items: _kCountries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                            onChanged: (v) {
+                              if (v != null) {
+                                setState(() {
+                                  _selectedCountry = v;
+                                  _selectedState = null; // reset state on country change
+                                });
                               }
-                              return null;
                             },
                           ),
                           const SizedBox(height: 16),
-                        ],
 
-                        if (_selectedCountry != 'Nigeria') ...[
-                          // ── Document Proof Upload ──
+                          // ── State / Province Dropdown ──
                           Text(
-                            'Document Proof',
+                            'State / Province',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            initialValue: _selectedState,
+                            isExpanded: true,
+                            decoration: _inputDecoration(hint: 'Select state / province'),
+                            items: _getStatesForCountry(_selectedCountry)
+                                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) setState(() => _selectedState = v);
+                            },
+                            validator: (v) => v == null ? 'Please select a state / province' : null,
+                          ),
+                          const SizedBox(height: 16),
+
+
+
+                          const SizedBox(height: 16),
+
+                          if (_selectedCountry == 'Nigeria') ...[
+                            Text(
+                              'Identification Number',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Please provide your BVN or NIN.',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.outline,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _idNumberController,
+                              keyboardType: TextInputType.text,
+                              textCapitalization: TextCapitalization.characters,
+                              decoration: _inputDecoration(
+                                hint: 'Enter your ID number',
+                                prefixIcon: const Icon(Icons.badge_rounded, color: AppColors.outlineVariant),
+                              ),
+                              validator: (v) {
+                                if (_selectedCountry == 'Nigeria' && (v == null || v.trim().isEmpty)) {
+                                  return 'Please enter an ID number';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+
+                          if (_selectedCountry != 'Nigeria') ...[
+                            // ── Document Proof Upload ──
+                            Text(
+                              'Document Proof',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Upload a clear photo of your National ID, Passport, etc.',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.outline,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _DocumentUploadCard(
+                              icon: Icons.upload_file_rounded,
+                              title: _documentProofFile != null ? 'Document Uploaded ✓' : 'Upload Document',
+                              subtitle: _documentProofFile != null
+                                  ? 'Tap to re-upload'
+                                  : 'Tap here to capture image',
+                              isCompleted: _documentProofFile != null,
+                              onTap: _pickDocumentProof,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // ── Liveness Check (Selfie) ──
+                          Text(
+                            'Liveness Check',
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -376,7 +408,7 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Upload a clear photo of your National ID, Passport, etc.',
+                            'Take a clear selfie with your front camera. Ensure your face is well-lit and visible.',
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               color: AppColors.outline,
@@ -385,55 +417,35 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           ),
                           const SizedBox(height: 8),
                           _DocumentUploadCard(
-                            icon: Icons.upload_file_rounded,
-                            title: _documentProofFile != null ? 'Document Uploaded ✓' : 'Upload Document',
-                            subtitle: _documentProofFile != null
-                                ? 'Tap to re-upload'
-                                : 'Tap here to capture image',
-                            isCompleted: _documentProofFile != null,
-                            onTap: _pickDocumentProof,
+                            icon: Icons.camera_front_rounded,
+                            title: _selfieFile != null ? 'Selfie Captured ✓' : 'Take Selfie',
+                            subtitle: _selfieFile != null
+                                ? 'Tap to retake'
+                                : 'Front camera liveness verification',
+                            isCompleted: _selfieFile != null,
+                            onTap: _takeLivenessCheck,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 24),
+
+                          GkButton(
+                            label: 'Verify Identity',
+                            isLoading: _isLoading,
+                            onPressed: _verifyIdentity,
+                          ),
                         ],
-
-                        // ── Liveness Check (Selfie) ──
-                        Text(
-                          'Liveness Check',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Take a clear selfie with your front camera. Ensure your face is well-lit and visible.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.outline,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _DocumentUploadCard(
-                          icon: Icons.camera_front_rounded,
-                          title: _selfieFile != null ? 'Selfie Captured ✓' : 'Take Selfie',
-                          subtitle: _selfieFile != null
-                              ? 'Tap to retake'
-                              : 'Front camera liveness verification',
-                          isCompleted: _selfieFile != null,
-                          onTap: _takeLivenessCheck,
-                        ),
-                        const SizedBox(height: 24),
-
-                        GkButton(
-                          label: isVerified ? 'Re-Verify Identity' : 'Verify Identity',
-                          isLoading: _isLoading,
-                          onPressed: _verifyIdentity,
-                        ),
-                      ],
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(top: 24.0),
+                      child: GkButton(
+                        label: 'Contact Support for Adjustments',
+                        onPressed: () {
+                          // Redirect to support or show support info
+                          GkToast.show(context, message: 'Please contact support@gatekipa.com to adjust your KYC information.', type: ToastType.info);
+                        },
+                      ),
                     ),
-                  )
               ],
             ),
           );

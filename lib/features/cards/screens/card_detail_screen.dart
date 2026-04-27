@@ -130,16 +130,14 @@ class _CardDetailContent extends ConsumerWidget {
                     duration: 400.ms),
             const SizedBox(height: 28),
 
-            // Usage bar
-            _UsageSection(card: card),
-            const SizedBox(height: AppSpacing.lg),
+            // Only show Usage, Kill Switch if card is provisioned
+            if (card.bridgecardCardId != null && card.status != 'pending_issuance') ...[
+              // Usage bar
+              _UsageSection(card: card),
+              const SizedBox(height: AppSpacing.lg),
 
-            // Rule toggles integrated into Kill switch below
-
-
-            // Kill switch for this card
-            if (card.bridgecardCardId != null) ...[
-              _CardKillSwitch(card: card, rules: rules),
+              // Freeze toggle for this card
+              _CardFreezeToggle(card: card, rules: rules),
               const SizedBox(height: AppSpacing.md),
             ],
             
@@ -149,26 +147,28 @@ class _CardDetailContent extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
             ],
 
-            // OTP fetcher
-            _OtpActionPanel(card: card),
-            const SizedBox(height: AppSpacing.lg),
+            if (card.bridgecardCardId != null && card.status != 'pending_issuance') ...[
+              // OTP fetcher
+              _OtpActionPanel(card: card),
+              const SizedBox(height: AppSpacing.lg),
 
-            // Transactions for this card
-            const _SectionHeader('Transaction History'),
-            const SizedBox(height: AppSpacing.sm),
-            if (cardTxs.isEmpty)
-              _EmptyTxState()
-            else
-              ...cardTxs.asMap().entries.map((e) {
-                final tx = e.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _TxRow(tx: tx)
-                      .animate(delay: (e.key * 60).ms)
-                      .fadeIn()
-                      .slideY(begin: 0.05, end: 0),
-                );
-              }),
+              // Transactions for this card
+              const _SectionHeader('Transaction History'),
+              const SizedBox(height: AppSpacing.sm),
+              if (cardTxs.isEmpty)
+                _EmptyTxState()
+              else
+                ...cardTxs.asMap().entries.map((e) {
+                  final tx = e.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _TxRow(tx: tx)
+                        .animate(delay: (e.key * 60).ms)
+                        .fadeIn()
+                        .slideY(begin: 0.05, end: 0),
+                  );
+                }),
+            ],
             const SizedBox(height: 80),
           ],
         ),
@@ -265,24 +265,24 @@ class _UsageSection extends StatelessWidget {
 
 // _RuleRow is no longer needed.
 
-class _CardKillSwitch extends ConsumerStatefulWidget {
+class _CardFreezeToggle extends ConsumerStatefulWidget {
   final VirtualCardModel card;
   final List<CardRule> rules;
   
-  const _CardKillSwitch({required this.card, required this.rules});
+  const _CardFreezeToggle({required this.card, required this.rules});
 
   @override
-  ConsumerState<_CardKillSwitch> createState() => _CardKillSwitchState();
+  ConsumerState<_CardFreezeToggle> createState() => _CardFreezeToggleState();
 }
 
-class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
+class _CardFreezeToggleState extends ConsumerState<_CardFreezeToggle> {
   bool _expanded = false;
   bool _toggling = false;
   final Set<String> _loadingRules = {};
 
   Future<void> _toggleCardStatus() async {
     if (_toggling) return;
-    final status = widget.card.isBlocked ? 'active' : 'blocked';
+    final status = widget.card.isFrozen ? 'active' : 'frozen';
     
     // BIOMETRIC CHALLENGE FOR DYNAMIC UNFREEZE
     if (status == 'active') {
@@ -370,26 +370,26 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
 
     return Container(
       decoration: BoxDecoration(
-        color: widget.card.isBlocked
+        color: widget.card.isFrozen
             ? AppColors.tertiaryContainer.withValues(alpha: 0.3)
             : AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.card.isBlocked
+          color: widget.card.isFrozen
               ? AppColors.tertiary.withValues(alpha: 0.3)
-              : AppColors.error.withValues(alpha: 0.4),
+              : AppColors.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
       child: Column(
         children: [
-          // Main kill switch header
+          // Main freeze toggle header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
                 Icon(
-                  widget.card.isBlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
-                  color: widget.card.isBlocked ? AppColors.tertiary : AppColors.error,
+                  widget.card.isFrozen ? Icons.ac_unit_rounded : Icons.credit_card_rounded,
+                  color: widget.card.isFrozen ? AppColors.tertiary : AppColors.primary,
                   size: 24,
                 ),
                 const SizedBox(width: 14),
@@ -398,14 +398,14 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.card.isBlocked ? 'Card Blocked' : 'Emergency Kill Switch',
+                        widget.card.isFrozen ? 'Card Frozen' : 'Freeze Card',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
                           fontSize: 15,),
                       ),
                       Text(
-                        widget.card.isBlocked
-                            ? 'Tap to unblock this card'
-                            : 'Block all incoming charges',
+                        widget.card.isFrozen
+                            ? 'Tap to unfreeze this card'
+                            : 'Temporarily disable your card',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                           color: AppColors.onSurfaceVariant,),
                       ),
@@ -413,11 +413,12 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                   ),
                 ),
                 Switch(
-                    value: widget.card.isBlocked,
-                    activeThumbColor: AppColors.error,
+                    value: widget.card.isFrozen,
+                    activeThumbColor: AppColors.tertiary,
+                    activeTrackColor: AppColors.tertiaryContainer,
                     thumbIcon: WidgetStateProperty.resolveWith<Icon?>((Set<WidgetState> states) {
                       if (states.contains(WidgetState.selected)) {
-                        return const Icon(Icons.check, color: AppColors.error);
+                        return const Icon(Icons.ac_unit_rounded, color: AppColors.tertiary);
                       }
                       return const Icon(Icons.close, color: AppColors.surface);
                     }),
@@ -429,7 +430,7 @@ class _CardKillSwitchState extends ConsumerState<_CardKillSwitch> {
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.error,
+                        color: AppColors.tertiary,
                       ),
                     ),
                 IconButton(
@@ -1159,7 +1160,7 @@ class _FundCardModalState extends ConsumerState<_FundCardModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.all(24),
@@ -1167,11 +1168,10 @@ class _FundCardModalState extends ConsumerState<_FundCardModal> {
           color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
               Center(
                 child: Container(
                   width: 40, height: 4,
@@ -1222,7 +1222,6 @@ class _FundCardModalState extends ConsumerState<_FundCardModal> {
             ],
           ),
         ),
-      ),
     );
   }
 }

@@ -47,9 +47,10 @@ class _CardsListScreenState extends ConsumerState<CardsListScreen> {
     final cardsAsync = ref.watch(cardsProvider);
     final isSearching = _searchCtrl.text.trim().isNotEmpty;
     final profileState = ref.watch(userProfileProvider);
-    final isKycPending = profileState.valueOrNull?.kycStatus == 'pending';
+    final kycStatus = profileState.valueOrNull?.kycStatus;
+    final isKycVerified = kycStatus == 'approved' || kycStatus == 'verified';
 
-    if (isKycPending) {
+    if (!isKycVerified) {
       return Scaffold(
         backgroundColor: AppColors.surface,
         appBar: AppBar(

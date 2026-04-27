@@ -11,6 +11,7 @@ import 'package:gatekipa/core/constants/routes.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 import 'package:gatekipa/core/widgets/gk_toast.dart';
 import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class EmailAuthScreen extends ConsumerStatefulWidget {
@@ -39,6 +40,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
   bool _biometricAvailable = false;
   bool _isBiometricLoading = false;
   bool _acceptedPrivacy = false;
+  String? _completePhoneNumber;
 
   @override
   void initState() {
@@ -153,7 +155,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
               password,
               firstName: _firstNameController.text.trim(),
               lastName: _lastNameController.text.trim(),
-              phone: _phoneController.text.trim(),
+              phone: _completePhoneNumber ?? _phoneController.text.trim(),
               address: _addressController.text.trim(),
               city: _cityController.text.trim(),
               addrState: _stateController.text.trim(),
@@ -165,7 +167,6 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
 
         // Email verification is handled by the backend 'onUserCreated' Cloud Function trigger.
         // We do not need to call resendVerificationEmail here to avoid TOO_MANY_ATTEMPTS errors.
-        final user = FirebaseAuth.instance.currentUser;
 
         if (mounted) {
           GkToast.show(context,
@@ -349,18 +350,41 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                   ],
                 ).animate().fadeIn(delay: 250.ms).slideX(begin: 0.05, end: 0),
                 const SizedBox(height: 16),
-                _buildTextField(
+                IntlPhoneField(
                   controller: _phoneController,
-                  label: 'Phone Number',
-                  icon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Phone number is required';
-                    final cleaned = v.trim().replaceAll(RegExp(r'[\s\-]'), '');
-                    if (!RegExp(r'^\+?[0-9]{10,15}$').hasMatch(cleaned)) {
-                      return 'Enter a valid phone (e.g. +2348012345678)';
-                    }
-                    return null;
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number',
+                    labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.outline,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                          width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.surfaceBright,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 16,
+                    color: AppColors.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  initialCountryCode: 'NG',
+                  onChanged: (phone) {
+                    _completePhoneNumber = phone.completeNumber;
                   },
                 ).animate().fadeIn(delay: 270.ms).slideX(begin: 0.05, end: 0),
                 const SizedBox(height: 20),
@@ -478,10 +502,10 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                       }
                       try {
                         await ref.read(authNotifierProvider.notifier).resetPassword(_emailController.text);
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         GkToast.show(context, message: 'Password reset link sent to your email', type: ToastType.success);
                       } catch (e) {
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         GkToast.show(context, message: e.toString(), type: ToastType.error);
                       }
                     },

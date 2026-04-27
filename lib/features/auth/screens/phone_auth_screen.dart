@@ -1,7 +1,7 @@
 // lib/features/auth/screens/phone_auth_screen.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +11,7 @@ import 'package:gatekipa/core/constants/routes.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 import 'package:gatekipa/core/widgets/gk_toast.dart';
 import 'package:gatekipa/features/auth/providers/auth_provider.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
 
 class PhoneAuthScreen extends ConsumerStatefulWidget {
@@ -26,6 +27,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
   bool _biometricAvailable = false;
   bool _isBiometricLoading = false;
   bool _acceptedPrivacy = false;
+  String? _completePhoneNumber;
 
   @override
   void initState() {
@@ -101,7 +103,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
 
     setState(() => _isLoading = true);
 
-    final phone = '+234${_controller.text.replaceFirst(RegExp(r'^0'), '')}';
+    final phone = _completePhoneNumber ?? '+234${_controller.text.replaceFirst(RegExp(r'^0'), '')}';
 
     ref.read(authNotifierProvider.notifier).sendOtp(
           phoneNumber: phone,
@@ -165,38 +167,22 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                   height: 1.5,),
               ).animate().fadeIn(delay: 200.ms),
               const SizedBox(height: 40),
-              // Phone input
-              TextFormField(
+              IntlPhoneField(
                 controller: _controller,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(11),
-                ],
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 1,),
+                  letterSpacing: 1,
+                ),
                 decoration: InputDecoration(
-                  prefixIcon: Container(
-                    margin: const EdgeInsets.only(left: 12, right: 12),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '🇳🇬  +234',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,),
-                    ),
+                  hintText: '8012345678',
+                  hintStyle: const TextStyle(
+                    height: 1.2,
+                    fontFamily: 'Manrope',
+                    color: AppColors.outline,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
                   ),
-                  prefixIconConstraints: const BoxConstraints(),
-                  hintText: '08012345678',
-                  hintStyle: const TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.outline,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 18),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -204,26 +190,21 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(
-                        color:
-                            AppColors.outlineVariant.withValues(alpha: 0.3),
+                        color: AppColors.outlineVariant.withValues(alpha: 0.3),
                         width: 1.5),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide:
-                        const BorderSide(color: AppColors.primary, width: 2),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
                   ),
                   filled: true,
                   fillColor: AppColors.surfaceBright,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 20),
                 ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) {
-                    return 'Enter your phone number';
-                  }
-                  if (v.length < 10) return 'Enter a valid Nigerian number';
-                  return null;
+                initialCountryCode: 'NG',
+                onChanged: (phone) {
+                  _completePhoneNumber = phone.completeNumber;
                 },
               ).animate().fadeIn(delay: 300.ms),
               const SizedBox(height: 20),
