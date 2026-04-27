@@ -157,9 +157,11 @@ exports.adminBroadcastMessage = onCall({ region: "us-central1" }, async (request
       // 3. WhatsApp Integration via Tabi.Africa
       if (channels.whatsapp && userData.phone_number) {
         const tabiKey = process.env.TABI_API_KEY;
-        if (tabiKey) {
+        const tabiChannelId = process.env.TABI_CHANNEL_ID;
+        
+        if (tabiKey && tabiChannelId) {
           try {
-            await fetch("https://api.tabi.africa/v1/messages/send", {
+            await fetch(`https://api.tabi.africa/api/v1/channels/${tabiChannelId}/send`, {
               method: "POST",
               headers: { 
                 "Authorization": `Bearer ${tabiKey}`, 
@@ -175,7 +177,7 @@ exports.adminBroadcastMessage = onCall({ region: "us-central1" }, async (request
             console.error(`[Broadcast] Tabi.Africa failed for ${userId}:`, waErr.message);
           }
         } else {
-          console.warn("[Broadcast] Skipping WhatsApp: TABI_API_KEY environment variable is missing.");
+          console.warn("[Broadcast] Skipping WhatsApp: TABI_API_KEY or TABI_CHANNEL_ID environment variable is missing.");
         }
       }
 

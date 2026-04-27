@@ -1,0 +1,5 @@
+Analyzing Gatekipa...                                           
+
+   info • The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/features/auth/screens/phone_auth_screen.dart:4:8 • unnecessary_import
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/profile/screens/settings_screen.dart:713:15 • deprecated_member_use
+

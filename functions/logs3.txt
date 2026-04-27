@@ -1,0 +1,101 @@
+2026-04-26T06:40:22.895440Z I ghostcardsweeper: 
+2026-04-26T06:40:22.913646Z I ghostcardsweeper: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T06:40:24.445208Z ? ghostcardsweeper: ◇ injecting env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+2026-04-26T06:40:25.036847Z I ghostcardsweeper: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T06:40:25.126565Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T06:40:25.545365Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T06:55:07.100173Z I ghostcardsweeper: 
+2026-04-26T06:55:07.116698Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T06:55:07.306996Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T07:10:13.821141Z I ghostcardsweeper: 
+2026-04-26T07:10:13.833667Z I ghostcardsweeper: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T07:10:15.630364Z ? ghostcardsweeper: ◇ injecting env (0) from .env // tip: ⌘ override existing { override: true }
+2026-04-26T07:10:16.170428Z I ghostcardsweeper: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T07:10:16.194454Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T07:10:16.811203Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T07:25:02.317106Z I pollmissingwebhooks: 
+2026-04-26T07:25:02.359610Z I pollmissingwebhooks: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T07:25:03.478618Z ? pollmissingwebhooks: ◇ injecting env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+2026-04-26T07:25:03.911384Z I pollmissingwebhooks: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T07:25:03.935938Z I pollmissingwebhooks: [PollMissingWebhooks] Starting active Bridgecard synchronization...
+2026-04-26T07:25:04.366378Z I pollmissingwebhooks: [PollMissingWebhooks] Done. Synced 0 cards. Recovered 0 dropped webhooks.
+2026-04-26T07:25:15.634Z I aggregatesystemstats: 
+2026-04-26T07:25:15.659504Z I aggregatesystemstats: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T07:25:17.026087Z ? aggregatesystemstats: ◇ injecting env (0) from .env // tip: ⌘ enable debugging { debug: true }
+2026-04-26T07:25:17.626589Z I aggregatesystemstats: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T07:25:17.708784Z I aggregatesystemstats: [AggregateSystemStats] Starting periodic stats aggregation...
+2026-04-26T07:25:18.827239Z I ghostcardsweeper: 
+2026-04-26T07:25:18.845352Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T07:25:19.124285Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T07:25:19.729923Z I aggregatesystemstats: [AggregateSystemStats] Done. Total balance: ₦11900
+2026-04-26T07:40:14.489567Z I ghostcardsweeper: 
+2026-04-26T07:40:14.505318Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T07:40:14.698584Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T07:55:11.067012Z I ghostcardsweeper: 
+2026-04-26T07:55:11.085388Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T07:55:11.212359Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T08:10:14.423917Z I ghostcardsweeper: 
+2026-04-26T08:10:14.440292Z I ghostcardsweeper: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T08:10:16.091258Z ? ghostcardsweeper: ◇ injecting env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+2026-04-26T08:10:16.884938Z I ghostcardsweeper: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T08:10:16.899974Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T08:10:17.386581Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T08:25:01.730079Z I pollmissingwebhooks: 
+2026-04-26T08:25:01.761046Z I pollmissingwebhooks: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T08:25:03.508563Z ? pollmissingwebhooks: ◇ injecting env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+2026-04-26T08:25:04.146250Z I pollmissingwebhooks: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T08:25:04.211696Z I pollmissingwebhooks: [PollMissingWebhooks] Starting active Bridgecard synchronization...
+2026-04-26T08:25:04.860169Z I pollmissingwebhooks: [PollMissingWebhooks] Done. Synced 0 cards. Recovered 0 dropped webhooks.
+2026-04-26T08:25:12.236251Z I aggregatesystemstats: 
+2026-04-26T08:25:12.265065Z I aggregatesystemstats: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T08:25:12.534466Z I ghostcardsweeper: 
+2026-04-26T08:25:12.554070Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T08:25:12.756892Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T08:25:13.677374Z ? aggregatesystemstats: ◇ injecting env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+2026-04-26T08:25:14.271611Z I aggregatesystemstats: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T08:25:14.367170Z I aggregatesystemstats: [AggregateSystemStats] Starting periodic stats aggregation...
+2026-04-26T08:25:16.485366Z I aggregatesystemstats: [AggregateSystemStats] Done. Total balance: ₦11900
+2026-04-26T08:40:20.199294Z I ghostcardsweeper: 
+2026-04-26T08:40:20.213443Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T08:40:20.423996Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T08:55:06.381522Z I ghostcardsweeper: 
+2026-04-26T08:55:06.397661Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T08:55:06.591891Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T09:00:00.276224Z I sendrenewalreminders: 
+2026-04-26T09:00:00.325311Z I sendrenewalreminders: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T09:00:01.722384Z ? sendrenewalreminders: ◇ injecting env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+2026-04-26T09:00:02.551965Z I sendrenewalreminders: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T09:00:04.351531Z ? sendrenewalreminders: [SubscriptionCron] Sent 0 5-day/3-day/24-hour renewal reminders.
+
+2026-04-26T09:10:16.181256Z I ghostcardsweeper: 
+2026-04-26T09:10:16.194399Z I ghostcardsweeper: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T09:10:17.949007Z ? ghostcardsweeper: ◇ injecting env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+2026-04-26T09:10:18.703936Z I ghostcardsweeper: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T09:10:18.763083Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T09:10:19.283078Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T09:25:01.566697Z I pollmissingwebhooks: 
+2026-04-26T09:25:01.608611Z I pollmissingwebhooks: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T09:25:02.465984Z I aggregatesystemstats: 
+2026-04-26T09:25:02.493993Z I aggregatesystemstats: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T09:25:02.956437Z ? pollmissingwebhooks: ◇ injecting env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+2026-04-26T09:25:03.660199Z I pollmissingwebhooks: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T09:25:03.714223Z I pollmissingwebhooks: [PollMissingWebhooks] Starting active Bridgecard synchronization...
+2026-04-26T09:25:03.935601Z ? aggregatesystemstats: ◇ injecting env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+2026-04-26T09:25:04.211596Z I pollmissingwebhooks: [PollMissingWebhooks] Done. Synced 0 cards. Recovered 0 dropped webhooks.
+2026-04-26T09:25:04.651435Z I aggregatesystemstats: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T09:25:04.672236Z I aggregatesystemstats: [AggregateSystemStats] Starting periodic stats aggregation...
+2026-04-26T09:25:06.719963Z I aggregatesystemstats: [AggregateSystemStats] Done. Total balance: ₦11900
+2026-04-26T09:25:06.772119Z I ghostcardsweeper: 
+2026-04-26T09:25:06.792509Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T09:25:07.003301Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
+2026-04-26T09:35:53.501357995Z N createBridgecard: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"ewercradi@gmail.com","principalSubject":"user:ewercradi@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"102.89.75.183","callerSuppliedUserAgent":"FirebaseCLI/15.15.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-04-26T09:35:52.441136960Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","authorizationInfo":[{"resource":"projects/gatekipa-bbd1c/locations/us-central1/functions/createBridgecard","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{"service":"cloudfunctions.googleapis.com","name":"projects/gatekipa-bbd1c/locations/us-central1/functions/createBridgecard","type":"cloudfunctions.googleapis.com/Function"},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/gatekipa-bbd1c/locations/us-central1/functions/createBridgecard","request":{"function":{"build_config":{"entry_point":"createBridgecard","runtime":"nodejs22","source":{}},"labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"570ef48e82e0323538b3fd67c2e2d0c6cc90a9d3","deployment-callable":"true"},"name":"projects/gatekipa-bbd1c/locations/us-central1/functions/createBridgecard","service_config":{"max_instance_request_concurrency":1,"secret_environment_variables":[{"secret":"BRIDGECARD_ACCESS_TOKEN","key":"BRIDGECARD_ACCESS_TOKEN","version":"6","project_id":"gatekipa-bbd1c"},{"secret":"BRIDGECARD_SECRET_KEY","key":"BRIDGECARD_SECRET_KEY","version":"5","project_id":"gatekipa-bbd1c"}],"available_memory":"256Mi","max_instance_count":1,"available_cpu":"0.16"}},"update_mask":{"paths":["name","build_config.runtime","build_config.entry_point","build_config.source.storage_source.bucket","build_config.source.storage_source.object","build_config.environment_variables","build_config.source_token","service_config.environment_variables","service_config.secret_environment_variables","service_config.ingress_settings","service_config.timeout_seconds","service_config.service_account_email","service_config.available_memory","service_config.min_instance_count","service_config.max_instance_count","service_config.max_instance_request_concurrency","service_config.available_cpu","service_config.vpc_connector","service_config.vpc_connector_egress_settings","service_config.direct_vpc_network_interface","service_config.direct_vpc_egress","labels"]},"@type":"type.googleapis.com/google.cloud.functions.v2.UpdateFunctionRequest"},"response":{"@type":"type.googleapis.com/google.longrunning.Operation"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-26T09:37:08.938918Z I createbridgecard: Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+2026-04-26T09:37:11.406487Z ? createbridgecard: ◇ injecting env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+2026-04-26T09:37:12.372951Z I createbridgecard: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T09:37:14.956701924Z N createBridgecard: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"ewercradi@gmail.com","principalSubject":"user:ewercradi@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"requestAttributes":{},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v2.FunctionService.UpdateFunction","resourceName":"projects/gatekipa-bbd1c/locations/us-central1/functions/createBridgecard","response":{"state":"ACTIVE","url":"https://us-central1-gatekipa-bbd1c.cloudfunctions.net/createBridgecard","@type":"type.googleapis.com/google.cloud.functions.v2.Function","name":"projects/gatekipa-bbd1c/locations/us-central1/functions/createBridgecard","labels":{"firebase-functions-hash":"570ef48e82e0323538b3fd67c2e2d0c6cc90a9d3","deployment-tool":"cli-firebase","deployment-callable":"true"},"createTime":"2026-04-17T14:12:26.542329186Z","buildConfig":{"automaticUpdatePolicy":{},"entryPoint":"createBridgecard","runtime":"nodejs22","source":{},"serviceAccount":"projects/gatekipa-bbd1c/serviceAccounts/274080186354-compute@developer.gserviceaccount.com","dockerRepository":"projects/gatekipa-bbd1c/locations/us-central1/repositories/gcf-artifacts","dockerRegistry":"ARTIFACT_REGISTRY"},"satisfiesPzi":true,"updateTime":"2026-04-26T09:35:53.483235987Z","environment":"GEN_2","serviceConfig":{"uri":"https://createbridgecard-76gdwfqx6q-uc.a.run.app","revision":"createbridgecard-00061-yaz","allTrafficOnLatestRevision":true,"ingressSettings":"ALLOW_ALL","availableCpu":"0.16","serviceAccountEmail":"274080186354-compute@developer.gserviceaccount.com","maxInstanceRequestConcurrency":1,"timeoutSeconds":60,"maxInstanceCount":1,"availableMemory":"256Mi","secretEnvironmentVariables":[{"secret":"BRIDGECARD_ACCESS_TOKEN","projectId":"gatekipa-bbd1c","key":"BRIDGECARD_ACCESS_TOKEN","version":"6"},{"projectId":"gatekipa-bbd1c","key":"BRIDGECARD_SECRET_KEY","secret":"BRIDGECARD_SECRET_KEY","version":"5"}]}},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-04-26T09:40:20.471098Z I ghostcardsweeper: 
+2026-04-26T09:40:20.488945Z I ghostcardsweeper: Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+2026-04-26T09:40:21.775601Z ? ghostcardsweeper: ◇ injecting env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+2026-04-26T09:40:22.316736Z I ghostcardsweeper: Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+2026-04-26T09:40:22.395167Z I ghostcardsweeper: [GhostCardSweeper] Starting sweep...
+2026-04-26T09:40:22.846454Z I ghostcardsweeper: [GhostCardSweeper] No stuck provisioning requests found.
