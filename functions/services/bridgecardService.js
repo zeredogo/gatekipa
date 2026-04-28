@@ -512,6 +512,8 @@ exports.createBridgecard = onCall({ region: "us-central1", secrets: [BRIDGECARD_
         bridgecard_card_id,
         bridgecard_currency: cardCurrency,
         bridgecard_status: "active",
+        local_status: "active",
+        status: "active",
       },
       { merge: true }
     );
@@ -1370,7 +1372,14 @@ exports.revealCardDetails = onCall({ region: "us-central1", secrets: [BRIDGECARD
     if (!cardData) {
       throw new HttpsError("internal", "Bridgecard did not return card data.");
     }
-    
+    // Persist last_4 to Firestore so it shows up in the Admin Portal and UI
+    if (cardData.last_4) {
+      await db.collection("cards").doc(card_id).update({
+        last4: cardData.last_4,
+        masked_number: `**** **** **** ${cardData.last_4}`
+      });
+    }
+
     return {
       success: true,
       card_number: cardData.card_number,
