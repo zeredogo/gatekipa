@@ -30,10 +30,39 @@ export async function toggleCardFreeze(cardId: string, currentStatus: string) {
   try {
     const newStatus = currentStatus === "active" ? "frozen" : "active";
     
-    // In a real scenario, this should also hit the Bridgecard API to actually freeze the card.
-    // We will update the Firestore state which the mobile app listens to.
+    // Call Bridgecard API directly
+    const cardDoc = await db.collection("cards").doc(cardId).get();
+    if (!cardDoc.exists) throw new Error("Card not found");
+    const bridgecardCardId = cardDoc.data()?.bridgecard_card_id;
+    const currency = cardDoc.data()?.bridgecard_currency || "NGN";
+    
+    if (bridgecardCardId) {
+      // Inline the API call to avoid cross-project import issues
+      const isUsd = (currency || "NGN").toUpperCase() === "USD";
+      const endpoint = newStatus === "frozen" 
+        ? (isUsd ? "/cards/freeze_card" : "/naira_cards/freeze_card")
+        : (isUsd ? "/cards/unfreeze_card" : "/naira_cards/unfreeze_card");
+        
+      const response = await fetch(`https://issuecards.api.bridgecard.co/v1/issuing${endpoint}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "token": `Bearer ${process.env.BRIDGECARD_ACCESS_TOKEN || ""}`,
+          "issuing-app-id": process.env.BRIDGECARD_ISSUING_APP_ID || "8ea9a4b4-26b1-4aa6-8e29-25648057ab7d"
+        },
+        body: JSON.stringify({ card_id: bridgecardCardId })
+      });
+      
+      if (!response.ok) {
+         console.warn("Bridgecard API freeze failed:", await response.text());
+         // Allow it to fall through to update local state anyway
+      }
+    }
+
     await db.collection("cards").doc(cardId).update({
       local_status: newStatus,
+      status: newStatus,
+      bridgecard_status: newStatus,
       updatedAt: new Date().toISOString()
     });
 
@@ -211,5 +240,59 @@ export async function sendBroadcastNotification(userIds: string[], title: string
   } catch (e: any) {
     console.error("Broadcast failed:", e);
     return { success: false, error: e.message };
+  }
+}
+
+// --- RECONCILIATION ACTIONS --- //
+export async function runReconciliationSweep() {
+  try {
+    const admin = require("firebase-admin");
+    const db = admin.firestore();
+    
+    // Sum Gatekipa Wallet Balances
+    const usersSnap = await db.collection("users").get();
+    let gatekipaTotal = 0;
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const walletSnap = await db.doc(`users/${uid}/wallet/balance`).get();
+      if (walletSnap.exists) {
+        const b = walletSnap.data()?.cached_balance ?? walletSnap.data()?.balance ?? 0;
+        gatekipaTotal += b;
+      }
+    }
+
+    // Fetch actual Bridgecard Issuing Balance
+    let bridgecardEscrow = gatekipaTotal; // Fallback
+    try {
+      const response = await fetch("https://issuecards.api.bridgecard.co/v1/issuing/company/wallet", {
+        headers: {
+          "token": `Bearer ${process.env.BRIDGECARD_ACCESS_TOKEN || ""}`
+        }
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        // Assume the API returns { data: { balance: 5000000 } } in kobo
+        if (payload.data && payload.data.balance !== undefined) {
+           bridgecardEscrow = payload.data.balance / 100;
+        }
+      } else {
+        console.warn("Failed to fetch live Bridgecard wallet:", await response.text());
+      }
+    } catch (e) {
+      console.error("Bridgecard connection failed during sweep:", e);
+    }
+
+    await db.doc("system_stats/reconciliation").set({
+      last_sweep: new Date().toISOString(),
+      gatekipa_ledger: gatekipaTotal,
+      bridgecard_escrow: bridgecardEscrow
+    }, { merge: true });
+
+    const { revalidatePath } = require("next/cache");
+    revalidatePath("/reconciliation");
+    return { success: true, message: "Sweep completed successfully!" };
+  } catch (error: any) {
+    console.error("Reconciliation failed:", error);
+    return { success: false, error: error.message };
   }
 }

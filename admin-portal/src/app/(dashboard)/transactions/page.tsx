@@ -4,20 +4,36 @@ import TransactionsClient from "./TransactionsClient";
 export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage() {
-  const transactionsSnapshot = await db.collection("transactions").orderBy("created_at", "desc").limit(25).get();
+  const allTxSnapshot = await db.collection("transactions").get();
   
   let vaultDeposits = 0;
   let cardFunding = 0;
   let revenueFees = 0;
 
-  const transactions = transactionsSnapshot.docs.map(doc => {
+  allTxSnapshot.forEach(doc => {
     const data = doc.data();
     const amount = data.amount || 0;
-    
-    // Simple mock aggregation logic based on typical transaction types
+    if (data.status !== 'SUCCESS') return;
     if (data.type === "wallet_funding" || data.type === "funding") vaultDeposits += amount;
     if (data.type === "wallet_to_card" || data.type === "card_funding") cardFunding += amount;
     if (data.fee) revenueFees += data.fee;
+  });
+
+  // Fetch plan purchases to accurately reflect total platform inflow
+  const planPurchasesSnapshot = await db.collectionGroup("plan_purchases").get();
+  planPurchasesSnapshot.forEach(doc => {
+    const data = doc.data();
+    if (data.status === "success" && data.amountKobo) {
+      vaultDeposits += (data.amountKobo / 100);
+      revenueFees += (data.amountKobo / 100); // Plan purchases are direct revenue
+    }
+  });
+
+  const transactionsSnapshot = await db.collection("transactions").orderBy("created_at", "desc").limit(25).get();
+
+  const transactions = transactionsSnapshot.docs.map(doc => {
+    const data = doc.data();
+    const amount = data.amount || 0;
 
     return {
       id: doc.id,

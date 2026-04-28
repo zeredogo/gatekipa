@@ -34,9 +34,12 @@ final cardsProvider = StreamProvider<List<VirtualCardModel>>((ref) {
   return FirebaseFirestore.instance
       .collection('cards')
       .where('account_id', whereIn: accountIds)
-      .orderBy('created_at', descending: true)
       .snapshots()
-      .map((snap) => snap.docs.map((d) => VirtualCardModel.fromFirestore(d)).toList());
+      .map((snap) {
+        final docs = snap.docs.map((d) => VirtualCardModel.fromFirestore(d)).toList();
+        docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return docs;
+      });
 });
 
 // ── Specific Account Cards Stream ──────────────────────────────────────────────
@@ -44,9 +47,12 @@ final accountCardsProvider = StreamProvider.family<List<VirtualCardModel>, Strin
   return FirebaseFirestore.instance
       .collection('cards')
       .where('account_id', isEqualTo: accountId)
-      .orderBy('created_at', descending: true)
       .snapshots()
-      .map((snap) => snap.docs.map((d) => VirtualCardModel.fromFirestore(d)).toList());
+      .map((snap) {
+        final docs = snap.docs.map((d) => VirtualCardModel.fromFirestore(d)).toList();
+        docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return docs;
+      });
 });
 
 // ── Card Count Stream by Account ID ────────────────────────────────────────────
@@ -63,10 +69,12 @@ final accountTransactionsProvider = StreamProvider.family<List<TransactionModel>
   return FirebaseFirestore.instance
       .collection('transactions')
       .where('account_id', isEqualTo: accountId)
-      .orderBy('timestamp', descending: true)
-      .limit(100)
       .snapshots()
-      .map((snap) => snap.docs.map((d) => TransactionModel.fromFirestore(d)).toList());
+      .map((snap) {
+        final docs = snap.docs.map((d) => TransactionModel.fromFirestore(d)).toList();
+        docs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        return docs.take(100).toList();
+      });
 });
 
 // ── Transactions Provider — combines ALL accounts the user has access to ───────
@@ -85,10 +93,12 @@ final transactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
   return FirebaseFirestore.instance
       .collection('transactions')
       .where('account_id', whereIn: accountIds)
-      .orderBy('timestamp', descending: true)
-      .limit(100)
       .snapshots()
-      .map((snap) => snap.docs.map((d) => TransactionModel.fromFirestore(d)).toList());
+      .map((snap) {
+        final docs = snap.docs.map((d) => TransactionModel.fromFirestore(d)).toList();
+        docs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        return docs.take(100).toList();
+      });
 });
 
 // ── Active Cards Only ───────────────────────────────────────────────────────────
