@@ -357,28 +357,42 @@ async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata)
   const currentBalanceKobo = walletData.balance_kobo
     ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
 
-  const balanceAfterKobo = currentBalanceKobo - flatFeeKobo;
+  if (currentBalanceKobo >= flatFeeKobo) {
+    const balanceAfterKobo = currentBalanceKobo - flatFeeKobo;
 
-  const feeLedgerRef = db.collection("wallet_ledger").doc();
-  firestoreTxn.set(feeLedgerRef, {
-    user_id: userId,
-    type: "debit",
-    amount_kobo: flatFeeKobo,
-    amount: flatFeeNGN,
-    reference: `fee_${bridgecardRef || txnId}`,
-    balance_after_kobo: balanceAfterKobo,
-    balance_after: balanceAfterKobo / 100,
-    source: "card_transaction_fee",
-    merchant_name: "Gatekipa Trans. Fee",
-    created_at: FieldValue.serverTimestamp(),
-  });
+    const feeLedgerRef = db.collection("wallet_ledger").doc();
+    firestoreTxn.set(feeLedgerRef, {
+      user_id: userId,
+      type: "debit",
+      amount_kobo: flatFeeKobo,
+      amount: flatFeeNGN,
+      reference: `fee_${bridgecardRef || txnId}`,
+      balance_after_kobo: balanceAfterKobo,
+      balance_after: balanceAfterKobo / 100,
+      source: "card_transaction_fee",
+      merchant_name: "Gatekipa Trans. Fee",
+      created_at: FieldValue.serverTimestamp(),
+    });
 
-  // Dual-write deduction for the fee
-  firestoreTxn.set(walletRef, {
-    balance_kobo: FieldValue.increment(-flatFeeKobo),
-    cached_balance: FieldValue.increment(-flatFeeNGN),
-    balance: FieldValue.increment(-flatFeeNGN),
-  }, { merge: true });
+    // Dual-write deduction for the fee
+    firestoreTxn.set(walletRef, {
+      balance_kobo: FieldValue.increment(-flatFeeKobo),
+      cached_balance: FieldValue.increment(-flatFeeNGN),
+      balance: FieldValue.increment(-flatFeeNGN),
+    }, { merge: true });
+  } else {
+    // Record debt to prevent overdrafting wallet
+    const debtRef = db.collection("negative_balance_ledgers").doc(`debt_fee_${bridgecardRef || txnId}`);
+    firestoreTxn.set(debtRef, {
+      uid: userId,
+      amount: flatFeeNGN,
+      amount_kobo: flatFeeKobo,
+      reason: "card_transaction_fee_insufficient_balance",
+      reference: `fee_${bridgecardRef || txnId}`,
+      created_at: Date.now(),
+      status: "unrecovered"
+    });
+  }
 }
 
 // ── Post-processing (best-effort, non-atomic) ──────────────────────────────────
@@ -531,14 +545,12 @@ exports.processTransactionInternal = processTransactionInternal;
 exports.toggleSpendingLock = onCall({ region: "us-central1" }, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
-  const { lock } = request.data; // boolean: true = locked, false = unlocked
+  const { lock } = request.data;
 
   if (typeof lock !== "boolean") {
     throw new HttpsError("invalid-argument", "'lock' must be a boolean.");
   }
 
-  // PIN enforcement — require the user's transaction PIN to change the lock
-  // This prevents an attacker who has physical access to the phone from unlocking
   await requirePin(uid, request.data.pin);
 
   await db.collection("users").doc(uid).update({
@@ -548,36 +560,100 @@ exports.toggleSpendingLock = onCall({ region: "us-central1" }, async (request) =
 
   logger.info(`[SpendingLock] User ${uid} set spending_lock = ${lock}`);
 
-  // Auto-freeze/unfreeze Bridgecards to enforce the lock synchronously at the issuer level
+  // ── 1. Freeze/unfreeze Bridgecard USD cards at issuer level ─────────────────
   try {
     const { internalFreezeBridgecard } = require("./bridgecardService");
-    const cardsSnap = await db.collection("cards")
+    const bcCardsSnap = await db.collection("cards")
       .where("created_by", "==", uid)
-      .where("bridgecard_card_id", ">", "")
+      .where("bridgecard_card_id", ">" , "")
       .get();
-      
-    const promises = [];
-    for (const doc of cardsSnap.docs) {
+
+    const bcPromises = [];
+    for (const doc of bcCardsSnap.docs) {
       const cardData = doc.data();
-      // Only toggle cards that are in a valid state
+      // Skip NGN/Sudo cards — they are handled below
+      if (cardData.sudo_card_id) continue;
+
       if (lock && (cardData.status === "active" || cardData.local_status === "active")) {
-        promises.push(internalFreezeBridgecard(cardData.bridgecard_card_id, true)
+        bcPromises.push(internalFreezeBridgecard(cardData.bridgecard_card_id, true)
           .then(() => doc.ref.update({ status: "frozen", local_status: "frozen", bridgecard_status: "frozen" }))
-          .catch(e => logger.error(`Failed to freeze card ${doc.id}:`, e))
+          .catch(e => logger.error(`[SpendingLock] Failed to freeze Bridgecard ${doc.id}:`, e))
         );
       } else if (!lock && (cardData.status === "frozen" || cardData.local_status === "frozen")) {
-        promises.push(internalFreezeBridgecard(cardData.bridgecard_card_id, false)
+        bcPromises.push(internalFreezeBridgecard(cardData.bridgecard_card_id, false)
           .then(() => doc.ref.update({ status: "active", local_status: "active", bridgecard_status: "active" }))
-          .catch(e => logger.error(`Failed to unfreeze card ${doc.id}:`, e))
+          .catch(e => logger.error(`[SpendingLock] Failed to unfreeze Bridgecard ${doc.id}:`, e))
         );
       }
     }
-    if (promises.length > 0) {
-      await Promise.allSettled(promises);
-      logger.info(`[SpendingLock] Synced freeze state for ${promises.length} cards.`);
+    if (bcPromises.length > 0) {
+      await Promise.allSettled(bcPromises);
+      logger.info(`[SpendingLock] Synced ${bcPromises.length} Bridgecard card(s).`);
     }
   } catch (err) {
-    logger.error("[SpendingLock] Error syncing card freeze state:", err);
+    logger.error("[SpendingLock] Error syncing Bridgecard freeze state:", err);
+  }
+
+  // ── 2. Freeze/unfreeze Sudo Africa NGN cards at issuer level ─────────────────
+  // Enforces the lock at the Sudo provider level, not just via JIT blocking.
+  // This ensures the card visually shows as 'inactive' in the Sudo dashboard
+  // and prevents any edge-case authorizations that may bypass JIT.
+  try {
+    const sudoApiKey = process.env.SUDO_API_KEY;
+    const sudoBaseUrl = process.env.SUDO_BASE_URL || "https://api.sudo.africa";
+
+    if (!sudoApiKey) {
+      logger.warn("[SpendingLock] SUDO_API_KEY not set — skipping Sudo card freeze sync.");
+    } else {
+      const sudoCardsSnap = await db.collection("cards")
+        .where("created_by", "==", uid)
+        .where("sudo_card_id", ">", "")
+        .get();
+
+      const sudoPromises = [];
+      const targetStatus = lock ? "inactive" : "active";
+
+      for (const doc of sudoCardsSnap.docs) {
+        const cardData = doc.data();
+        const sudoCardId = cardData.sudo_card_id;
+
+        const shouldFreeze   = lock  && (cardData.status === "active"  || cardData.local_status === "active");
+        const shouldUnfreeze = !lock && (cardData.status === "frozen"  || cardData.local_status === "frozen");
+
+        if (!shouldFreeze && !shouldUnfreeze) continue;
+
+        sudoPromises.push(
+          fetch(`${sudoBaseUrl}/cards/${sudoCardId}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${sudoApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ status: targetStatus }),
+          })
+          .then(async (r) => {
+            if (!r.ok) {
+              const errBody = await r.text();
+              throw new Error(`Sudo API error ${r.status}: ${errBody}`);
+            }
+            const localStatus = lock ? "frozen" : "active";
+            return doc.ref.update({
+              status: localStatus,
+              local_status: localStatus,
+              bridgecard_status: localStatus, // keep compat field in sync
+            });
+          })
+          .catch(e => logger.error(`[SpendingLock] Failed to ${targetStatus} Sudo card ${doc.id}:`, e.message))
+        );
+      }
+
+      if (sudoPromises.length > 0) {
+        await Promise.allSettled(sudoPromises);
+        logger.info(`[SpendingLock] Synced ${sudoPromises.length} Sudo card(s) to '${targetStatus}'.`);
+      }
+    }
+  } catch (err) {
+    logger.error("[SpendingLock] Error syncing Sudo freeze state:", err);
   }
 
   return {

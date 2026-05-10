@@ -22,6 +22,9 @@ const logger = require("firebase-functions/logger");
 exports.integritySweep = onSchedule("every 12 hours", async () => {
   logger.info("[IntegritySweep] Starting bi-daily global ledger reconciliation...");
 
+  let totalAudited = 0;
+  let totalDesync = 0;
+  let totalUnknown = 0;
   let lastDoc = null;
   const batchSize = 500;
   let hasMore = true;
@@ -122,6 +125,37 @@ exports.integritySweep = onSchedule("every 12 hours", async () => {
       uid: d.user_id,
       type: d.type,
       amount: d.amount,
+    });
+  }
+
+  // ── 2.5. Stuck funding requests ───────────────────────────────────────────
+  const fifteenMinsAgo = Date.now() - 15 * 60 * 1000;
+  
+  const stuckFundingSnap = await db.collection("card_funding_requests")
+    .where("status", "==", "processing")
+    .where("created_at", "<=", fifteenMinsAgo)
+    .get();
+
+  for (const fundDoc of stuckFundingSnap.docs) {
+    const d = fundDoc.data();
+    logger.error(`[IntegritySweep] Stuck funding req ${fundDoc.id}: status=${d.status}, uid=${d.uid}`);
+
+    // Transition stuck funding to UNKNOWN for manual review
+    await fundDoc.ref.update({
+      status: "UNKNOWN",
+      error_message: "Automatically transitioned from stuck state by integritySweep",
+      updated_at: Date.now(),
+    });
+
+    await db.collection("health_logs").add({
+      timestamp: FieldValue.serverTimestamp(),
+      level: "CRITICAL",
+      source: "integritySweep",
+      check: "stuck_funding_request",
+      message: `Stuck funding req ${fundDoc.id} auto-flagged as UNKNOWN`,
+      req_id: fundDoc.id,
+      uid: d.uid,
+      amount: d.amount_ngn,
     });
   }
 

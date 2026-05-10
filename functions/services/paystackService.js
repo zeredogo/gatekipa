@@ -171,6 +171,19 @@ exports.paystackWebhook = onRequest(
     const event = req.body;
     console.info(`[Paystack Webhook] Processed event: ${event.event}`);
 
+    // Log the raw webhook immediately for Admin Portal visibility
+    try {
+      const eventId = event.data?.id?.toString() || `ps_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+      await db.collection("webhook_events").doc(eventId).set({
+        ...event,
+        source: "paystack_webhook",
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        status: "Received"
+      }, { merge: true });
+    } catch (logErr) {
+      console.error("[Paystack Webhook] Failed to log raw event:", logErr);
+    }
+
     // Route by payment type
     try {
       if (event.event === "charge.success") {
@@ -379,15 +392,31 @@ exports.paystackWebhook = onRequest(
                 timestamp: Date.now(),
               });
 
-              // BUG FIX: Must write all 3 balance fields atomically.
-              // Only writing `balance` left `balance_kobo` and `cached_balance` out of sync,
-              // causing the user's displayed wallet balance to be wrong after a refund.
+              const walletDoc = await t.get(walletRef);
+              const walletData = walletDoc.exists ? walletDoc.data() : {};
+              const currentBalanceKobo = walletData.balance_kobo ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
               const refundKobo = Math.round(refundedAmount * 100);
-              t.set(walletRef, {
-                balance_kobo: FieldValue.increment(-refundKobo),
-                cached_balance: FieldValue.increment(-refundedAmount),
-                balance: FieldValue.increment(-refundedAmount),
-              }, { merge: true });
+
+              if (currentBalanceKobo >= refundKobo) {
+                // Keep all 3 balance fields in sync
+                t.set(walletRef, {
+                  balance_kobo: FieldValue.increment(-refundKobo),
+                  cached_balance: FieldValue.increment(-refundedAmount),
+                  balance: FieldValue.increment(-refundedAmount),
+                }, { merge: true });
+              } else {
+                // Record debt to prevent overdrafting wallet
+                const debtRef = db.collection("negative_balance_ledgers").doc(`debt_${reference}`);
+                t.set(debtRef, {
+                  uid,
+                  amount: refundedAmount,
+                  amount_kobo: refundKobo,
+                  reason: "paystack_refund_insufficient_balance",
+                  reference,
+                  created_at: Date.now(),
+                  status: "unrecovered"
+                });
+              }
 
               const ledgerRef = db.collection("users").doc(uid).collection("wallet_transactions").doc(`refund_${reference}`);
               t.set(ledgerRef, {

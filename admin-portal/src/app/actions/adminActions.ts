@@ -4,10 +4,27 @@ import { db, auth } from "@/lib/firebaseAdmin";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
+async function verifyAdminSession() {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('session')?.value;
+  if (!sessionCookie) throw new Error("Unauthorized: No session cookie");
+  try {
+    const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+    if (!decodedClaims.admin && !decodedClaims.super_admin) {
+      throw new Error("Unauthorized: Missing admin privileges");
+    }
+    return decodedClaims;
+  } catch (error) {
+    throw new Error("Unauthorized: Invalid session");
+  }
+}
+
+
 // --- SYSTEM STATE ACTIONS --- //
 
 export async function toggleGlobalFreeze(isCurrentlyFrozen: boolean) {
   try {
+    await verifyAdminSession();
     const newState = isCurrentlyFrozen ? "NORMAL" : "LOCKDOWN";
     
     // Write to system_state/global
@@ -28,6 +45,7 @@ export async function toggleGlobalFreeze(isCurrentlyFrozen: boolean) {
 
 export async function toggleCardFreeze(cardId: string, currentStatus: string) {
   try {
+    await verifyAdminSession();
     const newStatus = currentStatus === "active" ? "frozen" : "active";
     
     // Call Bridgecard API directly
@@ -78,6 +96,7 @@ export async function toggleCardFreeze(cardId: string, currentStatus: string) {
 
 export async function toggleUserBlockStatus(userId: string, currentStatus: string) {
   try {
+    await verifyAdminSession();
     const block = currentStatus !== "blocked";
     await db.collection("users").doc(userId).update({
       status: block ? "blocked" : "active"
@@ -95,6 +114,7 @@ export async function toggleUserBlockStatus(userId: string, currentStatus: strin
 
 export async function updateFeeConfiguration(fee: number) {
   try {
+    await verifyAdminSession();
     await db.collection("system_state").doc("fees").set({
       cardCreationFee: fee
     }, { merge: true });
@@ -109,6 +129,7 @@ export async function updateFeeConfiguration(fee: number) {
 // --- KYC ACTIONS --- //
 export async function approveKyc(userId: string) {
   try {
+    await verifyAdminSession();
     await db.collection("users").doc(userId).update({
       kycStatus: "verified"
     });
@@ -171,6 +192,7 @@ export async function sendInAppNotification(userId: string, title: string, messa
 // --- BROADCAST NOTIFICATION ACTION --- //
 export async function sendBroadcastNotification(userIds: string[], title: string, message: string, channels: { push: boolean, inApp: boolean, whatsapp: boolean }) {
   try {
+    await verifyAdminSession();
     const admin = require("firebase-admin");
     const db = admin.firestore();
     
@@ -246,6 +268,7 @@ export async function sendBroadcastNotification(userIds: string[], title: string
 // --- RECONCILIATION ACTIONS --- //
 export async function runReconciliationSweep() {
   try {
+    await verifyAdminSession();
     const admin = require("firebase-admin");
     const db = admin.firestore();
     
