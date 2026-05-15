@@ -1,27 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { getWaitlistStats } from "@/app/actions/waitlist";
-
 const HeroSection = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
-  const [totalCount, setTotalCount] = useState(1204);
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const stats = await getWaitlistStats();
-        if (stats && stats.count > 0) {
-          setTotalCount(stats.count);
-        } else {
-          setTotalCount(2500); // Marketing fallback
-        }
-      } catch {
-        setTotalCount(2500); // Fallback on error
-      }
-    };
-    fetchStats();
-  }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
@@ -82,12 +64,12 @@ const HeroSection = () => {
           <div className="flex flex-wrap gap-4 w-full sm:w-auto">
             <button
               onClick={() => {
-                const el = document.getElementById("waitlist");
+                const el = document.getElementById("contact");
                 el?.scrollIntoView({ behavior: "smooth" });
               }}
               className="btn-primary text-xl px-10 py-5 group"
             >
-              Join the Waitlist
+              Contact Us
               <svg
                 className="inline-block ml-2 size-6 group-hover:translate-x-1 transition-transform"
                 fill="none"
@@ -113,10 +95,7 @@ const HeroSection = () => {
             </button>
           </div>
 
-          <p className="text-sm text-foreground/50 font-bold tracking-wide uppercase mt-4 flex items-center gap-2">
-            <span className="size-1.5 bg-primary rounded-full animate-pulse" />
-            Move up the waitlist when you invite friends.
-          </p>
+          <div className="mt-4"></div>
         </div>
 
         {/* Right Visual */}
@@ -164,7 +143,7 @@ const HeroSection = () => {
                   <div className="flex gap-6 sm:gap-10">
                     <div>
                       <div className="text-[9px] sm:text-[10px] text-white/60 uppercase mb-1 font-bold tracking-wider">Cardholder</div>
-                      <div className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-white drop-shadow-sm">Waitlist Priority</div>
+                      <div className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-white drop-shadow-sm">Gatekipa Member</div>
                     </div>
                     <div>
                       <div className="text-[9px] sm:text-[10px] text-white/60 uppercase mb-1 font-bold tracking-wider">Valid Thru</div>

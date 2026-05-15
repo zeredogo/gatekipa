@@ -83,12 +83,12 @@ const SecuritySection = () => {
              </div>
              <button
               onClick={() => {
-                const el = document.getElementById("waitlist");
+                const el = document.getElementById("contact");
                 el?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="btn-primary py-4 px-10 text-lg !mt-4"
+              className="btn-primary text-lg px-10 py-5 group bg-white text-[#0f172a] hover:bg-white/90"
             >
-              Join the Waitlist
+              Contact Us
             </button>
              <div className="flex items-center gap-4 text-primary font-bold text-sm tracking-widest uppercase animate-pulse mt-4">
                 <svg className="size-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" /></svg>

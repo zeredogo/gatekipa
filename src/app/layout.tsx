@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Gatekipa — Stop Unwanted Subscription Charges",
     description:
-      "Gatekipa blocks forgotten and unwanted subscription charges automatically. Join the waitlist.",
+      "Gatekipa blocks forgotten and unwanted subscription charges automatically. Contact us today.",
     type: "website",
     url: "https://gatekipa.com",
   },
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Gatekipa — Stop Unwanted Subscription Charges",
     description:
-      "Gatekipa blocks forgotten and unwanted subscription charges automatically. Join the waitlist.",
+      "Gatekipa blocks forgotten and unwanted subscription charges automatically. Contact us today.",
   },
 };
 

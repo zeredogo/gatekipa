@@ -75,12 +75,12 @@ const FeaturesSection = () => {
           </p>
           <button
             onClick={() => {
-              const el = document.getElementById("waitlist");
+              const el = document.getElementById("contact");
               el?.scrollIntoView({ behavior: "smooth" });
             }}
-            className="btn-primary py-4 px-10 text-lg !mt-8"
+            className="btn-primary text-lg px-8 py-4 w-full sm:w-auto flex justify-center"
           >
-            Get Early Access
+            Contact Us
           </button>
         </div>
 

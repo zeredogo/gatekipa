@@ -5,7 +5,7 @@ import HowItWorksSection from "@/components/HowItWorksSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import SecuritySection from "@/components/SecuritySection";
 import FAQSection from "@/components/FAQSection";
-import WaitlistSection from "@/components/WaitlistSection";
+import ContactUsSection from "@/components/ContactUsSection";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -18,7 +18,7 @@ export default function Home() {
       <SecuritySection />
       <FAQSection />
       <Suspense fallback={null}>
-        <WaitlistSection />
+        <ContactUsSection />
       </Suspense>
       <Footer />
     </main>

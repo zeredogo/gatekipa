@@ -59,12 +59,12 @@ const HowItWorksSection = () => {
           </p>
           <button
             onClick={() => {
-              const el = document.getElementById("waitlist");
+              const el = document.getElementById("contact");
               el?.scrollIntoView({ behavior: "smooth" });
             }}
             className="btn-primary py-4 px-10 text-lg !mt-8"
           >
-            Join the Waitlist
+            Contact Us
           </button>
         </div>
 

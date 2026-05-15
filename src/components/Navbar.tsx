@@ -91,10 +91,10 @@ const Navbar = () => {
             </button>
           ))}
           <button
-            onClick={() => handleNav("#waitlist")}
+            onClick={() => handleNav("#contact")}
             className="btn-primary py-2.5 px-6 text-sm"
           >
-            Get Started
+            Contact Us
           </button>
         </div>
 
@@ -152,10 +152,10 @@ const Navbar = () => {
             </button>
           ))}
           <button
-            onClick={() => handleNav("#waitlist")}
+            onClick={() => handleNav("#contact")}
             className="btn-primary w-full max-w-xs text-xl py-4"
           >
-            Get Started
+            Contact Us
           </button>
         </div>
       </div>

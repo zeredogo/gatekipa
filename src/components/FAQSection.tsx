@@ -46,12 +46,12 @@ const FAQSection = () => {
           </p>
           <button
             onClick={() => {
-              const el = document.getElementById("waitlist");
+              const el = document.getElementById("contact");
               el?.scrollIntoView({ behavior: "smooth" });
             }}
             className="btn-primary py-4 px-10 text-lg mb-8"
           >
-            Get Early Access
+            Contact Us
           </button>
         </div>
 
