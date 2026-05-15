@@ -1,9 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import nodemailer from "nodemailer";
 
 const ContactSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -25,14 +23,19 @@ export async function submitContactForm(formData: FormData) {
     return { error: `Invalid form submission: ${errorMsg}` };
   }
 
-  if (!process.env.RESEND_API_KEY) {
-    console.warn("RESEND_API_KEY is missing. Simulating contact success.");
-    return { success: true };
-  }
-
   try {
-    await resend.emails.send({
-      from: "Gatekipa Contact Form <onboarding@resend.dev>", // Needs to be a verified domain, resend defaults to this for testing or update to verified later.
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "465"),
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Gatekipa Contact Form" <${process.env.SMTP_USER || "noreply@gatekipa.com"}>`,
       replyTo: email,
       to: "hello@gatekipa.com",
       subject: `New Contact Message from ${name}`,

@@ -54,3 +54,4 @@ android/*.keystore
 .env*
 gatekipa.json
 setup_secrets.sh
+node_modules
