@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
 
           <h2 className="text-2xl font-bold text-foreground mt-8">1. Information We Collect</h2>
           <p>
-            We collect information you provide directly to us, such as your name, email address, and payment information when you register for an account. We also collect usage data to help us improve our platform.
+            We collect information you provide directly to us, such as your name, email address, and payment information when you register for an account or contact us. We also collect usage data to help us improve our platform.
           </p>
 
           <h2 className="text-2xl font-bold text-foreground mt-8">2. How We Use Your Information</h2>
