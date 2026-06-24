@@ -70,12 +70,18 @@ void _initFcmTokenSave() {
   }
 
   // Save immediately if we have a token
-  FirebaseMessaging.instance.getToken().then((token) {
-    if (token != null) saveToken(token);
-  });
+  try {
+    FirebaseMessaging.instance.getToken().then((token) {
+      if (token != null) saveToken(token);
+    }).catchError((e) {
+      debugPrint('[FCM] Failed to get token (Simulators usually fail APNS): $e');
+    });
 
-  // Keep it updated when the token rotates
-  FirebaseMessaging.instance.onTokenRefresh.listen(saveToken);
+    // Keep it updated when the token rotates
+    FirebaseMessaging.instance.onTokenRefresh.listen(saveToken);
+  } catch (e) {
+    debugPrint('[FCM] Push notifications disabled or unsupported: $e');
+  }
 
   // Foreground notification display
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {

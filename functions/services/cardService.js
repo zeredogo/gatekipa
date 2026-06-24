@@ -2,7 +2,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
 const { requireAuth, requireVerifiedEmail, requireFields, requireKyc, requireAdmin } = require("../utils/validators");
 const crypto = require("crypto");
-const { internalFreezeBridgecard } = require("./bridgecardService");
+const { internalFreezeSudoCard } = require("./sudoService");
 const { sendNotification } = require("./notificationService");
 const { FieldValue } = require("firebase-admin/firestore");
 const { getSystemMode, assertSystemAllowsFinancialOps } = require("../core/systemState");
@@ -197,23 +197,32 @@ exports.toggleCardStatus = onCall({ region: "us-central1" }, async (request) => 
     local_status: targetStatus,
     status: targetStatus,
     lifecycle_version: FieldValue.increment(1),
-    ...(cardSnap.data().bridgecard_card_id && {
-      bridgecard_status: targetStatus === "frozen" ? "frozen" : targetStatus
+    ...(cardSnap.data().sudo_card_id && {
+      sudo_status: targetStatus === "frozen" ? "frozen" : targetStatus
     }),
   });
 
-  if (cardSnap.data().bridgecard_card_id) {
+  // Write to freeze log
+  await db.collection("card_freeze_logs").add({
+    card_id: card_id,
+    user_id: uid,
+    action: targetStatus,
+    timestamp: FieldValue.serverTimestamp(),
+    triggered_by: uid
+  });
+
+  if (cardSnap.data().sudo_card_id) {
     try {
-      await internalFreezeBridgecard(
-        cardSnap.data().bridgecard_card_id,
-        targetStatus === "frozen",
-        cardSnap.data().currency
+      const targetCardId = cardSnap.data().sudo_card_id;
+      await internalFreezeSudoCard(
+        targetCardId,
+        targetStatus === "frozen"
       );
     } catch (e) {
-      logger.error(`[CardToggle] Bridgecard sync failed for ${card_id}`, e);
-      // Do NOT throw — local status is already updated. Bridgecard sync is best-effort.
+      logger.error(`[CardToggle] Sudo sync failed for ${card_id}`, e);
+      // Do NOT throw — local status is already updated. Sudo sync is best-effort.
       // A reconciliation job will re-sync if needed.
-      logger.warn(`[CardToggle] Local status updated but Bridgecard sync failed. Card ${card_id} will be reconciled.`);
+      logger.warn(`[CardToggle] Local status updated but Sudo sync failed. Card ${card_id} will be reconciled.`);
     }
   }
 
@@ -331,17 +340,26 @@ exports.freezeAllCards = onCall({ region: "us-central1" }, async (request) => {
           local_status: "frozen",
           status: "frozen", // backward compat
           lifecycle_version: FieldValue.increment(1),
-          ...(doc.data().bridgecard_card_id && { bridgecard_status: "frozen" }),
+          ...(doc.data().sudo_card_id && { sudo_status: "frozen" }),
         });
 
-        if (doc.data().bridgecard_card_id) {
+        if (doc.data().sudo_card_id) {
           try {
-            await internalFreezeBridgecard(doc.data().bridgecard_card_id, true, doc.data().currency);
+            await internalFreezeSudoCard(doc.data().sudo_card_id, true);
           } catch (e) {
-            logger.error(`[FreezeAllCards] Failed to freeze card ${doc.id} at Bridgecard`, e);
+            logger.error(`[FreezeAllCards] Failed to freeze card ${doc.id} at Sudo`, e);
             failedFreezes.push(doc.id);
           }
         }
+        
+        batch.set(db.collection("card_freeze_logs").doc(), {
+          card_id: doc.id,
+          user_id: uid,
+          action: "frozen",
+          timestamp: FieldValue.serverTimestamp(),
+          triggered_by: uid,
+          context: "freezeAllCards"
+        });
       }
       await batch.commit();
       totalBlocked += cardsSnap.size;
@@ -353,13 +371,13 @@ exports.freezeAllCards = onCall({ region: "us-central1" }, async (request) => {
   // make the caller think the entire operation failed when it mostly succeeded.
   // Return partial success so the admin can see which cards need manual review.
   if (failedFreezes.length > 0) {
-    logger.error(`[FreezeAllCards] ${failedFreezes.length} cards frozen in Firestore but NOT frozen at Bridgecard. Manual review needed.`, failedFreezes);
+    logger.error(`[FreezeAllCards] ${failedFreezes.length} cards frozen in Firestore but NOT frozen at Sudo. Manual review needed.`, failedFreezes);
     return {
       success: true,
       blocked: totalBlocked,
       partial: true,
-      bridgecard_freeze_failed: failedFreezes,
-      message: `${totalBlocked} cards frozen. ${failedFreezes.length} could not be frozen at Bridgecard and require manual review.`,
+      sudo_freeze_failed: failedFreezes,
+      message: `${totalBlocked} cards frozen. ${failedFreezes.length} could not be frozen at Sudo and require manual review.`,
     };
   }
 
@@ -412,9 +430,19 @@ exports.adminGlobalFreeze = onCall({ region: "us-central1", enforceAppCheck: fal
       status: "blocked",
       lifecycle_version: FieldValue.increment(1),
       admin_locked_at: FieldValue.serverTimestamp(),
-      ...(doc.data().bridgecard_card_id && { bridgecard_status: "frozen" }),
+      ...(doc.data().sudo_card_id && { sudo_status: "frozen" }),
     });
-    operationCount++;
+    
+    currentBatch.set(db.collection("card_freeze_logs").doc(), {
+      card_id: doc.id,
+      user_id: doc.data().created_by || "system",
+      action: "frozen",
+      timestamp: FieldValue.serverTimestamp(),
+      triggered_by: request.auth.uid,
+      context: "adminGlobalFreeze"
+    });
+    
+    operationCount += 2;
     totalFrozen++;
 
     if (operationCount === 450) {
@@ -430,23 +458,23 @@ exports.adminGlobalFreeze = onCall({ region: "us-central1", enforceAppCheck: fal
     await batch.commit();
   }
 
-  // ── STEP 3: Queue Bridgecard freeze task (async, best-effort) ──────────────
+  // ── STEP 3: Queue Sudo freeze task (async, best-effort) ──────────────
   await db.collection("admin_tasks").add({
-    type: "BRIDGECARD_MASS_FREEZE",
+    type: "SUDO_MASS_FREEZE",
     status: "PENDING",
     triggered_by: request.auth.uid,
     card_count: totalFrozen,
     created_at: FieldValue.serverTimestamp(),
   });
 
-  logger.info(`[AdminGlobalFreeze] Froze ${totalFrozen} cards. Bridgecard freeze queued.`);
+  logger.info(`[AdminGlobalFreeze] Froze ${totalFrozen} cards. Sudo freeze queued.`);
 
   return {
     success: true,
     mode: "LOCKDOWN",
     processed: allDocs.size,
     frozen: totalFrozen,
-    bridgecardFreezeStatus: "queued_async",
+    sudoFreezeStatus: "queued_async",
   };
 });
 

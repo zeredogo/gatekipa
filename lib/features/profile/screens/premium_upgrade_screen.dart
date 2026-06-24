@@ -2,12 +2,13 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gatekipa/core/widgets/gk_checkout.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 import 'package:gatekipa/core/widgets/gk_button.dart';
 import 'package:gatekipa/core/widgets/gk_toast.dart';
 import 'package:gatekipa/features/auth/providers/auth_provider.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/constants/routes.dart';
 
 class PremiumUpgradeScreen extends ConsumerStatefulWidget {
   const PremiumUpgradeScreen({super.key});
@@ -22,71 +23,78 @@ class _PremiumUpgradeScreenState extends ConsumerState<PremiumUpgradeScreen> {
   String _selectedPlan = 'premium'; // 'premium' | 'business'
 
   Future<void> _upgrade() async {
+    final user = ref.read(userProfileProvider).valueOrNull;
+    if (user == null) return;
+
     setState(() => _isLoading = true);
     try {
-      // 1. Ask backend to create a Paystack payment session for the selected plan
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('initiatePremiumUpgrade')
-          .call({'plan': _selectedPlan});
-
-      final dataMap = result.data as Map<dynamic, dynamic>;
-      final authorizationUrl = dataMap['authorizationUrl'] as String?;
-      final reference = dataMap['reference'] as String?;
-      // Server returns the correct amount and label for the chosen plan
-      final amountNgn  = (dataMap['amountNgn'] as num?)?.toDouble() ?? 1999.0;
-      final planLabel  = dataMap['label'] as String? ?? 'Sentinel Prime';
-
-      if (authorizationUrl == null || reference == null) {
-        throw Exception('Invalid payment response from server.');
+      // 1. Fetch the user's stored Transaction PIN
+      const storage = FlutterSecureStorage();
+      final secureKey = '${user.uid}_transaction_pin';
+      final pin = await storage.read(key: secureKey);
+      
+      if (pin == null || pin.isEmpty) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        _showPinRequiredDialog();
+        return;
       }
 
-      if (!mounted) return;
-
-      // 2. Open Gatekipa branded checkout — amount comes from server, not hardcoded
-      await Navigator.of(context, rootNavigator: true).push(
-        MaterialPageRoute(
-          builder: (_) => GkCheckout(
-            type: GkCheckoutType.premiumUpgrade,
-            amountInNgn: amountNgn,
-            email: ref.read(userProfileProvider).valueOrNull?.email ?? '',
-            uid: ref.read(userProfileProvider).valueOrNull?.uid ?? '',
-            reference: reference,
-            label: planLabel,
-            onSuccess: (ref) async {},
-            onCancel: () {},
-          ),
-        ),
-      );
-
-      // 3. After checkout closes, verify with backend
-      if (!mounted) return;
-      setState(() => _isLoading = true);
-
-      await FirebaseFunctions.instance
-          .httpsCallable('verifyPremiumPayment')
-          .call({'reference': reference});
+      // 2. Call the vault deduction endpoint
+      final callable = FirebaseFunctions.instance.httpsCallable('purchasePlanFromVault');
+      await callable.call({'plan': _selectedPlan, 'pin': pin});
 
       if (!mounted) return;
-      GkToast.show(context, message: 'Welcome to $planLabel! 🎉', type: ToastType.success);
+      GkToast.show(context, message: 'Welcome to ${_selectedPlan == 'business' ? 'Business Plan' : 'Sentinel Prime'}! 🎉', type: ToastType.success);
       context.pop();
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       String msg = e.message ?? 'Upgrade failed. Please try again.';
-      // Sanitize any backend jargon
-      if (msg.toLowerCase().contains('status code') || msg.toLowerCase().contains('internal') || msg.length > 120) {
+      final lowerMsg = msg.toLowerCase();
+      
+      if (lowerMsg.contains('pin') || lowerMsg.contains('transaction')) {
+        msg = 'Transaction PIN error. Please check your PIN in Profile → Security.';
+      } else if (lowerMsg.contains('insufficient') || lowerMsg.contains('funds')) {
+        msg = 'Insufficient vault balance. Please fund your wallet and try again.';
+      } else if (lowerMsg.contains('status code') || lowerMsg.contains('internal') || msg.length > 120) {
         msg = 'Something went wrong during the upgrade. Please try again or contact support.';
       }
-      GkToast.show(
-        context,
-        message: msg,
-        type: ToastType.error,
-      );
+      
+      GkToast.show(context, message: msg, type: ToastType.error);
     } catch (e) {
       if (!mounted) return;
-      GkToast.show(context, message: 'Upgrade could not be completed. Please check your connection and try again.', type: ToastType.error);
+      GkToast.show(context, message: e.toString().contains('Exception:') ? e.toString().replaceAll('Exception: ', '') : 'Upgrade could not be completed. Please check your connection and try again.', type: ToastType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showPinRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('PIN Required', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'You need a Transaction PIN to upgrade your account. Would you like to set one up now?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEAB308)),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push(Routes.pinManagement);
+            },
+            child: const Text('Set PIN', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

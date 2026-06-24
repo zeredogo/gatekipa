@@ -121,12 +121,13 @@ class GkEmptyState extends StatelessWidget {
                 color: AppColors.onSurface,),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.xs),
+            Container(height: AppSpacing.xs),
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,
                 color: AppColors.onSurfaceVariant,
-                height: 1.5,),
+                height: 1.5,
+              ),
               textAlign: TextAlign.center,
             ),
             if (actionLabel != null && onAction != null) ...[

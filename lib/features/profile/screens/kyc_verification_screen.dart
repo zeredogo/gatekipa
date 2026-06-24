@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 
@@ -128,12 +130,30 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       return;
     }
 
+    // ── Idempotency guard ───────────────────────────────────────────────────
+    // If the user is already verified (e.g. from a previous attempt that timed
+    // out client-side but succeeded server-side), navigate immediately instead
+    // of calling the function again.
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final existingDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    if ((existingDoc.data()?['kycStatus'] == 'verified' || existingDoc.data()?['kycStatus'] == 'approved') && mounted) {
+      GkToast.show(context, message: 'Your identity is already verified! 🎉', type: ToastType.success);
+      ref.invalidate(userProfileProvider);
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(Routes.dashboard);
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
+      if (!mounted) return;
       GkToast.show(context, message: 'Uploading data...', type: ToastType.info);
       
       String? docUrl;
@@ -150,10 +170,11 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
         return;
       }
 
-      // Call verification function with uploaded document URLs and ID number
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('verifyKyc')
-          .call({
+      // Call verification function — 120s timeout handles slow African connections
+      // without producing false "failed" errors that encourage unnecessary retries.
+      final callable = FirebaseFunctions.instance
+          .httpsCallable('verifyKyc', options: HttpsCallableOptions(timeout: const Duration(seconds: 120)));
+      final result = await callable.call({
         'documentUrl': docUrl,
         'selfieUrl': selfieUrl,
         'country': _selectedCountry,
@@ -165,8 +186,10 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       final dataMap = result.data as Map<dynamic, dynamic>;
       if (dataMap['success'] == true) {
         GkToast.show(context, message: 'Identity verified successfully! 🎉', type: ToastType.success);
-        // Invalidate user profile to refresh KYC status
         ref.invalidate(userProfileProvider);
+        // Wait briefly for the Firestore stream to propagate before navigating.
+        // This prevents the screen from rebuilding with stale "unverified" state.
+        await Future.delayed(const Duration(milliseconds: 600));
         if (mounted) {
           if (context.canPop()) {
             context.pop();
@@ -179,10 +202,30 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       }
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
+      // If the function timed out client-side, it may have succeeded server-side.
+      // Check Firestore directly before showing an error to the user.
+      if (e.code == 'deadline-exceeded' || e.message?.toLowerCase().contains('timeout') == true) {
+        final checkDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final serverStatus = checkDoc.data()?['kycStatus'];
+        if ((serverStatus == 'verified' || serverStatus == 'approved') && mounted) {
+          GkToast.show(context, message: 'Identity verified successfully! 🎉', type: ToastType.success);
+          ref.invalidate(userProfileProvider);
+          await Future.delayed(const Duration(milliseconds: 600));
+          if (mounted) {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(Routes.dashboard);
+            }
+          }
+          return;
+        }
+      }
       String msg = e.message ?? 'Verification failed. Please try again.';
       if (msg.toLowerCase().contains('status code') || msg.toLowerCase().contains('internal') || msg.length > 120) {
         msg = 'The verification service is temporarily unavailable. Please try again later.';
       }
+      if (!mounted) return;
       GkToast.show(context, message: msg, type: ToastType.error);
     } catch (e) {
       if (!mounted) return;
@@ -231,7 +274,33 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Step 3 of 3',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            )),
+                    Text('Identity',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurfaceVariant,
+                            )),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child: const LinearProgressIndicator(
+                    value: 0.85,
+                    minHeight: 6,
+                    backgroundColor: AppColors.surfaceContainer,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 32),
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -268,6 +337,13 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 24),
+
+                // ── KYC Progress Stepper ─────────────────────────────────
+                _KycStepper(status: user.kycStatus),
+
+                const SizedBox(height: 24),
+
                   if (!isVerified)
                     Form(
                       key: _formKey,
@@ -439,10 +515,13 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 24.0),
                       child: GkButton(
-                        label: 'Contact Support for Adjustments',
+                        label: 'Go to Dashboard',
                         onPressed: () {
-                          // Redirect to support or show support info
-                          GkToast.show(context, message: 'Please contact support@gatekipa.com to adjust your KYC information.', type: ToastType.info);
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go(Routes.dashboard);
+                          }
                         },
                       ),
                     ),
@@ -579,3 +658,97 @@ class _DocumentUploadCard extends StatelessWidget {
   }
 }
 
+// ── KYC Progress Stepper ──────────────────────────────────────────────────────
+class _KycStepper extends StatelessWidget {
+  final String status;
+  const _KycStepper({required this.status});
+
+  int get _activeStep {
+    switch (status.toLowerCase()) {
+      case 'none':
+      case '':           return 0;
+      case 'pending':
+      case 'submitted':
+      case 'processing': return 1;
+      case 'verified':
+      case 'approved':   return 2;
+      default:           return 0;
+    }
+  }
+
+  static const _steps = [
+    (icon: Icons.upload_file_rounded,   label: 'ID Submitted'),
+    (icon: Icons.manage_search_rounded, label: 'Under Review'),
+    (icon: Icons.verified_user_rounded, label: 'Verified'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _activeStep;
+    return Row(
+      children: _steps.asMap().entries.map((entry) {
+        final i     = entry.key;
+        final step  = entry.value;
+        final isDone    = i < active;
+        final isCurrent = i == active;
+        final Color stepColor = isDone
+            ? AppColors.tertiary
+            : isCurrent
+                ? AppColors.primary
+                : AppColors.outlineVariant;
+
+        return Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: isDone
+                            ? AppColors.tertiary.withValues(alpha: 0.12)
+                            : isCurrent
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : AppColors.surfaceContainer,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: stepColor,
+                            width: isCurrent ? 2 : 1),
+                      ),
+                      child: Icon(
+                        isDone ? Icons.check_rounded : step.icon,
+                        size: 18, color: stepColor,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      step.label,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 10,
+                            fontWeight: isCurrent
+                                ? FontWeight.w700 : FontWeight.w500,
+                            color: stepColor,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              if (i < _steps.length - 1)
+                Expanded(
+                  child: Container(
+                    height: 2,
+                    margin: const EdgeInsets.only(bottom: 22),
+                    color: i < active
+                        ? AppColors.tertiary.withValues(alpha: 0.4)
+                        : AppColors.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}

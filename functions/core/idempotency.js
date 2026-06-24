@@ -11,6 +11,7 @@
 
 const { db } = require("../utils/firebase");
 const { FieldValue } = require("firebase-admin/firestore");
+const crypto = require("crypto");
 
 /**
  * Checks if an idempotency key has already been processed.
@@ -48,4 +49,19 @@ async function storeIdempotencyResult(key, userId, resultTxnId, status) {
   });
 }
 
-module.exports = { checkIdempotency, storeIdempotencyResult };
+/**
+ * Generates a highly resistant compound idempotency key for webhooks
+ * even if the provider regenerates the event ID on retry.
+ * 
+ * @param {string} provider - e.g. 'sudo', 'paystack'
+ * @param {number} amountKobo - The transaction amount in kobo
+ * @param {string} authCode - Any provider-specific authorization code or reference
+ * @returns {string} The hashed idempotency key
+ */
+function generateWebhookIdempotencyKey(provider, amountKobo, authCode) {
+  const roundedTime = Math.floor(Date.now() / (1000 * 60 * 5)); // 5-minute bucket
+  const rawKey = `${provider}:${amountKobo}:${authCode}:${roundedTime}`;
+  return crypto.createHash("sha256").update(rawKey).digest("hex");
+}
+
+module.exports = { checkIdempotency, storeIdempotencyResult, generateWebhookIdempotencyKey };

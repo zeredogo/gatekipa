@@ -9,6 +9,9 @@ import 'package:gatekipa/core/utils/date_formatter.dart';
 import 'package:gatekipa/features/notifications/models/notification_model.dart';
 import 'package:gatekipa/features/notifications/providers/notification_provider.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekipa/features/wallet/providers/wallet_provider.dart'
+    show unifiedLedgerProvider;
+import 'package:gatekipa/features/wallet/screens/transaction_detail_screen.dart';
 
 class NotificationCenterScreen extends ConsumerWidget {
   const NotificationCenterScreen({super.key});
@@ -172,12 +175,32 @@ class _NotifCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: () {
+        // Mark as read
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid != null && !notif.isRead) {
           ref
               .read(notificationNotifierProvider.notifier)
               .markAsRead(uid, notif.id);
         }
+
+        // ── Deep-link: transaction notifications → TransactionDetailScreen ──
+        if (notif.type == 'transaction' || notif.type == 'blocked') {
+          final txId = notif.metadata?['transaction_id'] as String?;
+          if (txId != null) {
+            final allTxs = ref.read(unifiedLedgerProvider).valueOrNull ?? [];
+            final tx = allTxs.where((t) => t.id == txId).firstOrNull;
+            if (tx != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => TransactionDetailScreen(tx: tx)),
+              );
+              return; // don't push the generic detail route
+            }
+          }
+        }
+
+        // Fallback: generic notification detail route
         context.push('/home/notifications/${notif.id}', extra: notif);
       },
       child: Container(

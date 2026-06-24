@@ -13,7 +13,6 @@ import 'package:go_router/go_router.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 import 'package:gatekipa/core/widgets/gk_button.dart';
 import 'package:gatekipa/core/widgets/gk_toast.dart';
-import 'package:gatekipa/core/widgets/gk_checkout.dart';
 import 'package:gatekipa/features/accounts/providers/account_provider.dart';
 import 'package:gatekipa/features/cards/providers/card_provider.dart';
 import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
@@ -235,16 +234,16 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
             
             // FIX #4 & #5: Accurate features + 5-day trial banner on Instant & Activation
             _buildMiniPlanCard(ctx, 'Instant Plan', 'free', 700,
-              ['1 Virtual Card', 'Basic Rules Only', '⚡ 5-Day Sentinel Trial'], false, hasTrial: true),
+              ['1 Free NGN Card', 'Basic Rules Only', '⚡ 5-Day Sentinel Trial'], false, hasTrial: true),
             const SizedBox(height: 12),
             _buildMiniPlanCard(ctx, 'Activation Plan', 'activation', 1400,
-              ['2 Virtual Cards', 'Basic Rules Only', '⚡ 5-Day Sentinel Trial'], false, hasTrial: true),
+              ['2 Free NGN Cards', 'Basic Rules Only', '⚡ 5-Day Sentinel Trial'], false, hasTrial: true),
             const SizedBox(height: 12),
             _buildMiniPlanCard(ctx, 'Sentinel Prime', 'premium', 1999,
               ['Smart Alerts', 'Night Lockdown', 'Geo-Fence', 'Advanced Rules'], true),
             const SizedBox(height: 12),
             _buildMiniPlanCard(ctx, 'Business Plan', 'business', 5000,
-              ['5 Cards', 'Team Access', 'Priority Protection', 'Full Suite'], false),
+              ['5 Free NGN Cards', 'Team Access', 'Priority Protection', 'Full Suite'], false),
           ],
         ),
         ),
@@ -329,14 +328,16 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
             Text('Insufficient Funds', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Text(
-              'Your Vault balance is ₦${currentBalance.toStringAsFixed(0)}. You need an additional ₦${deficit.toStringAsFixed(0)} to complete this creation.',
+              _cardCurrency == 'USD' 
+                  ? 'Your Vault balance is ₦${currentBalance.toStringAsFixed(0)}. You need an additional ₦${deficit.toStringAsFixed(0)} to complete this creation.\n\nNote: USD cards include an initial funding buffer (\$${_cardLimit == '1000000' ? '4.50' : '3.50'}).'
+                  : 'Your Vault balance is ₦${currentBalance.toStringAsFixed(0)}. You need an additional ₦${deficit.toStringAsFixed(0)} to complete this creation.',
               textAlign: TextAlign.center,
               style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 56,
+              constraints: const BoxConstraints(minHeight: 56), // FIX: Flexible height
               child: FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -345,7 +346,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 onPressed: () {
                   Navigator.pop(ctx, true);
                 },
-                child: const Text('Fund Externally', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                child: const Text('Add Funds via Transfer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
               ),
             ),
             const SizedBox(height: 12),
@@ -379,14 +380,16 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
             Text('Confirm Deduction', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Text(
-              'A total of ₦${totalNeeded.toStringAsFixed(0)} (Plan: ₦$planCost) will be deducted from your Vault balance (₦${balance.toStringAsFixed(0)}).',
+              _cardCurrency == 'USD'
+                  ? 'A total of ₦${totalNeeded.toStringAsFixed(0)} (Plan: ₦$planCost) will be deducted from your Vault balance (₦${balance.toStringAsFixed(0)}).\n\nThis amount covers your initial card funding (\$${_cardLimit == '1000000' ? '4.50' : '3.50'}).'
+                  : 'A total of ₦${totalNeeded.toStringAsFixed(0)} (Plan: ₦$planCost) will be deducted from your Vault balance (₦${balance.toStringAsFixed(0)}).',
               textAlign: TextAlign.center,
               style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 56,
+              constraints: const BoxConstraints(minHeight: 56), // FIX: Flexible height
               child: FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -466,7 +469,9 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     final cardsIncluded = user.cardsIncluded;
     
     if (_cardCurrency == 'USD') {
-        totalNeeded += (_cardLimit == '1000000') ? 8500 : 6500; // Minimum USD card funding
+        // Backend rate: $3 + $0.50 (Gatekipa fee) = $3.50 * 1700 (FX rate) = 5950 NGN
+        // Backend rate: $4 + $0.50 (Gatekipa fee) = $4.50 * 1700 (FX rate) = 7650 NGN
+        totalNeeded += (_cardLimit == '1000000') ? 7650 : 5950; // Minimum USD card funding
     } else if (cardsIncluded == 0 && planCost == 0) {
         // If they have no cards included, and are not buying a new plan, they pay the base 700 NGN issuance fee
         totalNeeded += 700;
@@ -478,48 +483,12 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     if (currentBalance < totalNeeded) {
         final deficit = totalNeeded - currentBalance;
         final wantToFund = await _showFundingPrompt(deficit, currentBalance);
-        if (!wantToFund) return; // cancelled
-        
-        // Launch GkCheckout to fund exactly the missing amount
-        final refStr = 'GTK-FUND-${user.uid.substring(0, 6)}-${DateTime.now().millisecondsSinceEpoch}';
-        
-        // Let's use Navigator push
-        if (!mounted) return;
-        final bool? checkoutSuccess = await Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(
-            builder: (_) => GkCheckout(
-              type: GkCheckoutType.fundWallet,
-              amountInNgn: deficit,
-              email: user.email ?? '',
-              uid: user.uid,
-              reference: refStr,
-              onSuccess: (String paidReference) async {
-                // Return true so we can await it
-                Navigator.pop(context, true);
-              },
-              onCancel: () {
-                Navigator.pop(context, false);
-              },
-            ),
-          ),
-        );
-        
-        if (checkoutSuccess != true) {
-            if (!mounted) return;
-        GkToast.show(context, message: 'Funding was cancelled or failed.', type: ToastType.error);
-            return;
+        if (wantToFund) {
+            if (mounted) {
+               context.push('/wallet/add-funds');
+            }
         }
-        
-        // Verify payment
-        if (!mounted) return;
-        setState(() => _isLoading = true);
-        final verified = await ref.read(walletNotifierProvider.notifier).verifyPaystackPayment(reference: refStr);
-        if (!verified) {
-            if (!mounted) return;
-            setState(() => _isLoading = false);
-            GkToast.show(context, message: 'Payment verification failed. Please contact support.', type: ToastType.error);
-            return;
-        }
+        return; // Halt creation until funded
     } else if (totalNeeded > 0) {
         // Just confirm vault deduction
         final confirm = await _showVaultDeductionConfirm(totalNeeded, planCost, currentBalance);
@@ -574,8 +543,8 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         }
     }
 
-    // STEP 5: KYC / Bridgecard Registration
-    if (user.bridgecardCardholderId == null) {
+    // STEP 5: KYC / Cardholder Registration
+    if (user.vaultCardholderId == null) {
       if (user.kycStatus != 'verified' && user.kycStatus != 'approved') {
         if (!mounted) return;
         setState(() => _isLoading = false);
@@ -651,19 +620,39 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
         return;
       }
 
-      final bridgecardSuccess = await ref.read(cardNotifierProvider.notifier).createBridgecard(
+      bool activationSuccess = await ref.read(cardNotifierProvider.notifier).createSudoCard(
         cardId: cardId,
         pin: pin,
-        cardCurrency: _cardCurrency,
-        cardLimit: _cardCurrency == 'USD' ? _cardLimit : null,
       );
 
-      if (!bridgecardSuccess) {
+      if (!activationSuccess) {
         if (!mounted) return;
         setState(() => _isLoading = false);
-        GkToast.show(context,
-            message: 'Card registered but activation failed. Please try again from your cards list or contact support.',
-            type: ToastType.error);
+        
+        final stateErr = ref.read(cardNotifierProvider);
+        String errMsg = 'Card registered but activation failed. Please try again from your cards list or contact support.';
+        
+        if (stateErr.hasError) {
+          final errStr = stateErr.error.toString();
+          // Extract message from FirebaseException string
+          final match = RegExp(r'\[.*?\] (.*)').firstMatch(errStr);
+          if (match != null && match.group(1) != null) {
+            errMsg = match.group(1)!;
+          } else {
+            errMsg = errStr.replaceAll('Exception: ', '').replaceAll('FirebaseFunctionsException: ', '');
+          }
+          
+          if (errMsg.toLowerCase().contains('status code') || errMsg.length > 150) {
+            errMsg = 'The issuance service is temporarily unavailable. Please try again later.';
+          }
+        }
+        
+        // Handle specific strict KYC errors from Sudo
+        if (errMsg.toLowerCase().contains('bvn') || errMsg.toLowerCase().contains('date of birth') || errMsg.toLowerCase().contains('identity')) {
+            errMsg = 'Activation failed due to strict KYC rules. Please ensure your BVN and Date of Birth exactly match your bank records in Profile.';
+        }
+
+        GkToast.show(context, message: errMsg, type: ToastType.error);
         context.pop();
         return;
       }
@@ -705,7 +694,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     final accountsAsync = ref.watch(accountsStreamProvider);
     final userAsync = ref.watch(userProfileProvider);
     final user = userAsync.valueOrNull;
-    final needsRegistration = user != null && user.bridgecardCardholderId == null;
+    final needsRegistration = user != null && user.vaultCardholderId == null;
     final sysState = ref.watch(systemStateProvider).valueOrNull ?? SystemState.normal;
 
     final accounts = accountsAsync.valueOrNull;
@@ -889,7 +878,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               const SizedBox(height: AppSpacing.lg),
 
               if (_cardCurrency == 'USD') ...[
-                const _FieldLabel('Card Limit'),
+                const _FieldLabel('Card Limit (Monthly)'),
                 const SizedBox(height: AppSpacing.xs),
                 SegmentedButton<String>(
                   segments: const [
@@ -914,8 +903,8 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   _cardLimit == '1000000' 
-                      ? 'Requires a minimum funding of \$4.00 + \$0.50 fee (~8,500 NGN required buffer)'
-                      : 'Requires a minimum funding of \$3.00 + \$0.50 fee (~6,500 NGN required buffer)',
+                      ? 'Requires a minimum funding of \$4.50 (~7,650 NGN required buffer)'
+                      : 'Requires a minimum funding of \$3.50 (~5,950 NGN required buffer)',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontSize: 12,
                     color: AppColors.outline,

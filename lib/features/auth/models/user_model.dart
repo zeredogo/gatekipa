@@ -9,15 +9,16 @@ class UserModel {
   final String? displayName;
   final String? phoneNumber;
   final String? email;
-  final String? bridgecardNuban;
-  final String? bridgecardBankName;
-  final String? bridgecardAccountName;
+  final String? vaultNuban;
+  final String? vaultBankName;
+  final String? vaultAccountName;
   final String? city;
   final String? state;
   final String? postalCode;
   final String? houseNumber;
-  final String? bridgecardStatus;
-  final String? bridgecardCardholderId;
+  final String? vaultStatus;
+  final String? vaultCardholderId;
+  final String? safehavenIdentityId;
   final String kycStatus; // 'pending', 'verified', 'failed'
   @Deprecated('Use planTier instead')
   final bool isPremium;
@@ -72,15 +73,16 @@ class UserModel {
     this.displayName,
     this.phoneNumber,
     this.email,
-    this.bridgecardNuban,
-    this.bridgecardBankName,
-    this.bridgecardAccountName,
+    this.vaultNuban,
+    this.vaultBankName,
+    this.vaultAccountName,
     this.city,
     this.state,
     this.postalCode,
     this.houseNumber,
-    this.bridgecardStatus,
-    this.bridgecardCardholderId,
+    this.vaultStatus,
+    this.vaultCardholderId,
+    this.safehavenIdentityId,
     this.kycStatus = 'pending',
     this.isPremium = false,
     this.planTier = 'none',
@@ -111,15 +113,16 @@ class UserModel {
       displayName: data['displayName'],
       phoneNumber: data['phoneNumber'],
       email: data['email'],
-      bridgecardNuban: data['bridgecardNuban'],
-      bridgecardBankName: data['bridgecardBankName'],
-      bridgecardAccountName: data['bridgecardAccountName'],
+      vaultNuban: data['vaultNuban'],
+      vaultBankName: data['vaultBankName'],
+      vaultAccountName: data['vaultAccountName'],
       city: data['city'],
       state: data['state'],
       postalCode: data['postalCode'],
       houseNumber: data['houseNumber'],
-      bridgecardStatus: data['bridgecard_status'],
-      bridgecardCardholderId: data['bridgecard_cardholder_id'],
+      vaultStatus: data['vault_status'],
+      vaultCardholderId: data['vault_cardholder_id'],
+      safehavenIdentityId: data['safehaven_identity_id'],
       kycStatus: data['kycStatus'] ?? 'pending',
       isPremium: data['isPremium'] ?? false,
       planTier: data['planTier'] ?? 'none',
@@ -174,11 +177,11 @@ class UserModel {
       'blockAlerts': blockAlerts,
       'subscriptionReminders': subscriptionReminders,
       'allow_auto_deductions': allowAutoDeductions,
-      'bridgecardNuban': bridgecardNuban,
-      'bridgecardBankName': bridgecardBankName,
-      'bridgecardAccountName': bridgecardAccountName,
-      'bridgecard_status': bridgecardStatus,
-      'bridgecard_cardholder_id': bridgecardCardholderId,
+      'vaultNuban': vaultNuban,
+      'vaultBankName': vaultBankName,
+      'vaultAccountName': vaultAccountName,
+      'vault_status': vaultStatus,
+      'vault_cardholder_id': vaultCardholderId,
       'kycStatus': kycStatus,
       'isPremium': planTier == 'premium' || planTier == 'business',
       'planTier': planTier,
@@ -209,15 +212,16 @@ class UserModel {
     String? displayName,
     String? phoneNumber,
     String? email,
-    String? bridgecardNuban,
-    String? bridgecardBankName,
-    String? bridgecardAccountName,
+    String? vaultNuban,
+    String? vaultBankName,
+    String? vaultAccountName,
     String? city,
     String? state,
     String? postalCode,
     String? houseNumber,
-    String? bridgecardStatus,
-    String? bridgecardCardholderId,
+    String? vaultStatus,
+    String? vaultCardholderId,
+    String? safehavenIdentityId,
     String? kycStatus,
     bool? isPremium,
     // FIX: planTier and cardsIncluded were missing from copyWith — any caller that needed
@@ -246,15 +250,16 @@ class UserModel {
       displayName: displayName ?? this.displayName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       email: email ?? this.email,
-      bridgecardNuban: bridgecardNuban ?? this.bridgecardNuban,
-      bridgecardBankName: bridgecardBankName ?? this.bridgecardBankName,
-      bridgecardAccountName: bridgecardAccountName ?? this.bridgecardAccountName,
+      vaultNuban: vaultNuban ?? this.vaultNuban,
+      vaultBankName: vaultBankName ?? this.vaultBankName,
+      vaultAccountName: vaultAccountName ?? this.vaultAccountName,
       city: city ?? this.city,
       state: state ?? this.state,
       postalCode: postalCode ?? this.postalCode,
       houseNumber: houseNumber ?? this.houseNumber,
-      bridgecardStatus: bridgecardStatus ?? this.bridgecardStatus,
-      bridgecardCardholderId: bridgecardCardholderId ?? this.bridgecardCardholderId,
+      vaultStatus: vaultStatus ?? this.vaultStatus,
+      vaultCardholderId: vaultCardholderId ?? this.vaultCardholderId,
+      safehavenIdentityId: safehavenIdentityId ?? this.safehavenIdentityId,
       kycStatus: kycStatus ?? this.kycStatus,
       // ignore: deprecated_member_use_from_same_package
       isPremium: isPremium ?? this.isPremium,

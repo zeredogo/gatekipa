@@ -1,7 +1,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
 const { requireAuth, requireFields } = require("../utils/validators");
-const { internalFreezeBridgecard } = require("./bridgecardService");
+const { internalFreezeSudoCard } = require("./sudoService");
 const logger = require("firebase-functions/logger");
 
 
@@ -213,12 +213,13 @@ exports.deleteAccount = onCall({ region: "us-central1" }, async (request) => {
     const cardData = cardDoc.data();
     
     // Guard: Actually terminate/freeze on the issuing network before wiping local state
-    if ((cardData.status === "active" || cardData.local_status === "active") && cardData.bridgecard_card_id) {
+    if ((cardData.status === "active" || cardData.local_status === "active") && (cardData.sudo_card_id || cardData.bridgecard_card_id)) {
       try {
-        await internalFreezeBridgecard(cardData.bridgecard_card_id, true);
-        logger.info(`[AccountService] Froze Bridgecard ${cardData.bridgecard_card_id} during force-delete of account ${account_id}`);
+        const targetCardId = cardData.sudo_card_id || cardData.bridgecard_card_id;
+        await internalFreezeSudoCard(targetCardId, true);
+        logger.info(`[AccountService] Froze Sudo card ${targetCardId} during force-delete of account ${account_id}`);
       } catch (e) {
-        logger.error(`[AccountService] Failed to freeze Bridgecard ${cardData.bridgecard_card_id} during account deletion:`, e);
+        logger.error(`[AccountService] Failed to freeze Sudo card ${cardData.sudo_card_id} during account deletion:`, e);
       }
     }
 

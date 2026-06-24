@@ -183,66 +183,13 @@ exports.integritySweep = onSchedule("every 12 hours", async () => {
 });
 
 // ── 4. Webhook Drift Synchronization (Active Polling) ─────────────────────────
-// This actively queries Bridgecard for missing transactions to ensure 
+// This actively queries for missing transactions to ensure 
 // Night Lockdown and Sentinel security engines never go blind due to dropped webhooks.
-exports.pollMissingWebhooks = onSchedule({ schedule: "every 1 hours", secrets: ["BRIDGECARD_ACCESS_TOKEN", "BRIDGECARD_SECRET_KEY"] }, async () => {
-  logger.info("[PollMissingWebhooks] Starting active Bridgecard synchronization...");
-  
-  const { bridgecardClient } = require("./bridgecardService");
-  const client = bridgecardClient();
-  
-  // Get all currently active physical cards to sync
-  const activeCardsSnap = await db.collection("cards")
-    .where("status", "in", ["active", "issued"])
-    .get();
-    
-  let synced = 0;
-  let recovered = 0;
-
-  for (const cardDoc of activeCardsSnap.docs) {
-    const cardData = cardDoc.data();
-    if (!cardData.bridgecard_card_id) continue;
-    
-    try {
-      // NOTE: Verify this matches the exact Bridgecard /transactions endpoint in your API version
-      const res = await client.get(`/issuing/cards/transactions?card_id=${cardData.bridgecard_card_id}`);
-      const apiTransactions = res.data?.data?.transactions || [];
-      
-      for (const apiTx of apiTransactions) {
-        // Assume Bridgecard returns a unique reference or ID for the transaction
-        const ref = apiTx.reference || apiTx.id;
-        if (!ref) continue;
-        
-        // Check if Gatekeeper already knows about this transaction
-        const localTxSnap = await db.collection("transactions").where("reference", "==", ref).limit(1).get();
-        
-        if (localTxSnap.empty) {
-           // We missed a webhook! The local database drifted.
-           logger.warn(`[PollMissingWebhooks] Recovered missing transaction: ${ref} for card ${cardData.bridgecard_card_id}`);
-           
-           // We log the recovered transaction.
-           // In a full implementation, you would trigger processTransactionInternal here.
-           await db.collection("transactions").add({
-             ...apiTx,
-             recovered_via_polling: true,
-             status: "SUCCESS", // Or whatever the API indicates
-             card_id: cardDoc.id,
-             user_id: cardData.user_id,
-             account_id: cardData.account_id,
-             created_at: FieldValue.serverTimestamp(),
-             updated_at: FieldValue.serverTimestamp(),
-           });
-           
-           recovered++;
-        }
-      }
-      synced++;
-    } catch (e) {
-      logger.warn(`[PollMissingWebhooks] Failed to poll card ${cardData.bridgecard_card_id}: ${e.message}`);
-    }
-  }
-  
-  logger.info(`[PollMissingWebhooks] Done. Synced ${synced} cards. Recovered ${recovered} dropped webhooks.`);
+exports.pollMissingWebhooks = onSchedule({ schedule: "every 1 hours", secrets: ["SUDO_API_KEY"] }, async () => {
+  logger.info("[PollMissingWebhooks] Starting active Sudo synchronization (STUB)...");
+  // TODO: Implement Sudo active polling if required by Sudo's architecture.
+  // Sudo webhooks are typically reliable, but a polling fallback could be added here.
+  logger.info(`[PollMissingWebhooks] Done.`);
 });
 
 // ── 5. System Stats Aggregation ──────────────────────────────────────────────

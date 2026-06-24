@@ -135,7 +135,13 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
       throw _getFriendlyErrorMessage(e.code);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
-      throw 'An unexpected error occurred. Please try again.';
+      if (e is String) {
+        rethrow;
+      } else if (e is FirebaseException) {
+        throw e.message ?? e.toString();
+      } else {
+        throw 'Error: $e';
+      }
     }
   }
 
@@ -150,7 +156,13 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
       throw _getFriendlyErrorMessage(e.code);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
-      throw 'An unexpected error occurred. Please try again.';
+      if (e is String) {
+        rethrow;
+      } else if (e is FirebaseException) {
+        throw e.message ?? e.toString();
+      } else {
+        throw 'Error: $e';
+      }
     }
   }
 
@@ -174,7 +186,14 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
       throw _getFriendlyErrorMessage(e.code);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
-      throw 'An unexpected error occurred. Please try again.';
+      // Surface the actual error message if it's a string, or toString() otherwise
+      if (e is String) {
+        rethrow;
+      } else if (e is FirebaseException) {
+        throw e.message ?? e.toString();
+      } else {
+        throw 'Error: $e';
+      }
     }
   }
 
@@ -208,7 +227,29 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
         createdAt: DateTime.now(),
         lastLoginAt: DateTime.now(),
       );
-      await doc.set(profile.toFirestore());
+      
+      final payload = profile.toFirestore();
+      // SECURITY FIX: Strip restricted fields so Firestore Rules allow creation
+      payload.remove('kycStatus');
+      payload.remove('isPremium');
+      payload.remove('planTier');
+      payload.remove('cardsIncluded');
+      payload.remove('hasBvn');
+      // Strip vault/sudo fields — these are set server-side only
+      payload.remove('vaultNuban');
+      payload.remove('vaultBankName');
+      payload.remove('vaultAccountName');
+      payload.remove('vault_status');
+      payload.remove('vault_cardholder_id');
+      
+      // Ensure other restricted fields are also stripped
+      payload.remove('bvnVerifiedAt');
+      payload.remove('bvnMeta');
+      payload.remove('isAdmin');
+      payload.remove('role');
+      payload.remove('subscription_expiry_date');
+
+      await doc.set(payload);
     } else {
       await doc.update({'lastLoginAt': FieldValue.serverTimestamp()});
     }

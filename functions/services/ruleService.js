@@ -122,7 +122,7 @@ exports.adminSimulateRuleEngine = onCall({ region: "us-central1", enforceAppChec
   };
 
   // Run the actual evaluation module WITHOUT firing the freeze triggers 
-  const result = await evaluateTransaction(card_id, mockTx, { dryRun: true });
+  const result = await evaluateTransaction(card_id, mockTx.amount, mockTx.merchant_name, { dryRun: true });
 
   return result;
 });

@@ -34,7 +34,7 @@ export default function DashboardClient({ totalUsers, activeCards, isHealthy, to
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white tracking-tight">Welcome back, Admin</h1>
-        <p className="text-gray-400 mt-1">Here is what's happening across Gatekipa today, pulled live from Firebase.</p>
+        <p className="text-gray-400 mt-1">Here is what&apos;s happening across Gatekipa today, pulled live from Firebase.</p>
       </div>
 
       {/* Stats Grid */}

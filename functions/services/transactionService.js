@@ -242,12 +242,25 @@ async function _processWalletToCard(firestoreTxn, txnId, userId, amount, metadat
     created_at: FieldValue.serverTimestamp(),
   });
 
-  // d. Update wallet balance — integer kobo + legacy NGN dual-write
+  // d. Update wallet balance — integer kobo + computed legacy NGN dual-write
+  // To avoid floating point drift, we don't increment the float. We explicitly calculate it.
+  const newBalanceNgn = Number((balanceAfterKobo / 100).toFixed(2));
   firestoreTxn.set(walletRef, {
-    balance_kobo: FieldValue.increment(-amountKobo),
-    cached_balance: FieldValue.increment(-amount),  // legacy NGN (dual-write)
-    balance: FieldValue.increment(-amount),          // legacy NGN (dual-write)
+    balance_kobo: balanceAfterKobo,
+    cached_balance: newBalanceNgn,
+    balance: newBalanceNgn,
   }, { merge: true });
+
+  // Structured Log for Audit
+  logger.info(JSON.stringify({
+    event: "financial_commit",
+    type: "wallet_to_card",
+    user_id: userId,
+    card_id: cardId,
+    amount_kobo: amountKobo,
+    balance_before_kobo: currentBalanceKobo,
+    balance_after_kobo: balanceAfterKobo
+  }));
 
   // e. Card funding ledger entry
   const cardLedgerRef = db.collection("card_ledger").doc();
@@ -270,7 +283,7 @@ async function _processWalletToCard(firestoreTxn, txnId, userId, amount, metadat
 }
 
 async function _processWalletFunding(firestoreTxn, txnId, userId, amount, metadata) {
-  const { paystackRef, source = "paystack" } = metadata;
+  const { source = "system" } = metadata;
 
   // Phase 1 (Kobo): Convert to integer kobo — all arithmetic uses integers
   const amountKobo = Math.round(amount * 100);
@@ -283,26 +296,39 @@ async function _processWalletFunding(firestoreTxn, txnId, userId, amount, metada
 
   const balanceAfterKobo = currentBalanceKobo + amountKobo;
 
-  // a. Wallet credit ledger entry
+  // c. Wallet credit ledger entry
   const walletLedgerRef = db.collection("wallet_ledger").doc();
   firestoreTxn.set(walletLedgerRef, {
     user_id: userId,
     type: "credit",
     amount_kobo: amountKobo,
-    amount: amountKobo / 100,              // legacy NGN (dual-write)
-    reference: paystackRef || txnId,
+    amount: amountKobo / 100, // legacy
+    reference: txnId,
     balance_after_kobo: balanceAfterKobo,
-    balance_after: balanceAfterKobo / 100, // legacy NGN (dual-write)
+    balance_after: balanceAfterKobo / 100, // legacy
     source,
+    metadata,
     created_at: FieldValue.serverTimestamp(),
   });
 
-  // b. Update wallet balance — integer kobo + legacy NGN dual-write
+  // d. Update wallet balance safely
+  const newBalanceNgn = Number((balanceAfterKobo / 100).toFixed(2));
   firestoreTxn.set(walletRef, {
-    balance_kobo: FieldValue.increment(amountKobo),
-    cached_balance: FieldValue.increment(amount),  // legacy NGN (dual-write)
-    balance: FieldValue.increment(amount),          // legacy NGN (dual-write)
+    balance_kobo: balanceAfterKobo,
+    cached_balance: newBalanceNgn,
+    balance: newBalanceNgn,
   }, { merge: true });
+
+  // Structured Log for Audit
+  logger.info(JSON.stringify({
+    event: "financial_commit",
+    type: "wallet_funding",
+    user_id: userId,
+    amount_kobo: amountKobo,
+    balance_before_kobo: currentBalanceKobo,
+    balance_after_kobo: balanceAfterKobo,
+    reference: metadata.paystackRef || metadata.gatewayRef || "unknown"
+  }));
 }
 
 async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata) {
@@ -311,6 +337,15 @@ async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata)
 
   // Phase 1 (Kobo): Convert to integer kobo once
   const amountKobo = Math.round(amount * 100);
+
+  // --- READS MUST HAPPEN BEFORE WRITES ---
+  const walletRef = db.doc(`users/${userId}/wallet/balance`);
+  const walletSnap = await firestoreTxn.get(walletRef);
+  
+  // Best-effort extraction of wallet balance, defaults to 0
+  const walletData = walletSnap.exists ? walletSnap.data() : {};
+  const currentBalanceKobo = walletData.balance_kobo
+    ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
 
   // Card ledger entry
   const cardLedgerRef = db.collection("card_ledger").doc();
@@ -348,14 +383,6 @@ async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata)
   // --- GATEKIPA TRANSACTION FEE ---
   const flatFeeNGN = 100; // Flat 100 NGN fee regardless of transaction volume
   const flatFeeKobo = flatFeeNGN * 100;
-
-  const walletRef = db.doc(`users/${userId}/wallet/balance`);
-  const walletSnap = await firestoreTxn.get(walletRef);
-  
-  // Best-effort extraction of wallet balance, defaults to 0
-  const walletData = walletSnap.exists ? walletSnap.data() : {};
-  const currentBalanceKobo = walletData.balance_kobo
-    ?? Math.round((walletData.cached_balance ?? walletData.balance ?? 0) * 100);
 
   if (currentBalanceKobo >= flatFeeKobo) {
     const balanceAfterKobo = currentBalanceKobo - flatFeeKobo;
@@ -560,39 +587,7 @@ exports.toggleSpendingLock = onCall({ region: "us-central1" }, async (request) =
 
   logger.info(`[SpendingLock] User ${uid} set spending_lock = ${lock}`);
 
-  // ── 1. Freeze/unfreeze Bridgecard USD cards at issuer level ─────────────────
-  try {
-    const { internalFreezeBridgecard } = require("./bridgecardService");
-    const bcCardsSnap = await db.collection("cards")
-      .where("created_by", "==", uid)
-      .where("bridgecard_card_id", ">" , "")
-      .get();
-
-    const bcPromises = [];
-    for (const doc of bcCardsSnap.docs) {
-      const cardData = doc.data();
-      // Skip NGN/Sudo cards — they are handled below
-      if (cardData.sudo_card_id) continue;
-
-      if (lock && (cardData.status === "active" || cardData.local_status === "active")) {
-        bcPromises.push(internalFreezeBridgecard(cardData.bridgecard_card_id, true)
-          .then(() => doc.ref.update({ status: "frozen", local_status: "frozen", bridgecard_status: "frozen" }))
-          .catch(e => logger.error(`[SpendingLock] Failed to freeze Bridgecard ${doc.id}:`, e))
-        );
-      } else if (!lock && (cardData.status === "frozen" || cardData.local_status === "frozen")) {
-        bcPromises.push(internalFreezeBridgecard(cardData.bridgecard_card_id, false)
-          .then(() => doc.ref.update({ status: "active", local_status: "active", bridgecard_status: "active" }))
-          .catch(e => logger.error(`[SpendingLock] Failed to unfreeze Bridgecard ${doc.id}:`, e))
-        );
-      }
-    }
-    if (bcPromises.length > 0) {
-      await Promise.allSettled(bcPromises);
-      logger.info(`[SpendingLock] Synced ${bcPromises.length} Bridgecard card(s).`);
-    }
-  } catch (err) {
-    logger.error("[SpendingLock] Error syncing Bridgecard freeze state:", err);
-  }
+  // Bridgecard sync removed
 
   // ── 2. Freeze/unfreeze Sudo Africa NGN cards at issuer level ─────────────────
   // Enforces the lock at the Sudo provider level, not just via JIT blocking.

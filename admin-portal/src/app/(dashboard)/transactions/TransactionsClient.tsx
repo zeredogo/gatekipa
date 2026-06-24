@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Wallet, Search, Filter, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Search, Filter, ArrowDownRight, ArrowUpRight } from "lucide-react";
 
-export default function TransactionsClient({ initialTransactions, stats }: { initialTransactions: any[], stats: any }) {
+export default function TransactionsClient({ initialTransactions, stats }: { initialTransactions: any[], stats: { vaultDeposits: number, cardFunding: number, revenueFees: number } }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredTransactions = initialTransactions.filter(t => 
-    t.reference.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.userId.toLowerCase().includes(searchTerm.toLowerCase())
+    String(t.reference || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+    String(t.userId || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

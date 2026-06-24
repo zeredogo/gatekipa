@@ -10,6 +10,9 @@ import 'package:gatekipa/core/widgets/gk_button.dart';
 import 'package:gatekipa/core/widgets/gk_toast.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
 
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:gatekipa/features/wallet/widgets/otp_dialog.dart';
+
 class KycScreen extends StatefulWidget {
   const KycScreen({super.key});
   @override
@@ -18,23 +21,75 @@ class KycScreen extends StatefulWidget {
 
 class _KycScreenState extends State<KycScreen> {
   bool _isLoading = false;
+  final _bvnController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _bvnController.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .update({'kycStatus': 'pending'});
+      if (uid == null) return;
+      
+      final bvn = _bvnController.text.trim();
+
+      // 1. Save BVN
+      final verifyBvnCallable = FirebaseFunctions.instance.httpsCallable('verifyBvn');
+      await verifyBvnCallable.call({'bvn': bvn});
+
+      // 2. Initiate OTP
+      final initiateCallable = FirebaseFunctions.instance.httpsCallable('initiateVaultVerification');
+      final initiateResult = await initiateCallable.call();
+      final identityId = initiateResult.data['identityId'] as String?;
+
+      if (identityId == null) {
+        throw Exception("Failed to initiate BVN verification. Please try again.");
       }
+
       if (!mounted) return;
+
+      // 3. Prompt for OTP
+      final phone = FirebaseAuth.instance.currentUser?.phoneNumber ?? 'your registered number';
+      final otp = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => OtpDialog(phone: phone),
+      );
+
+      if (otp == null || otp.isEmpty) {
+        if (!mounted) return;
+        GkToast.show(context, message: 'Verification cancelled.', type: ToastType.warning);
+        return;
+      }
+
+      // 4. Validate Identity
+      setState(() => _isLoading = true);
+      final validateCallable = FirebaseFunctions.instance.httpsCallable('validateIdentity');
+      await validateCallable.call({
+        'identityId': identityId,
+        'otp': otp
+      });
+
+      if (!mounted) return;
+      GkToast.show(context, message: 'Identity verified successfully!', type: ToastType.success);
       context.go(Routes.dashboard);
+
     } catch (e) {
       if (!mounted) return;
-      GkToast.show(context, message: 'An error occurred', type: ToastType.error);
+      String errorMsg = 'An error occurred';
+      if (e is FirebaseFunctionsException) {
+        errorMsg = e.message ?? errorMsg;
+      } else {
+        errorMsg = e.toString();
+      }
+      GkToast.show(context, message: errorMsg, type: ToastType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -50,7 +105,33 @@ class _KycScreenState extends State<KycScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Step 3 of 3',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          )),
+                  Text('Identity',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurfaceVariant,
+                          )),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: const LinearProgressIndicator(
+                  value: 0.85,
+                  minHeight: 6,
+                  backgroundColor: AppColors.surfaceContainer,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
               // Header illustration
               Container(
                 width: double.infinity,
@@ -113,6 +194,53 @@ class _KycScreenState extends State<KycScreen> {
                   ],
                 ),
               ).animate().fadeIn(delay: 150.ms),
+              const SizedBox(height: 32),
+              
+              Form(
+                key: _formKey,
+                child: TextFormField(
+                  controller: _bvnController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 11,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 16,
+                    color: AppColors.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Bank Verification Number (BVN)',
+                    labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.outline,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    prefixIcon: const Icon(Icons.numbers_rounded, color: AppColors.primary),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                          width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.surfaceBright,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'BVN is required';
+                    if (v.trim().length != 11) return 'BVN must be 11 digits';
+                    return null;
+                  },
+                ),
+              ).animate().fadeIn(delay: 250.ms).slideX(begin: 0.05, end: 0),
+              
               const SizedBox(height: AppSpacing.md),
                 // Privacy note
                 Container(

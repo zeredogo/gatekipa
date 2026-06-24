@@ -6,29 +6,26 @@
 const { setGlobalOptions } = require("firebase-functions/v2");
 // Allows standard Cloud Run scaling on the Blaze plan up to a sustainable cap
 // Setting cpu to 0.16 to prevent exceeding regions total allowable CPU quota during multi-function deployment
-setGlobalOptions({ maxInstances: 1, memory: "256MiB", cpu: 0.16, enforceAppCheck: false });
+setGlobalOptions({ 
+  maxInstances: 1, 
+  memory: "256MiB", 
+  cpu: 0.16, 
+  enforceAppCheck: false,
+  secrets: ["SUDO_API_KEY", "RESEND_API_KEY", "SAFEHAVEN_CLIENT_ID", "SAFEHAVEN_PRIVATE_KEY"] 
+});
 
-const { onUserCreated, purchasePlan, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset } = require("./services/authService");
+const { onUserCreated, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset } = require("./services/authService");
 const { createAccount, inviteTeamMember, renameAccount, deleteAccount, switchActiveAccount, removeTeamMember } = require("./services/accountService");
 const { createVirtualCard, toggleCardStatus, freezeAllCards, renameCard, adminGlobalFreeze, sendCardNotification } = require("./services/cardService");
 const { createRule, deleteRule, adminSimulateRuleEngine } = require("./services/ruleService");
 const { processTransaction, fundCard, toggleSpendingLock } = require("./services/transactionService");
 const { searchEntities } = require("./services/searchService");
 const { detectSubscriptions } = require("./services/detectService");
-const { createVaultAccount, requestWithdrawal, recreateVaultAccount } = require("./services/walletService");
-const { verifyBvn, verifyKyc, qoreidWebhook } = require("./services/kycService");
-const { verifyPaystackPayment, paystackWebhook } = require("./services/paystackService");
-const { deleteUserAccount, initiatePremiumUpgrade, verifyPremiumPayment, setTransactionPin } = require("./services/userService");
-const {
-  registerCardholder,
-  createBridgecard,
-  fundBridgecard,
-  freezeBridgecard,
-  adminFreezeCard,
-  bridgecardWebhook,
-  revealCardDetails,
-  getCardOtp,
-} = require("./services/bridgecardService");
+const { createVaultAccount, requestWithdrawal, recreateVaultAccount, initiateVaultVerification } = require("./services/walletService");
+const { verifyBvn, verifyKyc, validateIdentity, qoreidWebhook } = require("./services/kycService");
+
+const { deleteUserAccount, setTransactionPin } = require("./services/userService");
+// Bridgecard removed
 const { integritySweep, pollMissingWebhooks, aggregateSystemStats } = require("./services/reconciliationCron");
 const { reconciliationDispatcher, processReconciliationBatch } = require("./services/reconciliationDispatcher");
 const { scanSubscriptionPatterns, sendRenewalReminders } = require("./services/subscriptionCron");
@@ -40,7 +37,6 @@ const { getUserAnalytics } = require("./services/analyticsService");
 
 // 1. Auth / User Lifecycle
 exports.onUserCreated = onUserCreated;
-exports.purchasePlan  = purchasePlan;
 exports.purchasePlanFromVault = purchasePlanFromVault;
 exports.resendVerificationEmail = resendVerificationEmail;
 exports.requestPasswordReset = requestPasswordReset;
@@ -64,8 +60,7 @@ exports.sendCardNotification = sendCardNotification;
 
 // 3.5. Notifications
 const { adminBroadcastMessage, adminSendInAppNotification } = require("./services/notificationService");
-exports.adminBroadcastMessage = adminBroadcastMessage;
-exports.adminSendInAppNotification = adminSendInAppNotification;
+
 
 // 4. Rule Engine Configuration
 exports.createRule = createRule;
@@ -101,31 +96,33 @@ exports.adminGetSystemMode = adminGetSystemMode;
 // 8. Wallet Operations
 exports.createVaultAccount = createVaultAccount;
 exports.recreateVaultAccount = recreateVaultAccount;
+exports.initiateVaultVerification = initiateVaultVerification;
 exports.requestWithdrawal = requestWithdrawal;
+
+const { safehavenWebhook } = require("./services/safehavenService");
+exports.safehavenWebhook = safehavenWebhook;
 
 // 9. KYC / Identity Verification
 exports.verifyBvn = verifyBvn;
 exports.verifyKyc = verifyKyc;
-exports.qoreidWebhook = qoreidWebhook;
+exports.validateIdentity = validateIdentity;
 
-// 10. Payment Verification
-exports.verifyPaystackPayment = verifyPaystackPayment;
-exports.paystackWebhook = paystackWebhook;
 
-// 11. Analytics
+
 exports.getUserAnalytics = getUserAnalytics;
 
-// 11. Bridgecard — Real NGN Virtual Card Issuing
-exports.registerCardholder = registerCardholder;
-exports.createBridgecard = createBridgecard;
-exports.fundBridgecard = fundBridgecard;
-exports.freezeBridgecard = freezeBridgecard;
-exports.adminFreezeCard = adminFreezeCard;
-exports.bridgecardWebhook = bridgecardWebhook;
+// 11. Sudo — Real Virtual Card Issuing
+const { sudoWebhook, migratePendingSudoCards, migrateUSDBridgecardsToSudo, createSudoCard, revealCardDetails, fundSudoCard } = require("./services/sudoService");
+exports.sudoWebhook = sudoWebhook;
+exports.migratePendingSudoCards = migratePendingSudoCards;
+exports.migrateUSDBridgecardsToSudo = migrateUSDBridgecardsToSudo;
+exports.createSudoCard = createSudoCard;
+exports.fundSudoCard = fundSudoCard;
+
 exports.revealCardDetails = revealCardDetails;
-exports.getCardOtp = getCardOtp;
+
 
 // 12. User Account Management
 exports.deleteUserAccount = deleteUserAccount;
-exports.initiatePremiumUpgrade = initiatePremiumUpgrade;
-exports.verifyPremiumPayment = verifyPremiumPayment;
+exports.setTransactionPin = setTransactionPin;
+

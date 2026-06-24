@@ -231,9 +231,9 @@ class _EmailVerifyPendingScreenState extends State<EmailVerifyPendingScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 56,
+              constraints: const BoxConstraints(minHeight: 56), // FIX: Flexible height
               child: FilledButton(
                 onPressed: _isChecking ? null : () => _checkVerified(),
                 style: FilledButton.styleFrom(

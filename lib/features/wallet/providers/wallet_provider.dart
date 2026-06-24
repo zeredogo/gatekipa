@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:gatekipa/features/wallet/models/wallet_model.dart';
+import 'package:gatekipa/features/cards/providers/card_provider.dart'
+    show TransactionModel, transactionsProvider;
 
 
 // ── Wallet Stream ───────────────────────────────────────────────────────────────
@@ -20,40 +22,121 @@ final walletProvider = StreamProvider<WalletModel?>((ref) {
       .map((doc) => doc.exists ? WalletModel.fromFirestore(doc) : null);
 });
 
+// ── Wallet Ledger Stream (standalone, for top-ups + card funding visibility) ────
+final walletLedgerProvider = StreamProvider<List<TransactionModel>>((ref) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return Stream.value([]);
+
+  return FirebaseFirestore.instance
+      .collection('wallet_ledger')
+      .where('user_id', isEqualTo: user.uid)
+      .orderBy('created_at', descending: true)
+      .limit(150)
+      .snapshots()
+      .map((snap) => snap.docs.map((doc) {
+            final data = doc.data();
+            // Adapt wallet_ledger schema to TransactionModel so the UI
+            // can render it uniformly without a separate widget hierarchy.
+            final src = data['source'] as String? ?? 'unknown';
+            final isCredit = (data['type'] as String?) == 'credit' ||
+                src == 'paystack' ||
+                src == 'wallet_funding';
+            return TransactionModel(
+              id: doc.id,
+              cardId: data['card_id'] as String? ?? '',
+              accountId: data['account_id'] as String? ?? '',
+              userId: data['user_id'] as String? ?? '',
+              merchantName: data['merchant_name'] as String?
+                  ?? _ledgerSourceLabel(src),
+              amount: (data['amount'] as num? ?? 0).toDouble(),
+              status: data['status'] as String? ?? (isCredit ? 'success' : 'approved'),
+              declineReason: null,
+              timestamp: data['created_at'] is Timestamp
+                  ? (data['created_at'] as Timestamp).toDate()
+                  : DateTime.now(),
+              source: src,
+              providerReference: data['reference'] as String?,
+              rawType: isCredit ? 'credit' : 'debit',
+            );
+          }).toList());
+});
+
+String _ledgerSourceLabel(String source) {
+  switch (source) {
+    case 'paystack':
+    case 'wallet_funding':      return 'Wallet Top-Up';
+    case 'wallet_to_card':
+    case 'card_funding':        return 'Card Funding';
+    case 'card_transaction_fee':return 'Transaction Fee';
+    case 'sudo_refund':
+    case 'refund':              return 'Refund';
+    case 'ghost_card_auto_refund': return 'Refund (Card Failed)';
+    case 'sudo_jit_auth':       return 'Card Hold';
+    case 'admin':               return 'Admin Adjustment';
+    default:                    return 'Wallet Event';
+  }
+}
+
+// ── Unified Ledger Provider — merges transactions + wallet_ledger ───────────────
+// This is the definitive feed for all money movement visible to the user.
+// It covers:
+//   • Card charges (from `transactions`)
+//   • Declined / JIT declined transactions (from `transactions`)
+//   • Wallet top-ups via Paystack (from `wallet_ledger`)
+//   • Card funding from wallet (from `wallet_ledger`)
+//   • Platform transaction fees (from `wallet_ledger`)
+//   • Refunds from failed card provisioning (from `wallet_ledger`)
+//   • Authorization holds (from `wallet_ledger` with status: reserved)
+final unifiedLedgerProvider = StreamProvider<List<TransactionModel>>((ref) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return Stream.value([]);
+
+  final ledgerAsync   = ref.watch(walletLedgerProvider);
+  final txAsync       = ref.watch(transactionsProvider);
+
+  final ledger = ledgerAsync.valueOrNull ?? [];
+  final txns   = txAsync.valueOrNull   ?? [];
+
+  // Merge & deduplicate by id, then sort by timestamp descending
+  final seen = <String>{};
+  final merged = <TransactionModel>[];
+
+  for (final t in [...txns, ...ledger]) {
+    if (seen.add(t.id)) merged.add(t);
+  }
+  merged.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+  return Stream.value(merged.take(200).toList());
+});
+
+
+
 // ── Wallet Notifier ─────────────────────────────────────────────────────────────
 class WalletNotifier extends StateNotifier<AsyncValue<void>> {
   final FirebaseFunctions _functions;
 
   WalletNotifier(this._functions) : super(const AsyncValue.data(null));
 
-  /// DEPRECATED — This method is intentionally unusable.
-  ///
-  /// The backend [fundWallet] Cloud Function immediately throws a
-  /// permission-denied error by design.
-  ///
-  /// The CORRECT wallet top-up flow is:
-  ///   1. Show Paystack checkout (see [AddFundsScreen])
-  ///   2. After user completes payment, call [verifyPaystackPayment]
-  ///
-  /// Never call this method.
-  @Deprecated('Use verifyPaystackPayment() after Paystack checkout instead.')
-  Future<bool> fundWallet({
-    required String userId,
-    required double amount,
-    required String method,
-    String? reference,
-  }) async {
-    throw UnsupportedError(
-      'fundWallet is disabled. Use the Paystack checkout flow in AddFundsScreen '
-      'and call verifyPaystackPayment() to credit the wallet.',
-    );
+
+
+  Future<String?> initiateVaultVerification() async {
+    state = const AsyncValue.loading();
+    try {
+      final callable = _functions.httpsCallable('initiateVaultVerification');
+      final result = await callable.call();
+      state = const AsyncValue.data(null);
+      return result.data['identityId'] as String?;
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      return null;
+    }
   }
 
-  Future<bool> generateVaultAccount(String userId) async {
+  Future<bool> generateVaultAccount(String userId, {String? otp, String? identityId}) async {
     state = const AsyncValue.loading();
     try {
       final callable = _functions.httpsCallable('createVaultAccount');
-      await callable.call();
+      await callable.call({'otp': otp, 'identityId': identityId});
       state = const AsyncValue.data(null);
       return true;
     } catch (e) {
@@ -62,21 +145,6 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Called after Paystack client-side charge succeeds.
-  /// The Cloud Function verifies the reference with Paystack's API
-  /// and atomically credits the wallet — the client can't bypass this.
-  Future<bool> verifyPaystackPayment({required String reference}) async {
-    state = const AsyncValue.loading();
-    try {
-      final callable = _functions.httpsCallable('verifyPaystackPayment');
-      await callable.call({'reference': reference});
-      state = const AsyncValue.data(null);
-      return true;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      return false;
-    }
-  }
 
   /// Biometric-gated wallet-to-card funding.
   ///

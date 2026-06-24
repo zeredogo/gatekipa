@@ -491,33 +491,77 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
                 },
               ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.05, end: 0),
               
-              if (_isLogin)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () async {
-                      if (_emailController.text.isEmpty) {
-                        GkToast.show(context, message: 'Please enter your email address first', type: ToastType.error);
-                        return;
-                      }
-                      try {
-                        await ref.read(authNotifierProvider.notifier).resetPassword(_emailController.text);
-                        if (!context.mounted) return;
-                        GkToast.show(context, message: 'Password reset link sent to your email', type: ToastType.success);
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        GkToast.show(context, message: e.toString(), type: ToastType.error);
-                      }
-                    },
-                    child: Text(
-                      'Forgot Password?',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.primary,
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    flex: 3,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () {
+                          _formKey.currentState?.reset();
+                          setState(() {
+                            _isLogin = !_isLogin;
+                            _emailController.clear();
+                            _passwordController.clear();
+                            _firstNameController.clear();
+                            _lastNameController.clear();
+                            _addressController.clear();
+                            _cityController.clear();
+                            _stateController.clear();
+                            _postalCodeController.clear();
+                            _houseNumberController.clear();
+                            _phoneController.clear();
+                          });
+                        },
+                        child: Text(
+                          _isLogin
+                              ? "Don't have an account? Sign Up"
+                              : 'Already have an account? Sign In',
+                          style: const TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.primary,
                             fontWeight: FontWeight.w600,
-                          ),
+                            fontSize: 13,),
+                        ),
+                      ),
                     ),
                   ),
-                ).animate().fadeIn(delay: 450.ms),
+                  if (_isLogin)
+                    Flexible(
+                      flex: 2,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () async {
+                            if (_emailController.text.isEmpty) {
+                              GkToast.show(context, message: 'Please enter your email address first', type: ToastType.error);
+                              return;
+                            }
+                            try {
+                              await ref.read(authNotifierProvider.notifier).resetPassword(_emailController.text);
+                              if (!context.mounted) return;
+                              GkToast.show(context, message: 'Password reset link sent to your email', type: ToastType.success);
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              GkToast.show(context, message: e.toString(), type: ToastType.error);
+                            }
+                          },
+                          child: Text(
+                            'Forgot Password?',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ).animate().fadeIn(delay: 450.ms),
 
               if (!_isLogin) ...[
                 const SizedBox(height: AppSpacing.sm),
@@ -562,9 +606,9 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 56,
+              constraints: const BoxConstraints(minHeight: 56), // FIX: Flexible height
               child: FilledButton(
                 onPressed: _isLoading ? null : _submit,
                 style: FilledButton.styleFrom(
@@ -602,32 +646,6 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            TextButton(
-              onPressed: () {
-                _formKey.currentState?.reset();
-                setState(() {
-                  _isLogin = !_isLogin;
-                  _emailController.clear();
-                  _passwordController.clear();
-                  _firstNameController.clear();
-                  _lastNameController.clear();
-                  _addressController.clear();
-                  _cityController.clear();
-                  _stateController.clear();
-                  _postalCodeController.clear();
-                  _houseNumberController.clear();
-                  _phoneController.clear();
-                });
-              },
-              child: Text(
-                _isLogin
-                    ? "Don't have an account? Sign Up"
-                    : 'Already have an account? Sign In',
-                style: const TextStyle(height: 1.2, fontFamily: 'Manrope', color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,),
-              ),
-            ),
 
             // ── Biometric quick-unlock (only shown in lock mode) ────────────
             if (_biometricAvailable) ...[

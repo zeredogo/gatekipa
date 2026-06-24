@@ -24,23 +24,31 @@ service cloud.firestore {
       return accountId == uid() || isAccountOwner(accountId) || isAccountMember(accountId);
     }
     function hasRestrictedFields() {
-      return request.resource.data.keys().hasAny([
+      let hasRestricted = request.resource.data.keys().hasAny([
         'hasBvn', 'bvnVerifiedAt', 'bvnMeta', 'isPremium',
-        'bridgecard_status', 'bridgecard_cardholder_id', 'bridgecardNuban', 
-        'bridgecardBankName', 'bridgecardAccountName', 'planTier', 
-        'cardsIncluded', 'isAdmin', 'role', 'subscription_expiry_date'
-      ]) || ('kycStatus' in request.resource.data && request.resource.data.kycStatus == 'verified');
+        'sudo_status', 'sudo_cardholder_id', 'vaultNuban', 
+        'vaultBankName', 'vaultAccountName', 'planTier', 
+        'cardsIncluded', 'isAdmin', 'role', 'subscription_expiry_date',
+        'walletBalance', 'wallet_balance', 'sudo_account_id', 'sudo_customer_id',
+        'sudo_dva_id', 'sudo_dva_balance', 'bvn', 'bvnVerified'
+      ]);
+      let invalidKyc = ('kycStatus' in request.resource.data) && (request.resource.data.kycStatus != 'skipped' && request.resource.data.kycStatus != 'pending');
+      return hasRestricted || invalidKyc;
     }
+    
     function isRestrictedFieldBeingUpdated() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+      let restrictedKeysChanged = request.resource.data.diff(resource.data).affectedKeys().hasAny([
         'hasBvn', 'bvnVerifiedAt', 'bvnMeta', 'isPremium',
-        'bridgecard_status', 'bridgecard_cardholder_id', 'bridgecardNuban', 
-        'bridgecardBankName', 'bridgecardAccountName', 'planTier', 
-        'cardsIncluded', 'isAdmin', 'role', 'subscription_expiry_date'
-      ]) || (
-        request.resource.data.diff(resource.data).affectedKeys().hasAny(['kycStatus']) && 
-        request.resource.data.kycStatus == 'verified'
-      );
+        'sudo_status', 'sudo_cardholder_id', 'vaultNuban', 
+        'vaultBankName', 'vaultAccountName', 'planTier', 
+        'cardsIncluded', 'isAdmin', 'role', 'subscription_expiry_date',
+        'walletBalance', 'wallet_balance', 'sudo_account_id', 'sudo_customer_id',
+        'sudo_dva_id', 'sudo_dva_balance', 'bvn', 'bvnVerified'
+      ]);
+      let invalidKycUpdate = request.resource.data.diff(resource.data).affectedKeys().hasAny(['kycStatus']) 
+                             && request.resource.data.kycStatus != 'skipped' 
+                             && request.resource.data.kycStatus != resource.data.kycStatus;
+      return restrictedKeysChanged || invalidKycUpdate;
     }
 
     // ── USERS ──────────────────────────────────────────────────────────────────

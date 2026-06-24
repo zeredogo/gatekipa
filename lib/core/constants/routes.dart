@@ -13,6 +13,7 @@ class Routes {
   static const String dashboard = '/home/dashboard';
   static const String wallet = '/home/wallet';
   static const String addFunds = '/home/wallet/add-funds';
+  static const String statement = '/home/wallet/statement';
   static const String cards = '/home/cards';
   static const String cardCreation = '/home/cards/create';
   static const String cardDetail = '/home/cards/:cardId';

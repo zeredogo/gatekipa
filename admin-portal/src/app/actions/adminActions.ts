@@ -1,6 +1,6 @@
 "use server";
 
-import { db, auth } from "@/lib/firebaseAdmin";
+import { db, auth, admin } from "@/lib/firebaseAdmin";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
@@ -14,7 +14,7 @@ async function verifyAdminSession() {
       throw new Error("Unauthorized: Missing admin privileges");
     }
     return decodedClaims;
-  } catch (error) {
+  } catch {
     throw new Error("Unauthorized: Invalid session");
   }
 }
@@ -48,31 +48,24 @@ export async function toggleCardFreeze(cardId: string, currentStatus: string) {
     await verifyAdminSession();
     const newStatus = currentStatus === "active" ? "frozen" : "active";
     
-    // Call Bridgecard API directly
     const cardDoc = await db.collection("cards").doc(cardId).get();
     if (!cardDoc.exists) throw new Error("Card not found");
-    const bridgecardCardId = cardDoc.data()?.bridgecard_card_id;
-    const currency = cardDoc.data()?.bridgecard_currency || "NGN";
+    const sudoCardId = cardDoc.data()?.sudo_card_id;
     
-    if (bridgecardCardId) {
-      // Inline the API call to avoid cross-project import issues
-      const isUsd = (currency || "NGN").toUpperCase() === "USD";
-      const endpoint = newStatus === "frozen" 
-        ? (isUsd ? "/cards/freeze_card" : "/naira_cards/freeze_card")
-        : (isUsd ? "/cards/unfreeze_card" : "/naira_cards/unfreeze_card");
-        
-      const response = await fetch(`https://issuecards.api.bridgecard.co/v1/issuing${endpoint}`, {
-        method: "PATCH",
+    // Call Sudo Africa API to freeze/unfreeze the card
+    if (sudoCardId) {
+      const sudoStatus = newStatus === "frozen" ? "inactive" : "active";
+      const response = await fetch(`https://api.sudo.africa/cards/${sudoCardId}`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "token": `Bearer ${process.env.BRIDGECARD_ACCESS_TOKEN || ""}`,
-          "issuing-app-id": process.env.BRIDGECARD_ISSUING_APP_ID || "8ea9a4b4-26b1-4aa6-8e29-25648057ab7d"
+          "Authorization": `Bearer ${process.env.SUDO_API_KEY || ""}`,
         },
-        body: JSON.stringify({ card_id: bridgecardCardId })
+        body: JSON.stringify({ status: sudoStatus })
       });
       
       if (!response.ok) {
-         console.warn("Bridgecard API freeze failed:", await response.text());
+         console.warn("Sudo API freeze failed:", await response.text());
          // Allow it to fall through to update local state anyway
       }
     }
@@ -80,7 +73,6 @@ export async function toggleCardFreeze(cardId: string, currentStatus: string) {
     await db.collection("cards").doc(cardId).update({
       local_status: newStatus,
       status: newStatus,
-      bridgecard_status: newStatus,
       updatedAt: new Date().toISOString()
     });
 
@@ -104,9 +96,9 @@ export async function toggleUserBlockStatus(userId: string, currentStatus: strin
     revalidatePath("/users");
     revalidatePath("/fraud");
     return { success: true, status: block ? "blocked" : "active" };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Failed to block user:", e);
-    return { success: false, error: e.message };
+    return { success: false, error: (e as Error).message };
   }
 }
 
@@ -120,9 +112,9 @@ export async function updateFeeConfiguration(fee: number) {
     }, { merge: true });
     revalidatePath("/rules");
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Failed to update fee:", e);
-    return { success: false, error: e.message };
+    return { success: false, error: (e as Error).message };
   }
 }
 
@@ -136,24 +128,17 @@ export async function approveKyc(userId: string) {
     revalidatePath("/compliance");
     revalidatePath("/users");
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Failed to approve KYC:", e);
-    return { success: false, error: e.message };
+    return { success: false, error: (e as Error).message };
   }
 }
 
 // --- NOTIFICATION ACTIONS --- //
 export async function sendInAppNotification(userId: string, title: string, message: string) {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session')?.value;
-    if (!sessionCookie) return { success: false, error: "Unauthorized" };
+    await verifyAdminSession();
 
-    const admin = require("firebase-admin");
-    const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, true);
-    if (!decodedClaims.admin && !decodedClaims.super_admin) return { success: false, error: "Unauthorized" };
-    
-    const db = admin.firestore();
     const userDoc = await db.collection("users").doc(userId).get();
     if (!userDoc.exists) return { success: false, error: "User not found" };
 
@@ -183,9 +168,9 @@ export async function sendInAppNotification(userId: string, title: string, messa
     }
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Failed to send notification:", e);
-    return { success: false, error: e.message };
+    return { success: false, error: (e as Error).message };
   }
 }
 
@@ -193,8 +178,7 @@ export async function sendInAppNotification(userId: string, title: string, messa
 export async function sendBroadcastNotification(userIds: string[], title: string, message: string, channels: { push: boolean, inApp: boolean, whatsapp: boolean }) {
   try {
     await verifyAdminSession();
-    const admin = require("firebase-admin");
-    const db = admin.firestore();
+
     
     // Process in batches
     let successCount = 0;
@@ -259,9 +243,9 @@ export async function sendBroadcastNotification(userIds: string[], title: string
     }
     
     return { success: true, count: successCount };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Broadcast failed:", e);
-    return { success: false, error: e.message };
+    return { success: false, error: (e as Error).message };
   }
 }
 
@@ -269,8 +253,7 @@ export async function sendBroadcastNotification(userIds: string[], title: string
 export async function runReconciliationSweep() {
   try {
     await verifyAdminSession();
-    const admin = require("firebase-admin");
-    const db = admin.firestore();
+
     
     // Sum Gatekipa Wallet Balances
     const usersSnap = await db.collection("users").get();
@@ -284,38 +267,40 @@ export async function runReconciliationSweep() {
       }
     }
 
-    // Fetch actual Bridgecard Issuing Balance
-    let bridgecardEscrow = gatekipaTotal; // Fallback
+    // Fetch actual Sudo Africa Issuing Balance (company default account)
+    let sudoEscrow = gatekipaTotal; // Fallback to Gatekipa total if Sudo unreachable
     try {
-      const response = await fetch("https://issuecards.api.bridgecard.co/v1/issuing/company/wallet", {
+      const response = await fetch("https://api.sudo.africa/accounts", {
         headers: {
-          "token": `Bearer ${process.env.BRIDGECARD_ACCESS_TOKEN || ""}`
+          "Authorization": `Bearer ${process.env.SUDO_API_KEY || ""}`,
+          "Accept": "application/json"
         }
       });
       if (response.ok) {
         const payload = await response.json();
-        // Assume the API returns { data: { balance: 5000000 } } in kobo
-        if (payload.data && payload.data.balance !== undefined) {
-           bridgecardEscrow = payload.data.balance / 100;
+        const accounts = payload.data || [];
+        const defaultAccount = accounts.find((a: { isDefault?: boolean; availableBalance?: number }) => a.isDefault === true);
+        if (defaultAccount && defaultAccount.availableBalance !== undefined) {
+          sudoEscrow = defaultAccount.availableBalance / 100; // Sudo returns amounts in kobo
         }
       } else {
-        console.warn("Failed to fetch live Bridgecard wallet:", await response.text());
+        console.warn("Failed to fetch live Sudo wallet:", await response.text());
       }
     } catch (e) {
-      console.error("Bridgecard connection failed during sweep:", e);
+      console.error("Sudo connection failed during sweep:", e);
     }
 
     await db.doc("system_stats/reconciliation").set({
       last_sweep: new Date().toISOString(),
       gatekipa_ledger: gatekipaTotal,
-      bridgecard_escrow: bridgecardEscrow
+      bridgecard_escrow: sudoEscrow // Keep Firestore key for backward compat with existing dashboard reads
     }, { merge: true });
 
-    const { revalidatePath } = require("next/cache");
+
     revalidatePath("/reconciliation");
     return { success: true, message: "Sweep completed successfully!" };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Reconciliation failed:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: (error as Error).message };
   }
 }

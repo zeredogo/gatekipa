@@ -321,9 +321,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 56,
+              constraints: const BoxConstraints(minHeight: 56), // FIX: Flexible height
               child: FilledButton(
                 onPressed: _isLoading ? null : _verify,
                 style: FilledButton.styleFrom(

@@ -17,6 +17,7 @@ import 'package:gatekipa/features/profile/screens/kyc_verification_screen.dart';
 import 'package:gatekipa/features/dashboard/screens/dashboard_screen.dart';
 import 'package:gatekipa/features/wallet/screens/wallet_screen.dart';
 import 'package:gatekipa/features/wallet/screens/add_funds_screen.dart';
+import 'package:gatekipa/features/wallet/screens/statement_export_screen.dart';
 import 'package:gatekipa/features/cards/screens/cards_list_screen.dart';
 import 'package:gatekipa/features/cards/screens/card_creation_screen.dart';
 import 'package:gatekipa/features/cards/screens/card_detail_screen.dart';
@@ -39,6 +40,7 @@ import 'package:gatekipa/features/profile/screens/premium_upgrade_screen.dart';
 import 'package:gatekipa/features/profile/screens/support_screen.dart';
 
 import 'package:gatekipa/core/widgets/app_shell.dart';
+import 'package:gatekipa/core/widgets/offline_wrapper.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -160,6 +162,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'add-funds',
                 builder: (ctx, state) => const AddFundsScreen(),
               ),
+              GoRoute(
+                path: 'statement',
+                builder: (ctx, state) => const StatementExportScreen(),
+              ),
             ],
           ),
           GoRoute(
@@ -260,11 +266,13 @@ class GatekipaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     return InactivityWrapper(
-      child: MaterialApp.router(
-        title: 'Gatekipa',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        routerConfig: router,
+      child: OfflineWrapper(
+        child: MaterialApp.router(
+          title: 'Gatekipa',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          routerConfig: router,
+        ),
       ),
     );
   }
@@ -289,13 +297,30 @@ class _InactivityWrapperState extends ConsumerState<InactivityWrapper> {
 
   void _resetTimer() {
     _timer?.cancel();
-    _timer = Timer(const Duration(seconds: 30), () {
+    // 5-minute inactivity window — enough for users reading, filling forms, or
+    // waiting on slow networks without being unexpectedly kicked to splash.
+    _timer = Timer(const Duration(minutes: 5), () {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // Lock the app (forces biometrics or PIN on next launch)
-        ref.read(authNotifierProvider.notifier).lockApp();
-        // Route to splash to enforce the lock gate
-        ref.read(routerProvider).go(Routes.splash);
+        // Only lock if we are on a protected (post-auth) screen.
+        // Avoids locking during the auth/onboarding flow itself.
+        final currentLocation =
+            ref.read(routerProvider).routerDelegate.currentConfiguration.fullPath;
+        final authRoutes = [
+          Routes.splash,
+          Routes.onboarding,
+          Routes.emailAuth,
+          Routes.phoneAuth,
+          Routes.otp,
+          Routes.emailVerifyPending,
+        ];
+        final isOnAuthScreen = authRoutes.any(
+          (r) => currentLocation.startsWith(r) ?? false,
+        );
+        if (!isOnAuthScreen) {
+          ref.read(authNotifierProvider.notifier).lockApp();
+          ref.read(routerProvider).go(Routes.splash);
+        }
       }
     });
   }

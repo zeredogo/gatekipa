@@ -9,7 +9,7 @@
 //   - block_if_amount_changes → amount of first 'charge' entry
 //
 // ⚠️  RULE: This model is READ ONLY from the client. All writes go through
-//           Cloud Functions (Bridgecard webhooks, processTransaction, etc.)
+//           Cloud Functions (SafeHaven/Sudo webhooks, processTransaction, etc.)
 //           cards.spentAmount and cards.chargeCount are CACHED COPIES only
 //           and must NEVER be used for rule enforcement.
 
@@ -69,7 +69,7 @@ class CardLedgerEntry {
   final double amount;
   final String merchantName;
 
-  /// External reference: Bridgecard transaction ID, internal txnId, etc.
+  /// External reference: Sudo transaction ID, internal txnId, etc.
   final String reference;
 
   final DateTime createdAt;

@@ -28,6 +28,7 @@ import 'package:gatekipa/features/notifications/providers/notification_provider.
 import 'package:gatekipa/core/widgets/gk_card_list_tile.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
 import 'package:gatekipa/core/providers/system_state_provider.dart';
+import 'package:gatekipa/features/cards/screens/sentinel_dashboard_screen.dart' as sentinel_screen;
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -386,12 +387,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
                       if (!hasBalance && !hasCards) {
                         title = 'Next Step: Fund Your Vault';
-                        subtitle = 'Tap "Fund Vault" to add money to your account.';
-                        onTap = null;
+                        subtitle = 'Tap to add money to your account.';
+                        onTap = () => context.push(Routes.addFunds);
                       } else if (hasBalance && !hasCards) {
                         title = 'Next Step: Create a Card';
-                        subtitle = 'Tap the "+" button in My Cards to create your first virtual card.';
-                        onTap = null;
+                        subtitle = 'Tap to create your first virtual card.';
+                        onTap = () => context.go(Routes.cards);
                       } else if (!hasPin) {
                         title = 'Next Step: Secure Your Account';
                         subtitle = 'Set up a Transaction PIN in your Profile Security settings.';
@@ -446,8 +447,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                                     ],
                                   ),
                                 ),
-                                if (onTap != null)
-                                  const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.error),
+                                const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.error),
                               ],
                             ),
                           ),
@@ -678,6 +678,34 @@ class _BalanceSection extends StatelessWidget {
                   letterSpacing: -1,),
               ),
             ),
+          ),
+          walletAsync.when(
+            data: (wallet) => wallet != null && wallet.escrowBalance > 0
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.errorContainer.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.hourglass_empty_rounded, size: 14, color: Colors.amber),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${CurrencyFormatter.format(wallet.escrowBalance)} pending provider confirmation',
+                            style: const TextStyle(fontSize: 11, color: Colors.amber, fontWeight: FontWeight.w600, fontFamily: 'Manrope'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
           ),
           const SizedBox(height: AppSpacing.md),
           Builder(
@@ -1212,103 +1240,55 @@ class _FreezeAllCardsWidgetState extends ConsumerState<_FreezeAllCardsWidget> {
   }
 }
 
-class _GuardRulesWidget extends ConsumerWidget {
+class _GuardRulesWidget extends StatelessWidget {
   const _GuardRulesWidget();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(userProfileProvider);
-    final cardsAsync = ref.watch(cardsProvider);
-    
-    // FIX: Night Lockdown and Geo-Fence are user-level settings (stored on the users doc) that
-    // ruleEngine.js applies to ALL cards regardless of type. Gating on "has non-trial card"
-    // blocked Sentinel Prime trial users from using these features entirely.
-    // Correct gate: user must have at least one card (any type) AND be Sentinel Prime.
-    final hasAnyCard = cardsAsync.valueOrNull?.isNotEmpty ?? false;
-
-    return userAsync.when(
-      data: (user) {
-        if (user == null) return const SizedBox();
-        return Column(
-          children: [
-            _RuleTile(
-              icon: Icons.nights_stay_rounded,
-              iconColor: Colors.indigo,
-              title: 'Night Lockdown',
-              sub: 'Block all charges 12 AM – 6 AM (WAT)',
-              value: hasAnyCard && user.isSentinelPrime ? user.nightLockdown : false,
-              onChanged: (v) async {
-                if (!hasAnyCard) {
-                  GkToast.show(context,
-                      message: '🚀 Create a card first to unlock Night Lockdown.',
-                      type: ToastType.warning,
-                      duration: const Duration(seconds: 4));
-                  return;
-                }
-                // FIX #1: Use isSentinelPrime — covers premium, business, AND active trial
-                if (!user.isSentinelPrime) {
-                  GkToast.show(context,
-                      message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock Night Lockdown.',
-                      type: ToastType.warning,
-                      duration: const Duration(seconds: 4));
-                  return;
-                }
-                try {
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.uid)
-                      .update({'nightLockdown': v});
-                } catch (_) {
-                  if (context.mounted) {
-                    GkToast.show(context,
-                        message: 'Failed to update Night Lockdown',
-                        type: ToastType.error);
-                  }
-                }
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.security_rounded, color: AppColors.primary),
+              const SizedBox(width: 12),
+              Text('Sentinel Guard', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Advanced AI-powered security rules, geo-fencing, and night lockdown settings have moved.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => sentinel_screen.SentinelDashboardScreen(),
+                  ),
+                );
               },
+              child: const Text('Open Command Center'),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            _RuleTile(
-              icon: Icons.location_on_rounded,
-              iconColor: Colors.teal,
-              title: 'Geo-Fence',
-              sub: 'Block international charges',
-              value: hasAnyCard && user.isSentinelPrime ? user.geoFence : false,
-              onChanged: (v) async {
-                if (!hasAnyCard) {
-                  GkToast.show(context,
-                      message: '🚀 Create a card first to unlock geo-fencing protections.',
-                      type: ToastType.warning,
-                      duration: const Duration(seconds: 4));
-                  return;
-                }
-                // FIX #1: Use isSentinelPrime — covers premium, business, AND active trial
-                if (!user.isSentinelPrime) {
-                  GkToast.show(context,
-                      message: '🚀 Sentinel Prime Required: Upgrade your plan to unlock advanced geo-fencing protections.',
-                      type: ToastType.warning,
-                      duration: const Duration(seconds: 4));
-                  return;
-                }
-                try {
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.uid)
-                      .update({'geoFence': v});
-                } catch (_) {
-                  if (context.mounted) {
-                    GkToast.show(context,
-                        message: 'Failed to update Geo-Fence',
-                        type: ToastType.error);
-                  }
-                }
-              },
-            ),
-          ],
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const SizedBox(),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -17,6 +17,9 @@ class WalletModel {
   ///    perfect accuracy — always query the ledger sum from the backend.
   ///    This value is suitable for DISPLAY purposes only.
   final double cachedBalance;
+  
+  /// Funds that are temporarily held in escrow during a 2-Phase Commit (e.g. Card Issuance 500 timeouts)
+  final double escrowBalance;
 
   final String currency;
   final DateTime? lastFunded;
@@ -25,6 +28,7 @@ class WalletModel {
   const WalletModel({
     required this.userId,
     required this.cachedBalance,
+    this.escrowBalance = 0.0,
     this.currency = 'NGN',
     this.lastFunded,
     this.isLocked = false,
@@ -41,9 +45,11 @@ class WalletModel {
       // Fall back to 'balance' for existing documents that haven't been
       // migrated yet by the Cloud Function backfill job.
       final rawBalance = data['cached_balance'] ?? data['balance'] ?? 0.0;
+      final rawEscrowKobo = data['escrow_kobo'] ?? 0.0;
       return WalletModel(
         userId: doc.id,
         cachedBalance: (rawBalance as num).toDouble(),
+        escrowBalance: (rawEscrowKobo as num).toDouble() / 100,
         currency: data['currency'] as String? ?? 'NGN',
         lastFunded: (data['lastFunded'] as Timestamp?)?.toDate(),
         isLocked: data['isLocked'] as bool? ?? false,
@@ -64,10 +70,11 @@ class WalletModel {
     };
   }
 
-  WalletModel copyWith({double? cachedBalance, bool? isLocked}) {
+  WalletModel copyWith({double? cachedBalance, double? escrowBalance, bool? isLocked}) {
     return WalletModel(
       userId: userId,
       cachedBalance: cachedBalance ?? this.cachedBalance,
+      escrowBalance: escrowBalance ?? this.escrowBalance,
       currency: currency,
       lastFunded: lastFunded,
       isLocked: isLocked ?? this.isLocked,

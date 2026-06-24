@@ -3,12 +3,21 @@
 import React, { useState } from "react";
 import { Users, Search, Filter } from "lucide-react";
 
-export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
+interface UserData {
+  id: string;
+  displayName: string;
+  email: string;
+  isVerified: boolean;
+  planTier: string;
+  createdAt: string;
+}
+
+export default function UsersClient({ initialUsers }: { initialUsers: UserData[] }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredUsers = initialUsers.filter(u => 
-    u.displayName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    u.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

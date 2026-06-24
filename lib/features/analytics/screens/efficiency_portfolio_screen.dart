@@ -190,56 +190,88 @@ class _CostPerUseCard extends StatelessWidget {
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: service.efficiency < 20
+          color: service.isVampire
               ? AppColors.error.withValues(alpha: 0.3)
               : AppColors.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: service.color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(service.icon, color: service.color, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(service.name,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14)),
-                Text('${service.category} • ${service.usage}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.onSurfaceVariant)),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text(
-                '₦${service.cost.toStringAsFixed(0)}/mo',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 13),
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: _effColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(100),
+                  color: service.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Text(
-                  '${service.efficiency}% efficient',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: _effColor),
+                child: Icon(service.icon, color: service.color, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(service.name,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14)),
+                    Text('${service.category} • ${service.usage}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                  ],
                 ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '₦${service.cost.toStringAsFixed(0)}/mo',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: service.isVampire ? AppColors.error.withValues(alpha: 0.1) : _effColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Text(
+                      service.isVampire ? 'VAMPIRE SUBSCRIPTION' : '${service.efficiency}% efficient',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: service.isVampire ? AppColors.error : _effColor),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
+          if (service.isVampire) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_rounded, color: AppColors.error, size: 14),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'High cost detected with low usage. Consider cancelling.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 11,
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ]
         ],
       ),
     );

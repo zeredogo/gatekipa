@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, Search, Filter } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 export default function CompliancePage() {
   return (

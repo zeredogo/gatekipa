@@ -2,6 +2,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase");
 const { requireAuth } = require("../utils/validators");
 const { FieldValue } = require("firebase-admin/firestore");
+const { defineSecret } = require("firebase-functions/params");
 
 /**
  * verifyBvn — registers a BVN number for the user without redundant API verification.
@@ -83,4 +84,48 @@ exports.verifyKyc = onCall({ region: "us-central1" }, async (request) => {
     success: true, 
     message: "KYC details saved successfully." 
   };
+});
+
+const SAFEHAVEN_CLIENT_ID = defineSecret("SAFEHAVEN_CLIENT_ID");
+const SAFEHAVEN_PRIVATE_KEY = defineSecret("SAFEHAVEN_PRIVATE_KEY");
+const SUDO_API_KEY = defineSecret("SUDO_API_KEY");
+
+/**
+ * validateIdentity — completes KYC by validating the SafeHaven OTP.
+ */
+exports.validateIdentity = onCall({ region: "us-central1", secrets: [SAFEHAVEN_CLIENT_ID, SAFEHAVEN_PRIVATE_KEY, SUDO_API_KEY] }, async (request) => {
+  requireAuth(request.auth);
+  const uid = request.auth.uid;
+  const { identityId, otp } = request.data;
+  
+  if (!identityId || !otp) {
+    throw new HttpsError("invalid-argument", "Identity ID and OTP are required.");
+  }
+
+  const userDoc = await db.collection("users").doc(uid).get();
+  const userData = userDoc.data() || {};
+  const idType = userData.bvn ? "BVN" : "NIN";
+
+  const { validateSafeHavenIdentity } = require("./safehavenService");
+  const result = await validateSafeHavenIdentity(uid, identityId, otp, idType);
+
+  if (result.success) {
+    try {
+      // 1. Re-fetch user data as it was just updated by validateSafeHavenIdentity
+      const updatedDoc = await db.collection("users").doc(uid).get();
+      const updatedData = updatedDoc.data() || {};
+      
+      // 2. Provision Sudo DVA automatically
+      const { ensureSudoCustomer, ensureSudoAccount } = require("./sudoService");
+      const customerId = await ensureSudoCustomer(uid, updatedData);
+      await ensureSudoAccount(uid, customerId, updatedData);
+      
+    } catch (sudoErr) {
+      console.error(`[KYC] OTP Validated but Sudo DVA generation failed for ${uid}:`, sudoErr.message);
+      // We don't throw here because KYC is already verified.
+      // DVA will be retried when they try to fund/create card.
+    }
+  }
+  
+  return result;
 });

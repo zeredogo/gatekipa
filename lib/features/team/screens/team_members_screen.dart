@@ -543,9 +543,9 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 52,
+              constraints: const BoxConstraints(minHeight: 52), // FIX: Flexible height
               child: FilledButton(
                 onPressed: (_loading || !_isValidEmail) ? null : _submit,
                 style: FilledButton.styleFrom(

@@ -29,8 +29,8 @@ export default function LoginPage() {
       } else {
         setError(response.error || "Failed to create session");
       }
-    } catch (err: any) {
-      setError(err.message || "Invalid credentials");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Invalid credentials");
     } finally {
       setLoading(false);
     }

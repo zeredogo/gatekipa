@@ -16,7 +16,7 @@ enum SystemMode {
   /// Fully operational. All features available.
   normal,
 
-  /// External APIs (Bridgecard/Paystack) are unstable.
+  /// External APIs (Sudo/SafeHaven) are unstable.
   /// Card creation and funding are queued; read operations continue.
   degraded,
 

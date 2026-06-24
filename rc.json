@@ -1,0 +1,10 @@
+{
+  "parameters": {
+    "min_build_number": {
+      "defaultValue": {
+        "value": "23"
+      },
+      "valueType": "NUMBER"
+    }
+  }
+}

@@ -15,6 +15,8 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  let adminEmail = "Admin User";
+
   try {
     const decodedClaims = await auth.verifySessionCookie(session, true);
     
@@ -26,15 +28,15 @@ export default async function DashboardLayout({
       redirect("/login?error=unauthorized");
     }
     
-    const adminEmail = decodedClaims.email || "Admin User";
-
-    return (
-      <DashboardLayoutClient adminEmail={adminEmail}>
-        {children}
-      </DashboardLayoutClient>
-    );
+    adminEmail = decodedClaims.email || "Admin User";
   } catch (error) {
     console.error("RBAC verification failed:", error);
     redirect("/login");
   }
+
+  return (
+    <DashboardLayoutClient adminEmail={adminEmail}>
+      {children}
+    </DashboardLayoutClient>
+  );
 }

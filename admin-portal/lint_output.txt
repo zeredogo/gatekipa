@@ -1,0 +1,91 @@
+
+> admin-portal@0.1.0 lint
+> eslint
+
+
+/Users/mac/Gatekipa/admin-portal/dump-cards.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/Users/mac/Gatekipa/admin-portal/list-tx.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/Users/mac/Gatekipa/admin-portal/query-all-cards.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/Users/mac/Gatekipa/admin-portal/query-webhooks.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/DashboardClient.tsx
+  37:55  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/DashboardLayoutClient.tsx
+  21:3  warning  'Settings' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/cards/CardsClient.tsx
+   4:10  warning  'CreditCard' is defined but never used          @typescript-eslint/no-unused-vars
+   7:71  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  11:10  warning  'isPending' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/compliance/page.tsx
+  4:23  warning  'Search' is defined but never used  @typescript-eslint/no-unused-vars
+  4:31  warning  'Filter' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/disputes/page.tsx
+   4:16  warning  'Search' is defined but never used                               @typescript-eslint/no-unused-vars
+  19:15  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  68:43  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  90:71  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/fraud/page.tsx
+  4:10  warning  'AlertTriangle' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/health/page.tsx
+  4:10  warning  'HeartPulse' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/reconciliation/ReconciliationClient.tsx
+   4:10  warning  'Search' is defined but never used        @typescript-eslint/no-unused-vars
+  27:14  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  27:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/transactions/TransactionsClient.tsx
+  4:10   warning  'Wallet' is defined but never used        @typescript-eslint/no-unused-vars
+  6:99   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  6:113  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/users/UsersClient.tsx
+  6:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/mac/Gatekipa/admin-portal/src/app/(dashboard)/webhooks/page.tsx
+  12:24  error    Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  66:41  warning  'jitSettled' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/mac/Gatekipa/admin-portal/src/app/actions/adminActions.ts
+   17:12  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  107:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  139:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  152:19  error    A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+  186:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  196:19  error    A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+  262:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  272:19  error    A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+  314:32  error    A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+  317:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/mac/Gatekipa/admin-portal/src/app/login/page.tsx
+  32:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/mac/Gatekipa/admin-portal/sum-balances.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/Users/mac/Gatekipa/admin-portal/sum-tx.js
+  1:15  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 46 problems (33 errors, 13 warnings)
+

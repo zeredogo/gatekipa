@@ -146,10 +146,10 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
           obscureText: obscure,
           obscuringCharacter: '●',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: 28,
-                letterSpacing: 20,
-                fontWeight: FontWeight.w800,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 16,
+                letterSpacing: 8,
+                fontWeight: FontWeight.w600,
                 color: AppColors.onSurface,
               ),
           inputFormatters: [
@@ -160,7 +160,7 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
             hintText: hintText,
             hintStyle: TextStyle(
               fontSize: 16,
-              letterSpacing: 12,
+              letterSpacing: 8,
               color: AppColors.onSurfaceVariant.withValues(alpha: 0.4),
             ),
             suffixIcon: IconButton(
@@ -349,8 +349,8 @@ class _PinManagementScreenState extends ConsumerState<PinManagementScreen> {
       bottomNavigationBar: Container(
         color: AppColors.surface,
         padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPad + 16),
-        child: SizedBox(
-          height: 56,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 56), // FIX: Flexible height
           width: double.infinity,
           child: FilledButton(
             style: FilledButton.styleFrom(

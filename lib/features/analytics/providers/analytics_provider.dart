@@ -31,9 +31,10 @@ class ServiceItem {
   final int efficiency;
   final IconData icon;
   final Color color;
+  final bool isVampire;
 
   const ServiceItem(this.name, this.cost, this.category, this.usage,
-      this.efficiency, this.icon, this.color);
+      this.efficiency, this.icon, this.color, {this.isVampire = false});
 }
 
 class AnalyticsModel {
@@ -158,42 +159,69 @@ final analyticsProvider = Provider.autoDispose<AsyncValue<AnalyticsModel>>((ref)
     }
   }
 
-  // Calculate top services
+  // Calculate top services & detect recurring / vampire subscriptions
   final merchants = <String, double>{};
   final merchantCount = <String, int>{};
+  final merchantDates = <String, List<DateTime>>{};
+  
   for (final tx in transactions) {
      if (tx.isApproved) {
         merchants[tx.merchantName] = (merchants[tx.merchantName] ?? 0) + tx.amount;
         merchantCount[tx.merchantName] = (merchantCount[tx.merchantName] ?? 0) + 1;
+        merchantDates.putIfAbsent(tx.merchantName, () => []).add(tx.timestamp);
      }
   }
+  
   final topServices = merchants.entries.map((e) {
       final name = e.key;
       final cost = e.value;
       final count = merchantCount[name] ?? 1;
+      final dates = merchantDates[name] ?? [];
+      
+      // Calculate frequency to detect recurring payments
+      bool isRecurring = false;
+      if (dates.length > 1) {
+        dates.sort((a, b) => a.compareTo(b));
+        final diff = dates.last.difference(dates.first).inDays;
+        // If there's a span of at least a week between first and last, it's likely recurring
+        if (diff >= 7) isRecurring = true;
+      }
       
       int eff = 80;
       Color col = AppColors.primary;
       IconData icon = Icons.payment_rounded;
       
-      // Heuristic for demonstration
+      // Heuristic for demonstration & Vampire Subscription detection
+      bool isVampire = false;
       if (count == 1 && cost > 5000) {
+        // One-off high cost
         eff = 35;
       } else if (count > 3 && cost < 2000) {
+        // High frequency, low cost
         eff = 92;
+      } else if (isRecurring && count <= 2 && cost > 10000) {
+        // Low usage, high cost recurring charge (Vampire Subscription)
+        eff = 20;
+        isVampire = true;
+        col = AppColors.error;
+        icon = Icons.warning_amber_rounded;
       } else {
         eff = (count * 15).clamp(20, 95);
       }
       
-      if (eff < 40) {
-        col = AppColors.error;
-      } else if (eff < 75) {
-        col = const Color(0xFFFF6B35);
-      } else {
-        col = AppColors.tertiary;
+      if (!isVampire) {
+        if (eff < 40) {
+          col = AppColors.error;
+        } else if (eff < 75) {
+          col = const Color(0xFFFF6B35);
+        } else {
+          col = AppColors.tertiary;
+        }
       }
       
-      return ServiceItem(name, cost, 'Subscription', '$count charges', eff, icon, col);
+      final category = isRecurring ? 'Recurring Subscription' : 'Subscription';
+      
+      return ServiceItem(name, cost, category, '$count charges', eff, icon, col, isVampire: isVampire);
   }).toList();
   topServices.sort((a,b) => b.cost.compareTo(a.cost));
 

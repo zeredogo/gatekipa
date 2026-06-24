@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { HeartPulse, Server, Database } from "lucide-react";
+import { Server, Database } from "lucide-react";
 
 export default function HealthPage() {
   return (

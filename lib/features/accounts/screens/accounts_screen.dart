@@ -115,9 +115,9 @@ class AccountsScreen extends ConsumerWidget {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(left: 16, right: 16, bottom: 120),
-        child: SizedBox(
+        child: Container(
           width: double.infinity,
-          height: 54,
+          constraints: const BoxConstraints(minHeight: 54), // FIX: Flexible height
           child: FilledButton.icon(
             onPressed: () => _showCreateAccountSheet(context, ref),
             icon: const Icon(Icons.add_rounded),
@@ -470,9 +470,9 @@ class _CreateAccountSheetState extends ConsumerState<_CreateAccountSheet> {
                 }).toList(),
               ),
               const SizedBox(height: 24),
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 52,
+                constraints: const BoxConstraints(minHeight: 52), // FIX: Flexible height
                 child: FilledButton(
                   onPressed: _loading ? null : _submit,
                   style: FilledButton.styleFrom(
@@ -569,9 +569,9 @@ class _RenameAccountSheetState extends ConsumerState<_RenameAccountSheet> {
               ),
             ),
             const SizedBox(height: 24),
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 52,
+              constraints: const BoxConstraints(minHeight: 52), // FIX: Flexible height
               child: FilledButton(
                 onPressed: _loading ? null : _submit,
                 style: FilledButton.styleFrom(

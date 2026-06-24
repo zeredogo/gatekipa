@@ -22,8 +22,8 @@ enum TxnStatus {
   success,
   failed,
 
-  /// Assigned when the backend sent a request to an external system (Bridgecard,
-  /// Paystack) but did not receive a confirmation before timeout. The daily
+  /// Assigned when the backend sent a request to an external system (SafeHaven,
+  /// Sudo, Vault) but did not receive a confirmation before timeout. The daily
   /// reconciliation job resolves UNKNOWN transactions by querying external APIs.
   unknown;
 
@@ -117,7 +117,7 @@ class OrchestratedTransaction {
   /// Format: "{userId}:{action}:{nonce}" — set by the client on creation.
   final String idempotencyKey;
 
-  /// Flexible metadata bag: cardId, paystackRef, bridgecardRef, accountId, etc.
+  /// Flexible metadata bag: cardId, providerRef, accountId, etc.
   final Map<String, dynamic> metadata;
 
   final String? errorMessage;
@@ -148,7 +148,7 @@ class OrchestratedTransaction {
   // ── Metadata convenience accessors ──────────────────────────────────────────
   String? get cardId => metadata['card_id'] as String?;
   String? get paystackRef => metadata['paystack_ref'] as String?;
-  String? get bridgecardRef => metadata['bridgecard_ref'] as String?;
+  String? get providerRef => metadata['provider_ref'] as String?;
 
   factory OrchestratedTransaction.fromFirestore(DocumentSnapshot doc) {
     try {

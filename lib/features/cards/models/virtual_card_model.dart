@@ -2,7 +2,7 @@
 //
 // Card status authority model:
 //   local_status  → what the Gatekeeper app uses for ALL decisions
-//   bridgecard_status → mirrored from Bridgecard for display / audit only
+//   sudo_status → mirrored from Sudo for display / audit only
 //
 // Status lifecycle (enforced by stateMachine.ts in Cloud Functions):
 //   pending_issuance → issued → active → frozen → terminated
@@ -86,9 +86,9 @@ class VirtualCardModel {
   /// Valid values: pending_issuance | issued | active | frozen | terminated
   final String localStatus;
 
-  /// Mirrored from Bridgecard for display and audit purposes ONLY.
+  /// Mirrored from Sudo for display and audit purposes ONLY.
   /// Never use this field to gate transactions or UI actions.
-  final String? bridgecardStatus;
+  final String? sudoStatus;
 
   /// Monotonically increasing version counter, incremented on every state change.
   /// Used by the backend to detect and reject stale concurrent mutations.
@@ -98,10 +98,12 @@ class VirtualCardModel {
   final String category;   // personal | business
   final int createdAt;     // epoch ms
   final String? color;
+  final DateTime? adminLockedAt;
+  final DateTime? adminUnlockAt;
 
-  // Bridgecard specifics
-  final String? bridgecardCardId;
-  final String? bridgecardCurrency;
+  // Sudo specifics
+  final String? sudoCardId;
+  final String? sudoCurrency;
 
   // UI display extras
   final String? last4;
@@ -127,8 +129,8 @@ class VirtualCardModel {
   String? get label => name;
   String? get merchantName => null;
   String? get merchantCategory => null;
-  String? get bridgecardId => bridgecardCardId;
-  String? get currency => bridgecardCurrency ?? 'NGN';
+  String? get sudoId => sudoCardId;
+  String? get currency => sudoCurrency ?? 'NGN';
 
   /// Backward-compat: screens referencing balanceLimit still work during migration.
   double get balanceLimit => allocatedAmount;
@@ -144,14 +146,16 @@ class VirtualCardModel {
     required this.accountId,
     required this.name,
     this.localStatus = 'active',
-    this.bridgecardStatus,
+    this.sudoStatus,
     this.lifecycleVersion = 0,
     this.isTrial = false,
     this.category = 'personal',
     required this.createdAt,
     this.color,
-    this.bridgecardCardId,
-    this.bridgecardCurrency,
+    this.adminLockedAt,
+    this.adminUnlockAt,
+    this.sudoCardId,
+    this.sudoCurrency,
     this.last4,
     this.maskedNumber,
     this.cvv,
@@ -169,7 +173,7 @@ class VirtualCardModel {
       // Read localStatus first (new field). Fall back to legacy 'status' field
       // during the migration window before Cloud Functions backfill runs.
       localStatus: data['local_status'] as String? ?? data['status'] as String? ?? 'active',
-      bridgecardStatus: data['bridgecard_status'] as String?,
+      sudoStatus: data['sudo_status'] as String?,
       lifecycleVersion: data['lifecycle_version'] as int? ?? 0,
       isTrial: data['is_trial'] as bool? ?? false,
       category: data['category'] as String? ?? 'personal',
@@ -178,8 +182,12 @@ class VirtualCardModel {
           : (data['created_at'] as Timestamp?)?.millisecondsSinceEpoch ??
               DateTime.now().millisecondsSinceEpoch,
       color: data['color'] as String?,
-      bridgecardCardId: data['bridgecard_card_id'] as String?,
-      bridgecardCurrency: data['bridgecard_currency'] as String?,
+      adminLockedAt: data['admin_locked_at'] != null ? (data['admin_locked_at'] as Timestamp).toDate() : null,
+      adminUnlockAt: data['admin_unlock_at'] != null ? (data['admin_unlock_at'] as Timestamp).toDate() : null,
+      
+      // Sudo Africa Platform Details
+      sudoCardId: data['sudo_card_id'] as String?,
+      sudoCurrency: data['sudo_currency'] as String?,
       last4: data['last4'] as String?,
       maskedNumber: data['masked_number'] as String?,
       cvv: data['cvv'] as String?,

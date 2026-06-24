@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { CreditCard, Search, Filter, Snowflake, CheckCircle, Loader2 } from "lucide-react";
+import { Search, Filter, Snowflake, CheckCircle, Loader2 } from "lucide-react";
 import { toggleCardFreeze } from "@/app/actions/adminActions";
 
 export default function CardsClient({ initialCards }: { initialCards: any[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [cards, setCards] = useState(initialCards);
   const [pendingCardId, setPendingCardId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const handleToggleStatus = (cardId: string, currentStatus: string) => {
     setPendingCardId(cardId);
@@ -24,9 +24,9 @@ export default function CardsClient({ initialCards }: { initialCards: any[] }) {
   };
 
   const filteredCards = cards.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.last4.includes(searchTerm) ||
-    c.id.includes(searchTerm)
+    String(c.name).toLowerCase().includes(searchTerm.toLowerCase()) || 
+    String(c.last4).includes(searchTerm) ||
+    String(c.id).includes(searchTerm)
   );
 
   return (
@@ -83,13 +83,13 @@ export default function CardsClient({ initialCards }: { initialCards: any[] }) {
                           <span className="text-[10px] font-bold text-white tracking-widest">****</span>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-white">{card.name}</p>
-                          <p className="text-xs text-gray-500">**** {card.last4}</p>
+                          <p className="text-sm font-medium text-white">{String(card.name)}</p>
+                          <p className="text-xs text-gray-500">**** {String(card.last4)}</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
-                      <p className="text-gray-300 font-mono text-xs truncate max-w-[100px]">{card.ownerId}</p>
+                      <p className="text-gray-300 font-mono text-xs truncate max-w-[100px]">{String(card.ownerId)}</p>
                     </td>
                     <td className="p-4">
                       {card.status === "active" ? (
@@ -105,7 +105,7 @@ export default function CardsClient({ initialCards }: { initialCards: any[] }) {
                       )}
                     </td>
                     <td className="p-4">
-                      <span className="text-sm font-medium text-white">₦{card.balance.toLocaleString()}</span>
+                      <span className="text-sm font-medium text-white">₦{Number(card.balance).toLocaleString()}</span>
                     </td>
                     <td className="p-4">
                       <button 

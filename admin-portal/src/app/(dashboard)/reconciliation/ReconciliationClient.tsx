@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, RotateCw, CheckCircle, AlertTriangle } from "lucide-react";
+import { RotateCw, CheckCircle, AlertTriangle } from "lucide-react";
 import { runReconciliationSweep } from "@/app/actions/adminActions";
 
 export default function ReconciliationClient({ 
   gatekipaLedger, 
-  bridgecardEscrow,
+  sudoEscrow,
   lastSweep 
 }: { 
   gatekipaLedger: number, 
-  bridgecardEscrow: number,
+  sudoEscrow: number,
   lastSweep: string
 }) {
   const [isSweeping, setIsSweeping] = useState(false);
@@ -24,21 +24,21 @@ export default function ReconciliationClient({
       } else {
         alert("Failed to run sweep: " + res.error);
       }
-    } catch (e: any) {
+    } catch {
       alert("Error running sweep");
     } finally {
       setIsSweeping(false);
     }
   };
 
-  const parity = gatekipaLedger === bridgecardEscrow;
+  const parity = gatekipaLedger === sudoEscrow;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Reconciliation</h1>
-          <p className="text-gray-400 mt-1">Audit ledger parity between Gatekipa Firestore and the Bridgecard external API.</p>
+          <p className="text-gray-400 mt-1">Audit ledger parity between Gatekipa Firestore and the Sudo Africa issuing account.</p>
           {lastSweep && <p className="text-xs text-emerald-400 mt-2">Last sweep: {new Date(lastSweep).toLocaleString()}</p>}
         </div>
         <div className="flex gap-3">
@@ -59,9 +59,9 @@ export default function ReconciliationClient({
           <p className="text-sm text-gray-400 mt-2">Total user balances mapped internally.</p>
         </div>
         <div className="glass-panel rounded-2xl p-6 border-l-4 border-l-forest-500">
-          <h3 className="text-lg font-bold text-white mb-2">Bridgecard Escrow</h3>
-          <p className="text-3xl font-bold text-forest-400">₦{bridgecardEscrow.toLocaleString()}</p>
-          <p className="text-sm text-gray-400 mt-2">Actual funds settled with issuing partner.</p>
+          <h3 className="text-lg font-bold text-white mb-2">Sudo Africa Escrow</h3>
+          <p className="text-3xl font-bold text-forest-400">₦{sudoEscrow.toLocaleString()}</p>
+          <p className="text-sm text-gray-400 mt-2">Actual funds settled with Sudo Africa issuing account.</p>
         </div>
       </div>
 
@@ -74,8 +74,8 @@ export default function ReconciliationClient({
         </h3>
         <p className="text-gray-400 max-w-md">
           {parity 
-            ? "The internal user wallets and the external Bridgecard issuing wallets are perfectly synced. There are zero mismatched records." 
-            : "There is a mismatch between Gatekipa local ledger and external settlement balances. Please run a manual audit."}
+            ? "The internal user wallets and the external Sudo Africa issuing account are perfectly synced. There are zero mismatched records." 
+            : "There is a mismatch between Gatekipa local ledger and Sudo Africa settlement balances. Please run a manual audit."}
         </p>
       </div>
     </div>

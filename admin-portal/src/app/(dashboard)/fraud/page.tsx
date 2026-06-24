@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, Activity } from "lucide-react";
+import { Activity } from "lucide-react";
 
 export default function FraudPage() {
   return (

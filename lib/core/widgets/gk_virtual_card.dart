@@ -48,10 +48,16 @@ class _GkVirtualCardState extends ConsumerState<GkVirtualCard> {
         return Color(int.parse(widget.card.color!.replaceFirst('#', '0xFF')));
       } catch (_) {}
     }
+    
+    // Distinct premium aesthetic for USD vs NGN
+    if (widget.card.currency == 'USD') {
+      return const Color(0xFF0F172A); // Slate 900 for Dollar Cards
+    }
+    
     return switch (widget.card.type) {
       'trial' => const Color(0xFF003629),
-      'subscription' => const Color(0xFF1a1a2e),
-      _ => const Color(0xFF1B4D3E),
+      'subscription' => const Color(0xFF1B4D3E),
+      _ => const Color(0xFF004D40), // Vibrant teal for Sudo NGN Cards
     };
   }
 
@@ -162,12 +168,11 @@ class _GkVirtualCardState extends ConsumerState<GkVirtualCard> {
           final details = await ref.read(cardNotifierProvider.notifier).revealCardDetails(cardId: widget.card.id);
           if (mounted) {
             setState(() => _isLoadingDetails = false);
-            if (details != null) {
-              _liveCardNumber = details['card_number']?.toString();
-              _liveCvv = details['cvv']?.toString();
-              _liveExpiryMonth = details['expiry_month']?.toString();
-              _liveExpiryYear = details['expiry_year']?.toString();
-              setState(() => _isRevealed = true);
+            if (details != null && details['success'] == true) {
+              // We successfully fetched the Secure Proxy Token. 
+              // Sudo requires integrating their Secure Proxy Show SDK (Native iOS/Android) to render the details.
+              // For now, we alert the user that an SDK integration is pending.
+              GkToast.show(context, message: 'Card Token generated. Sudo Native SDK integration required to display details.', type: ToastType.success);
             } else {
               GkToast.show(context, message: 'Failed to fetch secure card details.', type: ToastType.error);
             }

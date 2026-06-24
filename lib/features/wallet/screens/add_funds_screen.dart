@@ -4,18 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-
+import 'package:go_router/go_router.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 import 'package:gatekipa/core/widgets/gk_toast.dart';
 import 'package:gatekipa/features/auth/providers/auth_provider.dart';
 import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
-import 'package:go_router/go_router.dart';
 import 'package:gatekipa/core/constants/routes.dart';
 import 'package:gatekipa/core/providers/system_state_provider.dart';
-import 'package:gatekipa/core/widgets/gk_checkout.dart';
-
+import 'package:gatekipa/features/wallet/widgets/otp_dialog.dart';
+// Removed GkCheckout as we no longer use it for wallet funding
 class AddFundsScreen extends ConsumerStatefulWidget {
   const AddFundsScreen({super.key});
 
@@ -24,228 +23,7 @@ class AddFundsScreen extends ConsumerStatefulWidget {
 }
 
 class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
-  void _showTopUpBottomSheet(
-      BuildContext context, String email, String uid) {
-    final amountCtrl = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (sheetContext, setSheetState) {
-            final bottomInsets =
-                MediaQuery.of(sheetContext).viewInsets.bottom;
-            return Container(
-              margin: EdgeInsets.only(bottom: bottomInsets),
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Handle bar
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: AppColors.outlineVariant,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'Card Top-Up',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,),
-                  ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    'Secure checkout via Westgate Stratagem. Funds are credited instantly.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
-                        color: AppColors.onSurfaceVariant),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Quick-select amount chips
-                  Wrap(
-                    spacing: 8,
-                    children: [1000, 2000, 5000, 10000].map((preset) {
-                      return ActionChip(
-                        label: Text(
-                          '₦$preset',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: AppColors.primary),
-                        ),
-                        onPressed: () {
-                          amountCtrl.text = preset.toString();
-                          setSheetState(() {});
-                        },
-                        backgroundColor:
-                            AppColors.primary.withValues(alpha: 0.08),
-                        side: const BorderSide(
-                            color: AppColors.primary, width: 1),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Amount input
-                  TextField(
-                    controller: amountCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                        decimal: false),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
-                    ],
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: '0',
-                      hintStyle: GoogleFonts.spaceGrotesk(
-                        fontSize: 28,
-                        color: AppColors.outline,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        child: Text(
-                          '₦',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(
-                            color: AppColors.outlineVariant),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(
-                            color: AppColors.primary, width: 2),
-                      ),
-                    ),
-                    onChanged: (_) => setSheetState(() {}),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text('Minimum: ₦100',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline)),
-                  const SizedBox(height: 28),
-
-                  // Proceed button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      onPressed: () {
-                        final amt =
-                            double.tryParse(amountCtrl.text) ?? 0;
-                        if (amt < 100) {
-                          GkToast.show(sheetContext,
-                              message: 'Minimum deposit is ₦100',
-                              type: ToastType.warning);
-                          return;
-                        }
-                        // Close the sheet, open Paystack checkout
-                        Navigator.pop(ctx);
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(
-                            builder: (_) => GkCheckout(
-                              type: GkCheckoutType.fundWallet,
-                              amountInNgn: amt,
-                              email: email,
-                              uid: uid,
-                              onSuccess: (reference) async {
-                                final scaffoldMsg =
-                                    ScaffoldMessenger.of(context);
-                                GkToast.show(
-                                  context,
-                                  message: 'Verifying payment…',
-                                  type: ToastType.info,
-                                );
-                                final textTheme = Theme.of(context).textTheme;
-                                final success = await ref
-                                    .read(walletNotifierProvider.notifier)
-                                    .verifyPaystackPayment(
-                                        reference: reference);
-                                scaffoldMsg.showSnackBar(SnackBar(
-                                  content: Text(
-                                    success
-                                        ? '₦${amt.toStringAsFixed(0)} added to your vault!'
-                                        : 'Verification failed. Contact support.',
-                                    style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                                  ),
-                                  backgroundColor: success
-                                      ? AppColors.primary
-                                      : AppColors.error,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12)),
-                                ));
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.credit_card_rounded,
-                          color: Colors.white),
-                      label: const Text(
-                        'Pay with Card',
-                        style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontSize: 16,
-                          fontWeight: FontWeight.w700,),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Security badge
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.lock_rounded,
-                            size: 14, color: AppColors.outline),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Secured by Westgate Stratagem · PCI DSS compliant',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+  // Removed Paystack Card Top-Up Bottom Sheet
 
   @override
   Widget build(BuildContext context) {
@@ -274,7 +52,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
             const SizedBox(height: 28),
 
             // Vault NUBAN / generate card
-            if (user?.bridgecardNuban == null)
+            if (user?.vaultNuban == null)
               _GenerateAccountCard(
                 isDisabled: !sysState.isOperational,
                 onGenerate: () async {
@@ -290,29 +68,67 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   if (uid == null) return;
                   if (user?.kycStatus != 'verified' && user?.kycStatus != 'approved') {
                     GkToast.show(context,
-                        message: 'Please verify your identity to generate an account.',
+                        message: 'Please complete your KYC Verification to generate an account.',
                         type: ToastType.warning);
                     context.push(Routes.kyc);
                     return;
                   }
-                  final scaffoldMsg = ScaffoldMessenger.of(context);
-                  final textTheme = Theme.of(context).textTheme;
-                  final success = await ref
-                      .read(walletNotifierProvider.notifier)
-                      .generateVaultAccount(uid);
-                  scaffoldMsg.showSnackBar(SnackBar(
-                    content: Text(
-                      success
-                          ? 'Vault Account Generated!'
-                          : 'Failed to generate account',
-                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    backgroundColor:
-                        success ? AppColors.primary : AppColors.error,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ));
+                  final walletNotifier = ref.read(walletNotifierProvider.notifier);
+
+                  String? capturedOtp;
+                  String? capturedIdentityId;
+
+                  // Always initiate verification because SafeHaven requires a fresh OTP and identityId per account creation attempt
+                  try {
+                    // 1. Initiate OTP
+                    final initiateCallable = FirebaseFunctions.instance.httpsCallable('initiateVaultVerification');
+                    final initiateResult = await initiateCallable.call();
+                    capturedIdentityId = initiateResult.data['identityId'] as String?;
+
+                    if (capturedIdentityId == null) {
+                      throw Exception("Failed to initiate verification. Check your BVN/NIN.");
+                    }
+
+                    if (!context.mounted) return;
+
+                    // 2. Prompt for OTP
+                    final phone = user?.phoneNumber ?? 'your registered number';
+                    final otp = await showDialog<String>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => OtpDialog(phone: phone),
+                    );
+
+                    if (otp == null || otp.isEmpty) {
+                      if (!context.mounted) return;
+                      GkToast.show(context, message: 'Verification cancelled.', type: ToastType.warning);
+                      return;
+                    }
+
+                    capturedOtp = otp;
+
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    String errorMsg = 'An error occurred';
+                    if (e is FirebaseFunctionsException) {
+                      errorMsg = e.message ?? errorMsg;
+                    } else {
+                      errorMsg = e.toString();
+                    }
+                    GkToast.show(context, message: errorMsg, type: ToastType.error);
+                    return;
+                  }
+
+                  // Generate the vault account with the fresh OTP and identityId
+                  final success = await walletNotifier.generateVaultAccount(uid, otp: capturedOtp, identityId: capturedIdentityId);
+
+                  if (!context.mounted) return;
+                  if (success) {
+                    GkToast.show(context, message: 'Vault generated successfully!', type: ToastType.success);
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  } else {
+                    GkToast.show(context, message: 'Failed to generate vault account.', type: ToastType.error);
+                  }
                 },
               )
             else
@@ -350,73 +166,6 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
               ),
             ).animate().fadeIn(delay: 200.ms),
 
-            const SizedBox(height: AppSpacing.xxl),
-
-            // Card top-up section
-            Text('Instant Card Top-Up',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Top up instantly using any NG debit or credit card via Westgate Stratagem secure checkout.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.onSurfaceVariant),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // System mode gate — checked before opening the sheet
-                  if (!sysState.isOperational) {
-                    GkToast.show(context,
-                        message: sysState.bannerMessage,
-                        type: ToastType.error,
-                        duration: const Duration(seconds: 4));
-                    return;
-                  }
-                  final email = user?.email;
-                  final uid = user?.uid;
-                  if (email == null || uid == null) {
-                    GkToast.show(context,
-                        message: 'Please complete your profile first',
-                        type: ToastType.warning);
-                    return;
-                  }
-                  if (user?.kycStatus != 'verified' && user?.kycStatus != 'approved') {
-                    GkToast.show(context,
-                        message: 'Please verify your identity to add funds.',
-                        type: ToastType.warning);
-                    context.push(Routes.kyc);
-                    return;
-                  }
-                  _showTopUpBottomSheet(context, email, uid);
-                },
-                icon: const Icon(Icons.credit_card_rounded),
-                label: const Text('Top up with Card',
-                    style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w700)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(
-                      color: AppColors.primary, width: 2),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
-            ).animate().fadeIn(delay: 300.ms),
-
-            const SizedBox(height: AppSpacing.md),
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.lock_rounded,
-                      size: 14, color: AppColors.outline),
-                  const SizedBox(width: 6),
-                  Text('Secured by Westgate Stratagem · PCI DSS compliant',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.outline)),
-                ],
-              ),
-            ).animate().fadeIn(delay: 400.ms),
           ],
         ),
       ),
@@ -466,7 +215,7 @@ class _NubanCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1)),
                 const SizedBox(height: AppSpacing.xxs),
-                Text(user.bridgecardBankName ?? 'Moniepoint MFB',
+                Text(user.vaultBankName ?? 'Moniepoint MFB',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
@@ -485,7 +234,7 @@ class _NubanCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(user.bridgecardNuban ?? '',
+              Text(user.vaultNuban ?? '',
                   style: GoogleFonts.spaceGrotesk(
                       color: Colors.white,
                       fontSize: 32,
@@ -494,7 +243,7 @@ class _NubanCard extends StatelessWidget {
               IconButton(
                 onPressed: () {
                   Clipboard.setData(
-                      ClipboardData(text: user.bridgecardNuban ?? ''));
+                      ClipboardData(text: user.vaultNuban ?? ''));
                   GkToast.show(context,
                       message: 'Account number copied',
                       type: ToastType.success);
@@ -511,7 +260,7 @@ class _NubanCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1)),
           const SizedBox(height: AppSpacing.xxs),
-          Text(user.bridgecardAccountName ?? 'Gatekipa Vault',
+          Text(user.vaultAccountName ?? 'Gatekipa Vault',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700)),
@@ -569,9 +318,9 @@ class _GenerateAccountCardState extends State<_GenerateAccountCard> {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: AppSpacing.lg),
-          SizedBox(
+          Container(
             width: double.infinity,
-            height: 56,
+            constraints: const BoxConstraints(minHeight: 56), // FIX: Flexible height
             child: ElevatedButton(
               onPressed: (_loading || widget.isDisabled)
                   ? null

@@ -15,6 +15,8 @@ import 'package:gatekipa/features/auth/providers/auth_provider.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
 import 'package:gatekipa/core/widgets/transaction_status_widget.dart';
 import 'package:gatekipa/features/wallet/providers/wallet_provider.dart';
+import 'package:gatekipa/features/wallet/screens/transaction_detail_screen.dart';
+import 'package:gatekipa/features/cards/screens/sentinel_dashboard_screen.dart' as sentinel_screen;
 
 class CardDetailScreen extends ConsumerWidget {
   final String cardId;
@@ -23,8 +25,9 @@ class CardDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cardsAsync = ref.watch(cardsProvider);
-    final txAsync = ref.watch(transactionsProvider);
+    final txAsync = ref.watch(unifiedLedgerProvider);
     final rulesAsync = ref.watch(cardRulesProvider(cardId));
+    final freezeLogsAsync = ref.watch(freezeLogsProvider(cardId));
 
     return cardsAsync.when(
       data: (cards) {
@@ -35,8 +38,15 @@ class CardDetailScreen extends ConsumerWidget {
           );
         }
         final rules = rulesAsync.valueOrNull ?? [];
+        final freezeLogs = freezeLogsAsync.valueOrNull ?? [];
         final primaryRule = rules.isNotEmpty ? rules.first : card.rule;
-        return _CardDetailContent(card: card, txAsync: txAsync, rules: rules, primaryRule: primaryRule);
+        return _CardDetailContent(
+          card: card, 
+          txAsync: txAsync, 
+          rules: rules, 
+          primaryRule: primaryRule,
+          freezeLogs: freezeLogs,
+        );
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -54,8 +64,15 @@ class _CardDetailContent extends ConsumerWidget {
   final AsyncValue<List<TransactionModel>> txAsync;
   final List<CardRule> rules;
   final CardRule primaryRule;
+  final List<FreezeLogModel> freezeLogs;
 
-  const _CardDetailContent({required this.card, required this.txAsync, required this.rules, required this.primaryRule});
+  const _CardDetailContent({
+    required this.card, 
+    required this.txAsync, 
+    required this.rules, 
+    required this.primaryRule,
+    required this.freezeLogs,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -131,7 +148,7 @@ class _CardDetailContent extends ConsumerWidget {
             const SizedBox(height: 28),
 
             // Only show Usage, Kill Switch if card is provisioned
-            if (card.bridgecardCardId != null && card.status != 'pending_issuance') ...[
+            if (card.sudoCardId != null && card.status != 'pending_issuance') ...[
               // Usage bar
               _UsageSection(card: card),
               const SizedBox(height: AppSpacing.lg),
@@ -142,12 +159,12 @@ class _CardDetailContent extends ConsumerWidget {
             ],
             
             // Retry Provisioning for Ghost Cards
-            if (card.status == 'pending_issuance' || card.bridgecardCardId == null) ...[
+            if (card.status == 'pending_issuance' || card.sudoCardId == null) ...[
               _PendingProvisioningPanel(card: card),
               const SizedBox(height: AppSpacing.md),
             ],
 
-            if (card.bridgecardCardId != null && card.status != 'pending_issuance') ...[
+            if (card.sudoCardId != null && card.status != 'pending_issuance') ...[
               // OTP fetcher
               _OtpActionPanel(card: card),
               const SizedBox(height: AppSpacing.lg),
@@ -169,6 +186,14 @@ class _CardDetailContent extends ConsumerWidget {
                   );
                 }),
             ],
+
+            if (freezeLogs.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xl),
+              const _SectionHeader('Audit Logs'),
+              const SizedBox(height: AppSpacing.sm),
+              ...freezeLogs.map((log) => _FreezeLogRow(log: log)),
+            ],
+
             const SizedBox(height: 80),
           ],
         ),
@@ -235,7 +260,6 @@ class _UsageSection extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           SizedBox(
             width: double.infinity,
-            height: 48,
             child: FilledButton.icon(
               onPressed: card.isBlocked ? null : () {
                 showModalBottomSheet(
@@ -249,6 +273,7 @@ class _UsageSection extends StatelessWidget {
               icon: const Icon(Icons.account_balance_wallet_rounded, size: 20),
               label: const Text('Fund Card from Wallet', style: TextStyle(fontWeight: FontWeight.w700)),
               style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
                 backgroundColor: AppColors.primaryContainer,
                 foregroundColor: AppColors.onPrimaryContainer,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -459,31 +484,27 @@ class _CardFreezeToggleState extends ConsumerState<_CardFreezeToggle> {
                       color: AppColors.onSurface,),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  _buildSubToggle(
-                    'Block if amount changes',
-                    'Prevents sneaky subscription increases.',
-                    widget.rules.any((r) => r.subType == 'block_if_amount_changes'),
-                    'block_if_amount_changes',
-                    (val) => _toggleRule('block_if_amount_changes', val),
-                    isSentinel: isSentinel,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildSubToggle(
-                    'Breach Alerts',
-                    'Notify me instantly if a charge is blocked.',
-                    widget.rules.any((r) => r.subType == 'instant_breach_alert'),
-                    'instant_breach_alert',
-                    (val) => _toggleRule('instant_breach_alert', val),
-                    isSentinel: isSentinel,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildSubToggle(
-                    'Night Lockdown',
-                    'Automatically block transactions between 12 AM and 6 AM.',
-                    widget.rules.any((r) => r.subType == 'night_lockdown'),
-                    'night_lockdown',
-                    (val) => _toggleRule('night_lockdown', val),
-                    isSentinel: isSentinel,
+                  Text('Advanced Sentinel Rules have moved to the new Sentinel Command Center.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.security_rounded, color: AppColors.primary),
+                      label: const Text('Open Sentinel Dashboard', style: TextStyle(color: AppColors.primary)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => sentinel_screen.SentinelDashboardScreen(cardId: widget.card.id),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -542,59 +563,98 @@ class _TxRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+    final Color iconBg;
+    final Color iconColor;
+    final IconData icon;
+
+    if (tx.isCredit) {
+      icon    = Icons.arrow_downward_rounded;
+      iconBg  = AppColors.tertiaryFixed.withValues(alpha: 0.3);
+      iconColor = AppColors.tertiary;
+    } else if (tx.isDeclined) {
+      icon    = Icons.block_rounded;
+      iconBg  = AppColors.errorContainer.withValues(alpha: 0.3);
+      iconColor = AppColors.error;
+    } else if (tx.isPending) {
+      icon    = Icons.hourglass_top_rounded;
+      iconBg  = Colors.amber.withValues(alpha: 0.15);
+      iconColor = Colors.amber;
+    } else {
+      icon    = Icons.check_rounded;
+      iconBg  = AppColors.tertiaryFixed.withValues(alpha: 0.3);
+      iconColor = AppColors.tertiary;
+    }
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TransactionDetailScreen(tx: tx),
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: tx.isBlocked
-                  ? AppColors.errorContainer.withValues(alpha: 0.3)
-                  : AppColors.tertiaryFixed.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(16),
+          border:
+              Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 16, color: iconColor),
             ),
-            child: Icon(
-              tx.isBlocked ? Icons.block_rounded : Icons.check_rounded,
-              size: 16,
-              color: tx.isBlocked ? AppColors.error : AppColors.tertiary,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(tx.merchant,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(tx.merchant,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 13, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    tx.isDeclined && tx.declineReason != null
+                        ? tx.declineReason!
+                        : DateFormatter.formatDateTime(tx.timestamp),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: tx.isDeclined
+                            ? AppColors.error.withValues(alpha: 0.8)
+                            : AppColors.outline),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                Text(DateFormatter.formatDateTime(tx.timestamp),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 11, color: AppColors.outline)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${tx.isCredit ? '+' : tx.isDeclined ? '' : '-'}${CurrencyFormatter.format(tx.amount)}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: tx.isCredit
+                          ? AppColors.tertiary
+                          : tx.isDeclined
+                              ? AppColors.error
+                              : AppColors.onSurface),
+                ),
+                const SizedBox(height: 4),
+                TransactionStatusBadge(status: tx.txnStatus),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '-\${CurrencyFormatter.format(tx.amount)}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: tx.isBlocked ? AppColors.error : AppColors.onSurface,),
-              ),
-              const SizedBox(height: 4),
-              TransactionStatusBadge(status: tx.txnStatus),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -720,9 +780,9 @@ class _RenameCardSheetState extends ConsumerState<_RenameCardSheet> {
                 onSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: AppSpacing.lg),
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 52,
+                constraints: const BoxConstraints(minHeight: 52), // FIX: Flexible height
                 child: FilledButton(
                   onPressed: _loading ? null : _submit,
                   style: FilledButton.styleFrom(
@@ -826,10 +886,9 @@ class _PendingProvisioningPanelState extends ConsumerState<_PendingProvisioningP
 
     setState(() => _isLoading = true);
 
-    final success = await ref.read(cardNotifierProvider.notifier).createBridgecard(
+    final success = await ref.read(cardNotifierProvider.notifier).createSudoCard(
       cardId: widget.card.id,
       pin: pin,
-      cardCurrency: widget.card.currency,
     );
 
     if (mounted) {
@@ -909,16 +968,14 @@ class _OtpActionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (card.bridgecardCardId == null) return const SizedBox.shrink();
+    if (card.sudoCardId == null) return const SizedBox.shrink();
     
     return FilledButton.icon(
       onPressed: () {
-        showModalBottomSheet(
-          context: context,
-          useRootNavigator: true,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => _TransactionOtpModal(card: card),
+        GkToast.show(
+          context,
+          message: 'Sudo Africa automatically sends your 3D Secure OTP directly to your registered phone number or email.',
+          type: ToastType.success,
         );
       },
       icon: const Icon(Icons.password_rounded, size: 20),
@@ -933,176 +990,6 @@ class _OtpActionPanel extends StatelessWidget {
   }
 }
 
-// ── Transaction OTP Input Modal ───────────────────────────────────────────────
-class _TransactionOtpModal extends ConsumerStatefulWidget {
-  final VirtualCardModel card;
-  const _TransactionOtpModal({required this.card});
-
-  @override
-  ConsumerState<_TransactionOtpModal> createState() => _TransactionOtpModalState();
-}
-
-class _TransactionOtpModalState extends ConsumerState<_TransactionOtpModal> {
-  final _amountCtrl = TextEditingController();
-  bool _loading = false;
-  String? _otp;
-  String? _message;
-
-  @override
-  void dispose() {
-    _amountCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _fetchOtp() async {
-    final amountText = _amountCtrl.text.replaceAll(',', '').trim();
-    if (amountText.isEmpty) {
-      GkToast.show(context, message: 'Please enter the transaction amount', type: ToastType.error);
-      return;
-    }
-    
-    final amount = double.tryParse(amountText);
-    if (amount == null || amount <= 0) {
-      GkToast.show(context, message: 'Invalid amount', type: ToastType.error);
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _otp = null;
-      _message = null;
-    });
-    
-    try {
-      final fetchedOtp = await ref.read(cardNotifierProvider.notifier).getCardOtp(
-        cardId: widget.card.id, 
-        amountNgn: amount,
-      );
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _otp = fetchedOtp;
-          if (_otp == null) {
-            _message = 'No pending OTP found for this exact amount.';
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _message = e.toString().replaceFirst('Exception: ', '');
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: AppColors.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text('Transaction Verification',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
-              const SizedBox(height: AppSpacing.xs),
-              Text('Westgate Stratagem requires the exact spending amount in Naira to authorize the OTP.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant)),
-              
-              if (_otp != null) ...[
-                const SizedBox(height: AppSpacing.xl),
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.tertiaryFixed.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.tertiary.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    children: [
-                      Text('Your Secure OTP', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.tertiary, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Text(
-                        _otp!,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 32, letterSpacing: 10, fontWeight: FontWeight.w800, color: AppColors.tertiary),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  ),
-                ),
-              ] else ...[
-                const SizedBox(height: AppSpacing.lg),
-                TextField(
-                  controller: _amountCtrl,
-                  autofocus: true,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Expected Checkout Amount (₦)',
-                    hintText: 'e.g. 5000',
-                    prefixIcon: const Icon(Icons.payments_rounded),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onSubmitted: (_) => _fetchOtp(),
-                ),
-                if (_message != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(_message!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.error, fontSize: 13)),
-                ],
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: FilledButton(
-                    onPressed: _loading ? null : _fetchOtp,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: _loading
-                        ? const SizedBox(
-                            height: 20, width: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Get OTP',
-                            style: TextStyle(height: 1.2, fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 16)),
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.xs),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ── Fund Card Modal ─────────────────────────────────────────────────────────────
 class _FundCardModal extends ConsumerStatefulWidget {
@@ -1201,9 +1088,9 @@ class _FundCardModalState extends ConsumerState<_FundCardModal> {
                 onSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: AppSpacing.xl),
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 52,
+                constraints: const BoxConstraints(minHeight: 52), // FIX: Flexible height
                 child: FilledButton(
                   onPressed: _loading ? null : _submit,
                   style: FilledButton.styleFrom(
@@ -1222,6 +1109,75 @@ class _FundCardModalState extends ConsumerState<_FundCardModal> {
             ],
           ),
         ),
+    );
+  }
+}
+
+class _FreezeLogRow extends StatelessWidget {
+  final FreezeLogModel log;
+  const _FreezeLogRow({required this.log});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isFrozen = log.action == 'frozen';
+    final icon = isFrozen ? Icons.ac_unit_rounded : Icons.check_circle_rounded;
+    final color = isFrozen ? AppColors.error : AppColors.tertiary;
+    final bgColor = isFrozen 
+        ? AppColors.errorContainer.withValues(alpha: 0.2)
+        : AppColors.tertiaryFixed.withValues(alpha: 0.2);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 14, color: color),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isFrozen ? 'Card Frozen' : 'Card Unfrozen',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                Text(
+                  log.context == 'adminGlobalFreeze' 
+                      ? 'By System Administrator'
+                      : 'By Owner',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            DateFormatter.formatDate(log.timestamp),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 11,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

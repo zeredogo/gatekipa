@@ -182,11 +182,10 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<bool> createBridgecard({
+
+  Future<bool> createSudoCard({
     required String cardId,
     required String pin,
-    String? cardCurrency,
-    String? cardLimit,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -201,12 +200,10 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
         throw Exception("No Transaction PIN configured. Please set one up in Profile.");
       }
 
-      await FirebaseFunctions.instance.httpsCallable('createBridgecard').call({
+      await FirebaseFunctions.instance.httpsCallable('createSudoCard').call({
         'card_id': cardId,
         'pin': pin,
         'transactionPin': transactionPin,
-        if (cardCurrency != null) 'card_currency': cardCurrency,
-        if (cardLimit != null) 'card_limit': cardLimit,
       });
       state = const AsyncValue.data(null);
       return true;
@@ -304,8 +301,8 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Securely proxies Bridgecard's PCI-DSS endpoint to map raw card bytes locally.
-  /// Never persists results natively!
+  /// Fetches the Secure Proxy Token for PCI-Compliant card display.
+  /// NOTE: This token must be passed to the Sudo Native SDK or Webview to display the card details natively.
   Future<Map<String, dynamic>?> revealCardDetails({required String cardId}) async {
     state = const AsyncValue.loading();
     try {
@@ -314,7 +311,11 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
       });
       state = const AsyncValue.data(null);
       if (res.data != null && res.data['success'] == true) {
-        return Map<String, dynamic>.from(res.data);
+        return {
+          'success': true,
+          'token': res.data['token'], // Use this token with Sudo Secure Proxy Show SDK
+          // TODO: Integrate Sudo Cloud Card SDK for Flutter using this token
+        };
       }
       return null;
     } catch (e) {
@@ -323,27 +324,7 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Fetches the live 3D Secure OTP tied to the explicit Naira transaction amount.
-  Future<String?> getCardOtp({required String cardId, required double amountNgn}) async {
-    state = const AsyncValue.loading();
-    try {
-      final res = await FirebaseFunctions.instance.httpsCallable('getCardOtp').call({
-        'card_id': cardId,
-        'amount_ngn': amountNgn,
-      });
-      state = const AsyncValue.data(null);
-      if (res.data != null && res.data['success'] == true && res.data['otp'] != null) {
-        return res.data['otp'].toString();
-      }
-      return null;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      if (e is FirebaseFunctionsException) {
-        throw Exception(e.message ?? 'Failed to get OTP');
-      }
-      throw Exception('Failed to get OTP from the server');
-    }
-  }
+
 }
 
 // ── Transaction Model (wired to top-level collection schema) ───────────────────
@@ -351,28 +332,34 @@ class TransactionModel {
   final String id;
   final String cardId;
   final String accountId;
+  final String userId;
   final String merchantName;
   final double amount;
-  final String status; // approved, declined
+  final String status; // approved, declined, DECLINED, reserved, settled
   final String? declineReason;
   final DateTime timestamp;
+  final String source;          // card_charge | wallet_funding | card_funding | fee | refund | sudo_jit_auth
+  final String? providerReference; // providerRef / sudo_event_id
+  final String rawType;         // credit | debit (from ledger entries)
 
   const TransactionModel({
     required this.id,
     required this.cardId,
     required this.accountId,
+    required this.userId,
     required this.merchantName,
     required this.amount,
     required this.status,
     this.declineReason,
     required this.timestamp,
+    required this.source,
+    this.providerReference,
+    required this.rawType,
   });
 
   factory TransactionModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
-    // Firestore stores timestamps as Timestamp objects, not plain ints.
-    // Support both forms so prod and emulator both work.
     DateTime parseTimestamp(dynamic raw) {
       if (raw == null) return DateTime.now();
       if (raw is Timestamp) return raw.toDate();
@@ -380,39 +367,141 @@ class TransactionModel {
       return DateTime.now();
     }
 
+    // ── CRITICAL FIX: backend writes `created_at`, not `timestamp` ──────
+    final ts = data['created_at'] ?? data['timestamp'];
+
+    final source = data['source'] as String? ?? '';
+    final rawType = data['type'] as String? ?? 'debit';
+
+    // Provider reference: check all possible field names
+    final providerRef = data['providerRef'] as String?
+        ?? data['sudo_event_id'] as String?
+        ?? data['paystackRef'] as String?
+        ?? data['reference'] as String?;
+
     return TransactionModel(
       id: doc.id,
-      cardId: data['card_id'] ?? '',
-      accountId: data['account_id'] ?? '',
-      merchantName: data['merchant_name'] ?? 'Unknown',
-      amount: num.tryParse(data['amount']?.toString() ?? '0')?.toDouble() ?? 0.0,
-      status: data['status'] ?? 'declined',
-      declineReason: data['decline_reason'],
-      timestamp: parseTimestamp(data['timestamp']),
+      cardId: data['card_id'] as String? ?? '',
+      accountId: data['account_id'] as String? ?? '',
+      userId: data['user_id'] as String? ?? '',
+      merchantName: data['merchant_name'] as String? ?? 'Unknown',
+      amount: (num.tryParse(data['amount']?.toString() ?? '0') ?? 0).toDouble(),
+      status: data['status'] as String? ?? 'unknown',
+      declineReason: data['decline_reason'] as String?,
+      timestamp: parseTimestamp(ts),
+      source: source,
+      providerReference: providerRef,
+      rawType: rawType,
     );
   }
 
-  bool get isApproved => status == 'approved';
-  bool get isDeclined => status == 'declined';
+  /// True when this entry represents money coming IN to the wallet.
+  bool get isCredit =>
+      rawType == 'credit' ||
+      source == 'wallet_funding' ||
+      source == 'paystack' ||
+      source == 'sudo_refund' ||
+      source == 'ghost_card_auto_refund' ||
+      status == 'refund';
+
+  bool get isApproved =>
+      status == 'approved' || status == 'success' || status == 'settled' || status == 'APPROVED';
+
+  bool get isDeclined =>
+      status == 'declined' || status == 'DECLINED' || status == 'failed';
+
+  bool get isPending =>
+      status == 'reserved' || status == 'pending' || status == 'processing';
+
   // Legacy compat getters
   String get merchant => merchantName;
   bool get isBlocked => isDeclined;
-  bool get isCredit => false; // All gateway transactions are debits
   String? get blockReason => declineReason;
-  String get category => 'Card Transaction';
-  String get type => 'debit';
+  String get category => displayType;
+  String get type => rawType;
+
+  /// Human-readable transaction type for display.
+  String get displayType {
+    switch (source) {
+      case 'wallet_funding':
+      case 'paystack':
+        return 'Wallet Top-Up';
+      case 'wallet_to_card':
+      case 'card_funding':
+        return 'Card Funding';
+      case 'card_transaction_fee':
+        return 'Transaction Fee';
+      case 'sudo_refund':
+      case 'refund':
+        return 'Refund';
+      case 'ghost_card_auto_refund':
+        return 'Refund (Card Failed)';
+      case 'sudo_jit_auth':
+        return status == 'reserved' ? 'Authorization Hold' : 'Card Charge';
+      case 'card_charge':
+        return 'Card Charge';
+      case 'admin':
+        return 'Admin Adjustment';
+      default:
+        return isCredit ? 'Credit' : 'Debit';
+    }
+  }
+
   /// Typed status for badge widgets — maps raw Firestore string to [TxnStatus].
   TxnStatus get txnStatus {
+    if (isApproved) return TxnStatus.success;
+    if (isDeclined) return TxnStatus.failed;
+    if (isPending)  return TxnStatus.pending;
     switch (status.toLowerCase()) {
-      case 'approved':    return TxnStatus.success;
-      case 'pending':     return TxnStatus.pending;
-      case 'processing':  return TxnStatus.processing;
-      case 'declined':
-      case 'failed':      return TxnStatus.failed;
-      default:            return TxnStatus.unknown;
+      case 'processing': return TxnStatus.processing;
+      default:           return TxnStatus.unknown;
     }
   }
 }
+
+class FreezeLogModel {
+  final String id;
+  final String cardId;
+  final String userId;
+  final String action;
+  final DateTime timestamp;
+  final String? triggeredBy;
+  final String? context;
+
+  const FreezeLogModel({
+    required this.id,
+    required this.cardId,
+    required this.userId,
+    required this.action,
+    required this.timestamp,
+    this.triggeredBy,
+    this.context,
+  });
+
+  factory FreezeLogModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return FreezeLogModel(
+      id: doc.id,
+      cardId: data['card_id'] as String? ?? '',
+      userId: data['user_id'] as String? ?? '',
+      action: data['action'] as String? ?? 'frozen',
+      timestamp: data['timestamp'] is Timestamp 
+          ? (data['timestamp'] as Timestamp).toDate() 
+          : DateTime.now(),
+      triggeredBy: data['triggered_by'] as String?,
+      context: data['context'] as String?,
+    );
+  }
+}
+
+final freezeLogsProvider = StreamProvider.autoDispose.family<List<FreezeLogModel>, String>((ref, cardId) {
+  return FirebaseFirestore.instance
+      .collection('card_freeze_logs')
+      .where('card_id', isEqualTo: cardId)
+      .orderBy('timestamp', descending: true)
+      .snapshots()
+      .map((snap) => snap.docs.map((d) => FreezeLogModel.fromFirestore(d)).toList());
+});
 
 final cardNotifierProvider =
     StateNotifierProvider<CardNotifier, AsyncValue<void>>((ref) {

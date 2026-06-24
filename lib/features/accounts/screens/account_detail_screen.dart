@@ -178,9 +178,9 @@ class AccountDetailScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.md),
 
                 // ── Create New Card button ─────────────────────────────────
-                SizedBox(
+                Container(
                   width: double.infinity,
-                  height: 52,
+                  constraints: const BoxConstraints(minHeight: 52), // FIX: Flexible height
                   child: FilledButton.icon(
                     onPressed: () => context.push('/home/cards/create', extra: account.id),
                     icon: const Icon(Icons.add_rounded),
@@ -473,9 +473,9 @@ class _RenameSheetState extends ConsumerState<_RenameSheet> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 52,
+              constraints: const BoxConstraints(minHeight: 52), // FIX: Flexible height
               child: FilledButton(
                 onPressed: _loading
                     ? null
