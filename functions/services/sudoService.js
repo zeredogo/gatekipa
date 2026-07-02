@@ -380,19 +380,22 @@ async function recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventI
   }
 }
 
-exports.sudoWebhook = onRequest(async (req, res) => {
+exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512MiB", maxInstances: 10 }, async (req, res) => {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   // Webhook Security Authorization
   const webhookSecret = process.env.SUDO_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const authHeader = req.headers['authorization'] || req.headers['x-sudo-signature'];
-    if (!authHeader || (authHeader !== `Bearer ${webhookSecret}` && authHeader !== webhookSecret)) {
-      logger.error("[Sudo Webhook] Unauthorized request. Missing or invalid Authorization token.");
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+  if (!webhookSecret) {
+    logger.error("[Sudo Webhook] Webhook Secret is not configured. Rejecting request to prevent bypass.");
+    return res.status(500).json({ error: "Webhook configuration error" });
+  }
+
+  const authHeader = req.headers['authorization'] || req.headers['x-sudo-signature'];
+  if (!authHeader || (authHeader !== `Bearer ${webhookSecret}` && authHeader !== webhookSecret)) {
+    logger.error("[Sudo Webhook] Unauthorized request. Missing or invalid Authorization token.");
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {

@@ -5,10 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:gatekipa/core/constants/routes.dart';
-import 'package:gatekipa/core/services/force_update_service.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -28,16 +26,6 @@ class _SplashScreenState extends State<SplashScreen> {
     // Let the logo animation play
     await Future.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
-
-    // ── Force-update gate ────────────────────────────────────────────────────
-    // Silently checks Remote Config. If the installed build is too old,
-    // show a blocking dialog. The version number is never shown to the user.
-    final needsUpdate = await ForceUpdateService.isUpdateRequired();
-    if (!mounted) return;
-    if (needsUpdate) {
-      _showForceUpdateDialog();
-      return; // Stop routing — user must update before proceeding
-    }
 
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
@@ -75,57 +63,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-  /// Shows a non-dismissible dialog that blocks all navigation until the user
-  /// taps "Update Now" and is sent to the Play Store.
-  /// The installed version/build number is never displayed.
-  void _showForceUpdateDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => PopScope(
-        canPop: false, // Blocks the Android back button
-        child: AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.system_update_rounded, color: AppColors.primary),
-              SizedBox(width: 10),
-              Text('Update Required'),
-            ],
-          ),
-          content: const Text(
-            'A newer version of Gatekipa is available with important '
-            'security and performance improvements.\n\n'
-            'Please update to continue using the app.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                final marketUri = Uri.parse('market://details?id=com.gatekipa.gatekeeper');
-                final webUri = Uri.parse('https://play.google.com/store/apps/details?id=com.gatekipa.gatekeeper');
-                
-                if (await canLaunchUrl(marketUri)) {
-                  await launchUrl(marketUri, mode: LaunchMode.externalApplication);
-                } else if (await canLaunchUrl(webUri)) {
-                  await launchUrl(webUri, mode: LaunchMode.externalApplication);
-                }
 
-              },
-              child: const Text(
-                'Update Now',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   /// Triggers the device biometric/PIN prompt.
   /// Returns true if the user passes, false otherwise.

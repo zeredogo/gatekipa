@@ -277,6 +277,16 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
   const isSentinel = userHasSentinelAccess(userData);
 
   if (userData) {
+    // Spending lock check — blocks outbound transactions if active
+    if (userData.spending_lock === true) {
+      isGlobalBlocked = true;
+      globalReason = "Spending Lock is active. Disable it in Settings to proceed.";
+      evaluations.push({ rule: "Spending Lock", result: "FAIL" });
+      if (!options.dryRun) return { approved: false, reason: globalReason };
+    } else {
+      evaluations.push({ rule: "Spending Lock", result: "PASS" });
+    }
+
     // Night lockdown (user-level) — Sentinel feature only
     if (isSentinel && userData.nightLockdown === true && isNightLockdownActive()) {
       isGlobalBlocked = true;
@@ -291,7 +301,7 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
     // fake "[intl]" string. Bridgecard webhooks include a `channel` field.
     // Cross-border transactions typically come via "WEB" or "POS" from non-NG merchants.
     // We gate on the card's currency and the merchant country code if present.
-    if (isSentinel && userData.geoFence === true && card.currency !== "USD") {
+    if (isSentinel && userData.geoFence === true) {
       // merchantName is passed from webhook; check for known international patterns.
       // A more robust solution would use the webhook's `merchant_country` field directly.
       const merchantStr = (merchantName || "").toLowerCase();
@@ -358,11 +368,6 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
   const advancedRules = ["monthly_cap", "valid_duration", "block_after_first", "block_if_amount_changes", "night_lockdown", "instant_breach_alert"];
 
   for (const rule of rules) {
-    // USD cards bypass advanced spend/behavior rules (keeps USD cards globally spendable)
-    if (card.currency === "USD" && rule.sub_type !== "night_lockdown") {
-      evaluations.push({ rule: `${rule.sub_type}`, result: "BYPASSED (USD card)" });
-      continue;
-    }
 
     // Bypass advanced rules if the user's Sentinel access has expired
     if (!isSentinel && advancedRules.includes(rule.sub_type)) {

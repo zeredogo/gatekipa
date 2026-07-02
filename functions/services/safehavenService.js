@@ -121,11 +121,126 @@ async function getSafeHavenToken() {
   }
 }
 
+let cachedQoreIdToken = null;
+let qoreIdTokenExpiry = 0;
+
+async function getQoreIdToken() {
+  const now = Math.floor(Date.now() / 1000);
+  if (cachedQoreIdToken && qoreIdTokenExpiry > now + 60) {
+    return cachedQoreIdToken;
+  }
+
+  const clientId = process.env.QOREID_CLIENT_ID;
+  const clientSecret = process.env.QOREID_CLIENT_SECRET || process.env.QOREID_API_KEY;
+
+  if (!clientId || !clientSecret) {
+    logger.error("[QoreID] QOREID_CLIENT_ID or QOREID_CLIENT_SECRET/QOREID_API_KEY is not configured.");
+    throw new HttpsError("internal", "Identity verification service credentials are not configured.");
+  }
+
+  try {
+    logger.info(`[QoreID] Requesting access token using clientId=${clientId}`);
+    const res = await axios.post("https://api.qoreid.com/token", {
+      clientId: clientId,
+      secret: clientSecret
+    }, {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    cachedQoreIdToken = res.data.accessToken;
+    qoreIdTokenExpiry = now + (res.data.expiresIn || 7200);
+    return cachedQoreIdToken;
+  } catch (err) {
+    const errorBody = err.response?.data;
+    const errorStatus = err.response?.status;
+    logger.error(`[QoreID] Auth Token Retrieval Failed. Status: ${errorStatus}. Body:`, JSON.stringify(errorBody));
+    throw new HttpsError("internal", "Failed to authenticate with identity verification service.");
+  }
+}
+
+async function performGeminiFaceMatch(documentUrl, selfieBase64) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    logger.error("[AI Match] GEMINI_API_KEY is not configured. Fallback matching cannot run.");
+    throw new HttpsError("internal", "Identity verification service is temporarily unavailable.");
+  }
+
+  logger.info(`[AI Match] Fetching document image from ${documentUrl}`);
+  let docBase64;
+  try {
+    const docRes = await axios.get(documentUrl, { responseType: 'arraybuffer' });
+    docBase64 = Buffer.from(docRes.data, 'binary').toString('base64');
+  } catch (docErr) {
+    logger.error(`[AI Match] Failed to download document image: ${docErr.message}`);
+    throw new HttpsError("internal", "Could not retrieve the registered ID document image for verification.");
+  }
+
+  let cleanSelfie = selfieBase64;
+  if (cleanSelfie.includes(";base64,")) {
+    cleanSelfie = cleanSelfie.split(";base64,").pop();
+  }
+
+  logger.info("[AI Match] Sending comparison request to Gemini 2.5 Flash");
+  try {
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: "You are a secure compliance and identity verification assistant. Analyze the two provided images. Image 1 is an official government ID card or slip (like a NIN card, NIN slip, BVN document, voter's card, driver's license, or international passport). Image 2 is a live captured selfie of the user. Perform two checks: 1) Verify that Image 1 is a valid, authentic-looking Nigerian government-issued ID document containing a clear passport photo. 2) Compare the face on the ID document (Image 1) with the face in the live selfie (Image 2) and verify if they belong to the exact same person. Respond ONLY with a valid JSON object matching this schema: {\"match\": boolean, \"confidence\": number (0.0 to 1.0), \"reason\": string}. If Image 1 is not a valid ID document, or if the faces do not match, set \"match\" to false. IMPORTANT: Be highly lenient and accommodating of lighting differences, camera noise, minor angle variations, and low resolution. Focus strictly on core skeletal facial structure (nose, eyes, mouth shape, jawline) rather than image illumination or quality."
+            },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: docBase64
+              }
+            },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: cleanSelfie
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseMimeType: "application/json"
+      }
+    };
+
+    const res = await axios.post(geminiEndpoint, payload, {
+      headers: { "Content-Type": "application/json" }
+    });
+
+    const responseText = res.data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!responseText) {
+      logger.error("[AI Match] Empty response from Gemini API.");
+      throw new Error("Empty response from AI comparison model.");
+    }
+
+    const result = JSON.parse(responseText.trim());
+    logger.info("[AI Match] Gemini comparison result:", JSON.stringify(result));
+
+    return {
+      success: result.match === true,
+      confidence: parseFloat(result.confidence) || 0,
+      reason: result.reason || "Verification comparison completed."
+    };
+  } catch (err) {
+    logger.error(`[AI Match] Gemini API call or parse failed: ${err.message}`);
+    throw new HttpsError("internal", "Identity verification process failed.");
+  }
+}
+
 /**
  * Step 1: Initiates SafeHaven Identity Verification.
  * This triggers an OTP to the user's phone number registered with their BVN.
  */
-async function initiateSafeHavenVerification(uid, userData) {
+async function initiateSafeHavenVerification(uid, userData, faceImageBase64 = null) {
   const { access_token, ibs_client_id } = await getSafeHavenToken();
   const idNumber = userData.bvn || userData.kycMeta?.idNumber || "";
   const idType = userData.bvn ? "BVN" : "NIN";
@@ -141,11 +256,110 @@ async function initiateSafeHavenVerification(uid, userData) {
     type: idType,
     number: idNumber,
     debitAccountNumber: "0115459874",  // Westgate Stratagem master account - pays the ₦50 KYC fee
-    async: true
+    async: false
   };
 
+  if (faceImageBase64) {
+    payload.faceImageBase64 = faceImageBase64;
+
+    // ── QoreID Face Verification Check ────────────────────────────────────────
+    logger.info(`[QoreID] Verifying selfie for UID ${uid} against ${idType} database`);
+    
+    let cleanBase64 = faceImageBase64;
+    if (cleanBase64.includes(";base64,")) {
+      cleanBase64 = cleanBase64.split(";base64,").pop();
+    }
+
+    const qoreToken = await getQoreIdToken();
+
+    try {
+      const qoreEndpoint = `https://api.qoreid.com/v1/ng/identities/face-verification/${idType.toLowerCase()}`;
+      const qoreRes = await axios.post(qoreEndpoint, {
+        idNumber: idNumber,
+        photoBase64: cleanBase64
+      }, {
+        headers: {
+          "Authorization": `Bearer ${qoreToken}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        }
+      });
+
+      const qoreData = qoreRes.data;
+      logger.info(`[QoreID] Response for UID ${uid}:`, JSON.stringify(qoreData));
+
+      const isVerified = (qoreData.status?.status === "verified" || qoreData.status?.state === "complete") && 
+                         (qoreData.summary?.status === "EXACT_MATCH" || qoreData.summary?.status === "MATCH");
+
+      if (!isVerified) {
+        throw new Error(`Face verification failed: match status is ${qoreData.summary?.status || "NO_MATCH"}.`);
+      }
+    } catch (qoreErr) {
+      if (qoreErr instanceof HttpsError) throw qoreErr;
+
+      const errorBody = qoreErr.response?.data;
+      const errorStatus = qoreErr.response?.status;
+      logger.warn(`[QoreID] Primary Face Match Failed/Error. Status: ${errorStatus}. Body:`, JSON.stringify(errorBody));
+
+      const documentUrl = userData.kycMeta?.documentUrl;
+      const geminiKey = process.env.GEMINI_API_KEY;
+
+      if (geminiKey && documentUrl) {
+        logger.info(`[AI Fallback] Initiating AI Face Match fallback for UID ${uid}`);
+        try {
+          const aiResult = await performGeminiFaceMatch(documentUrl, faceImageBase64);
+          
+          if (aiResult.confidence >= 0.70) {
+            logger.info(`[AI Fallback] Success! AI Face Match verified for UID ${uid} with confidence ${aiResult.confidence}`);
+            // Let the flow continue
+          } else if (aiResult.confidence >= 0.45) {
+            logger.warn(`[AI Fallback] Low confidence match (${aiResult.confidence}) for UID ${uid}. Changing status to pending_review.`);
+            
+            // Save pending selfie to user document for admin review
+            await db.collection("users").doc(uid).update({
+              kycStatus: "pending_review",
+              pendingSelfieBase64: faceImageBase64,
+              kycSubmittedAt: FieldValue.serverTimestamp(),
+              verificationFailReason: `Low confidence match (${aiResult.confidence}): ${aiResult.reason}`
+            });
+
+            throw new HttpsError(
+              "failed-precondition",
+              "We are reviewing your selfie to complete your verification. Your account will be ready shortly."
+            );
+          } else {
+            logger.error(`[AI Fallback] Failed. AI Face Match rejected for UID ${uid} with confidence ${aiResult.confidence}. Reason: ${aiResult.reason}`);
+            throw new HttpsError(
+              "failed-precondition",
+              `Face verification failed: captured selfie does not match the photo on your NIN/BVN document.`
+            );
+          }
+        } catch (aiErr) {
+          if (aiErr instanceof HttpsError) throw aiErr;
+          logger.error(`[AI Fallback] Error during AI comparison for UID ${uid}: ${aiErr.message}`);
+          throw new HttpsError(
+            "failed-precondition",
+            "Identity verification failed: please try again or ensure your selfie is captured in a well-lit area."
+          );
+        }
+      } else {
+        logger.error(`[QoreID] No AI Fallback possible. geminiKeyConfigured=${!!geminiKey}, hasDocumentUrl=${!!documentUrl}`);
+        if (!documentUrl && geminiKey) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Identity verification failed. Please upload a clear photo of your ID document (NIN/BVN) in the KYC tab and try again."
+          );
+        }
+        throw new HttpsError(
+          "failed-precondition",
+          errorBody?.message || "Identity face match verification failed."
+        );
+      }
+    }
+  }
+
   try {
-    logger.info(`[SafeHaven] Initiating verification for UID ${uid}. idType=${idType}, ibs_client_id=${ibs_client_id}`);
+    logger.info(`[SafeHaven] Initiating verification for UID ${uid}. idType=${idType}, ibs_client_id=${ibs_client_id}, hasFaceImage=${!!faceImageBase64}`);
     
     const res = await axios.post(`${BASE_URL}/identity/v2`, payload, {
       headers: {
@@ -157,6 +371,17 @@ async function initiateSafeHavenVerification(uid, userData) {
     });
 
     const identityId = res.data.data._id;
+
+    if (faceImageBase64) {
+      // Automatically complete KYC verified state for vID flow
+      await db.collection("users").doc(uid).update({
+        safehaven_identity_id: identityId,
+        safehaven_identity_type: "vID",
+        kycStatus: "verified",
+        kycVerifiedAt: FieldValue.serverTimestamp()
+      });
+    }
+
     return { success: true, identityId: identityId };
 
   } catch (err) {
@@ -226,7 +451,7 @@ async function validateSafeHavenIdentity(uid, identityId, otp, idType = "NIN") {
  * Step 2: Creates a SafeHaven Dedicated Virtual Account (Sub-Account) for a user
  * using the captured identityId from KYC.
  */
-async function generateSafeHavenDva(uid, userData, identityId, otp) {
+async function generateSafeHavenDva(uid, userData, identityId, otp, isVid = false) {
   const { access_token, ibs_client_id } = await getSafeHavenToken();
 
   const firstName = userData.firstName || userData.first_name || "Gatekipa";
@@ -241,10 +466,17 @@ async function generateSafeHavenDva(uid, userData, identityId, otp) {
   const idNumber = userData.bvn || userData.kycMeta?.idNumber || "";
   const idType = userData.bvn ? "BVN" : "NIN";
 
-  if (!idNumber || !identityId) {
+  if (!isVid && !idNumber) {
     throw new HttpsError(
       "failed-precondition", 
-      "BVN/NIN and Identity ID are required to generate the account. Please complete your KYC verification."
+      "BVN/NIN is required to generate the account. Please complete your KYC verification."
+    );
+  }
+
+  if (!identityId) {
+    throw new HttpsError(
+      "failed-precondition", 
+      "Identity ID is required to generate the account. Please complete your KYC verification."
     );
   }
 
@@ -255,12 +487,18 @@ async function generateSafeHavenDva(uid, userData, identityId, otp) {
     firstName: firstName,
     lastName: lastName,
     externalReference: `gatekipa_${uid}_${Date.now()}`,
-    identityType: idType,
-    identityNumber: idNumber,
-    identityId: identityId,
-    otp: otp,
     autoSweep: false
   };
+
+  if (isVid) {
+    payload.identityType = "vID";
+    payload.identityId = identityId;
+  } else {
+    payload.identityType = idType;
+    payload.identityNumber = idNumber;
+    payload.identityId = identityId;
+    payload.otp = otp;
+  }
 
   try {
     logger.info(`[SafeHaven] Creating DVA for UID ${uid}. Payload:`, JSON.stringify(payload));
@@ -306,7 +544,44 @@ async function generateSafeHavenDva(uid, userData, identityId, otp) {
  * Webhook listener for SafeHaven events (Inward Transfers).
  * This endpoint processes incoming deposits and credits the corresponding Gatekipa user's wallet.
  */
-const safehavenWebhook = onRequest({ region: "us-central1" }, async (req, res) => {
+const safehavenWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512MiB", maxInstances: 10 }, async (req, res) => {
+  // Webhook Security Authorization
+  const webhookSecret = process.env.SAFEHAVEN_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    logger.error("[SafeHaven Webhook] Webhook Secret is not configured. Rejecting request to prevent bypass.");
+    return res.status(500).json({ error: "Webhook configuration error" });
+  }
+
+  const signature = req.headers['x-signature'] || req.headers['x-safehaven-signature'];
+  if (!signature) {
+    logger.error("[SafeHaven Webhook] Unauthorized request. Missing signature header.");
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const crypto = require("crypto");
+  const rawBody = req.rawBody;
+  if (!rawBody) {
+    logger.error("[SafeHaven Webhook] Raw request body missing for verification.");
+    return res.status(400).json({ error: "Bad Request" });
+  }
+
+  const computedSignature = crypto
+    .createHmac("sha256", webhookSecret)
+    .update(rawBody)
+    .digest("hex");
+
+  try {
+    const signatureBuffer = Buffer.from(signature, 'utf8');
+    const computedBuffer = Buffer.from(computedSignature, 'utf8');
+    if (signatureBuffer.length !== computedBuffer.length || !crypto.timingSafeEqual(signatureBuffer, computedBuffer)) {
+      logger.error("[SafeHaven Webhook] Unauthorized request. Signature mismatch.");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+  } catch (err) {
+    logger.error("[SafeHaven Webhook] Signature comparison failed:", err);
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   // SafeHaven requires webhooks to return a quick 200 OK
   res.status(200).send("OK");
 

@@ -22,16 +22,23 @@ exports.fundWallet = onCall({ region: "us-central1" }, async (request) => {
 
 const SAFEHAVEN_CLIENT_ID = defineSecret("SAFEHAVEN_CLIENT_ID");
 const SAFEHAVEN_PRIVATE_KEY = defineSecret("SAFEHAVEN_PRIVATE_KEY");
+const QOREID_API_KEY = defineSecret("QOREID_API_KEY");
+const QOREID_CLIENT_ID = defineSecret("QOREID_CLIENT_ID");
+const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
-exports.initiateVaultVerification = onCall({ region: "us-central1", secrets: [SAFEHAVEN_CLIENT_ID, SAFEHAVEN_PRIVATE_KEY] }, async (request) => {
+exports.initiateVaultVerification = onCall({ 
+  region: "us-central1", 
+  secrets: [SAFEHAVEN_CLIENT_ID, SAFEHAVEN_PRIVATE_KEY, QOREID_API_KEY, QOREID_CLIENT_ID, GEMINI_API_KEY] 
+}, async (request) => {
   requireVerifiedEmail(request.auth);
   const uid = request.auth.uid;
+  const faceImageBase64 = request.data?.faceImageBase64;
 
   const userDoc = await db.collection("users").doc(uid).get();
   if (!userDoc.exists) throw new HttpsError("not-found", "User not found.");
 
   const { initiateSafeHavenVerification } = require("./safehavenService");
-  return await initiateSafeHavenVerification(uid, userDoc.data());
+  return await initiateSafeHavenVerification(uid, userDoc.data(), faceImageBase64);
 });
 
 exports.createVaultAccount = onCall({ region: "us-central1", secrets: [SAFEHAVEN_CLIENT_ID, SAFEHAVEN_PRIVATE_KEY] }, async (request) => {
@@ -54,8 +61,10 @@ exports.createVaultAccount = onCall({ region: "us-central1", secrets: [SAFEHAVEN
     throw new HttpsError("already-exists", "Virtual Account already exists.");
   }
 
+  const isVid = userData.safehaven_identity_type === "vID" || !otp;
+
   const { generateSafeHavenDva } = require("./safehavenService");
-  return await generateSafeHavenDva(uid, userData, identityId, otp);
+  return await generateSafeHavenDva(uid, userData, identityId, isVid ? null : otp, isVid);
 });
 
 exports.recreateVaultAccount = exports.createVaultAccount;

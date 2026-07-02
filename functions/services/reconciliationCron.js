@@ -29,23 +29,24 @@ exports.integritySweep = onSchedule("every 12 hours", async () => {
   const batchSize = 500;
   let hasMore = true;
 
-  // ── 1. Wallet balance integrity ─────────────────────────────────────────────
-  while (hasMore) {
-    let query = db.collection("users").orderBy("__name__").limit(batchSize);
-    if (lastDoc) {
-      query = query.startAfter(lastDoc);
-    }
-    
-    const usersSnap = await query.get();
-    if (usersSnap.empty) {
-      hasMore = false;
-      break;
+  // ── 1. Wallet balance integrity (Incremental active users audit) ───────────
+  const sweepWindowLimit = new Date(Date.now() - 13 * 60 * 60 * 1000); // 13 hours ago (12h sweep + 1h buffer)
+  try {
+    const activeEntriesSnap = await db.collection("wallet_ledger")
+      .where("created_at", ">=", sweepWindowLimit)
+      .get();
+
+    const activeUserIds = new Set();
+    for (const doc of activeEntriesSnap.docs) {
+      const data = doc.data();
+      if (data.user_id) {
+        activeUserIds.add(data.user_id);
+      }
     }
 
-    lastDoc = usersSnap.docs[usersSnap.docs.length - 1];
+    logger.info(`[IntegritySweep] Found ${activeUserIds.size} active users in the sweep window.`);
 
-    for (const userDoc of usersSnap.docs) {
-      const uid = userDoc.id;
+    for (const uid of activeUserIds) {
       totalAudited++;
 
       try {
@@ -92,6 +93,8 @@ exports.integritySweep = onSchedule("every 12 hours", async () => {
         logger.warn(`[IntegritySweep] Skipped UID ${uid}: ${e.message}`);
       }
     }
+  } catch (err) {
+    logger.error(`[IntegritySweep] Failed to query active ledger entries: ${err.message}`);
   }
 
   // ── 2. Stuck transaction sweep ──────────────────────────────────────────────

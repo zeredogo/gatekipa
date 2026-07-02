@@ -1,7 +1,7 @@
 name: gatekipa
 description: A rule-based virtual card system that gives users control over recurring payments.
 publish_to: 'none'
-version: 1.0.14+26
+version: 1.0.15+27
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -19,6 +19,7 @@ dependencies:
   firebase_messaging: ^16.2.0
   firebase_storage: ^13.3.0
   firebase_remote_config: ^6.4.0
+  upgrader: ^10.3.0
 
   # App version (used internally for force-update check — never shown to users)
   package_info_plus: ^8.0.0

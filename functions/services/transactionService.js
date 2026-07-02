@@ -70,6 +70,22 @@ async function processTransactionInternal({
     }
   }
 
+  // ── 1.7. Card strict limit check (Sentinel feature validation) ──────────────
+  if (type === "card_charge") {
+    const cardId = metadata.cardId || metadata.card_id;
+    if (cardId) {
+      const cardSnap = await db.collection("cards").doc(cardId).get();
+      if (cardSnap.exists) {
+        const cardData = cardSnap.data();
+        const strictLimit = cardData.strict_limit_ngn || cardData.strict_limit_usd || cardData.strict_limit;
+        if (strictLimit && amount > strictLimit) {
+          logger.warn("[Orchestrator] Card strict limit exceeded.", { cardId, amount, limit: strictLimit });
+          throw new Error(`RULE_BLOCKED: Card strict limit exceeded. Limit: ${strictLimit}`);
+        }
+      }
+    }
+  }
+
   // ── 2. Fast-path idempotency check (non-blocking, catches obvious retries) ─
   const existingTxnId = await checkIdempotency(idempotencyKey);
   if (existingTxnId) {

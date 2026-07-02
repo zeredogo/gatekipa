@@ -11,7 +11,7 @@ setGlobalOptions({
   memory: "256MiB", 
   cpu: 0.16, 
   enforceAppCheck: false,
-  secrets: ["SUDO_API_KEY", "RESEND_API_KEY", "SAFEHAVEN_CLIENT_ID", "SAFEHAVEN_PRIVATE_KEY"] 
+  secrets: ["SUDO_API_KEY", "RESEND_API_KEY", "SAFEHAVEN_CLIENT_ID", "SAFEHAVEN_PRIVATE_KEY", "SUDO_WEBHOOK_SECRET", "SAFEHAVEN_WEBHOOK_SECRET"] 
 });
 
 const { onUserCreated, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset } = require("./services/authService");

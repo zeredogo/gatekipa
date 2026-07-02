@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:upgrader/upgrader.dart';
 import 'package:gatekipa/core/theme/app_theme.dart';
 import 'package:gatekipa/core/constants/routes.dart';
 import 'package:gatekipa/features/auth/providers/auth_provider.dart';
@@ -272,6 +273,17 @@ class GatekipaApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           routerConfig: router,
+          builder: (context, child) {
+            return UpgradeAlert(
+              showIgnore: false,
+              showLater: false,
+              barrierDismissible: false,
+              upgrader: Upgrader(
+                durationUntilAlertAgain: const Duration(seconds: 15),
+              ),
+              child: child ?? const SizedBox(),
+            );
+          },
         ),
       ),
     );
@@ -315,7 +327,7 @@ class _InactivityWrapperState extends ConsumerState<InactivityWrapper> {
           Routes.emailVerifyPending,
         ];
         final isOnAuthScreen = authRoutes.any(
-          (r) => currentLocation.startsWith(r) ?? false,
+          (r) => currentLocation.startsWith(r),
         );
         if (!isOnAuthScreen) {
           ref.read(authNotifierProvider.notifier).lockApp();

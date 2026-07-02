@@ -119,11 +119,13 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
 
 
 
-  Future<String?> initiateVaultVerification() async {
+  Future<String?> initiateVaultVerification({String? faceImageBase64}) async {
     state = const AsyncValue.loading();
     try {
       final callable = _functions.httpsCallable('initiateVaultVerification');
-      final result = await callable.call();
+      final result = await callable.call({
+        if (faceImageBase64 != null) 'faceImageBase64': faceImageBase64,
+      });
       state = const AsyncValue.data(null);
       return result.data['identityId'] as String?;
     } catch (e) {

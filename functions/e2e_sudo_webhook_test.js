@@ -76,7 +76,7 @@ async function runTest() {
     const res = await axios.post(url, payload, {
       headers: {
         "Content-Type": "application/json",
-        "sudo-signature": signature
+        "x-sudo-signature": secret
       }
     });
 
@@ -98,7 +98,10 @@ async function runTest() {
 
     console.log("\n[4] Firing Duplicate Webhook (Idempotency Test)...");
     const res2 = await axios.post(url, payload, {
-      headers: { "Content-Type": "application/json", "sudo-signature": signature }
+      headers: {
+        "Content-Type": "application/json",
+        "x-sudo-signature": secret
+      }
     });
     console.log(`Duplicate webhook responded with status ${res2.status}:`, res2.data);
     
