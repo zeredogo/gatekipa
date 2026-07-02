@@ -302,17 +302,26 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
     // Cross-border transactions typically come via "WEB" or "POS" from non-NG merchants.
     // We gate on the card's currency and the merchant country code if present.
     if (isSentinel && userData.geoFence === true) {
-      // merchantName is passed from webhook; check for known international patterns.
-      // A more robust solution would use the webhook's `merchant_country` field directly.
+      const isUSDCard = card.currency === "USD" || card.sudo_currency === "USD";
       const merchantStr = (merchantName || "").toLowerCase();
-      const isInternational = merchantStr.includes("[intl]") || 
-                              merchantStr.includes("international") ||
-                              (options.merchantCountry && options.merchantCountry !== "NG") ||
-                              (options.transactionCurrency && options.transactionCurrency !== "NGN");
+      
+      let isInternational = false;
+      if (isUSDCard) {
+        // For USD cards, we expect USD transactions. Block non-US and non-NG countries.
+        isInternational = (options.merchantCountry && options.merchantCountry !== "US" && options.merchantCountry !== "NG");
+      } else {
+        // For NGN cards, only allow local NG / NGN transactions.
+        isInternational = merchantStr.includes("[intl]") || 
+                          merchantStr.includes("international") ||
+                          (options.merchantCountry && options.merchantCountry !== "NG") ||
+                          (options.transactionCurrency && options.transactionCurrency !== "NGN");
+      }
       
       if (isInternational) {
         isGlobalBlocked = true;
-        globalReason = "Geo-fence active: only Nigerian transactions allowed";
+        globalReason = isUSDCard 
+          ? "Geo-fence active: only US and Nigerian transactions allowed for USD card"
+          : "Geo-fence active: only Nigerian transactions allowed";
         evaluations.push({ rule: "Global Geo-Fence", result: "FAIL" });
         if (!options.dryRun) return { approved: false, reason: globalReason };
       } else {

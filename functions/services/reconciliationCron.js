@@ -189,10 +189,50 @@ exports.integritySweep = onSchedule("every 12 hours", async () => {
 // This actively queries for missing transactions to ensure 
 // Night Lockdown and Sentinel security engines never go blind due to dropped webhooks.
 exports.pollMissingWebhooks = onSchedule({ schedule: "every 1 hours", secrets: ["SUDO_API_KEY"] }, async () => {
-  logger.info("[PollMissingWebhooks] Starting active Sudo synchronization (STUB)...");
-  // TODO: Implement Sudo active polling if required by Sudo's architecture.
-  // Sudo webhooks are typically reliable, but a polling fallback could be added here.
-  logger.info(`[PollMissingWebhooks] Done.`);
+  logger.info("[PollMissingWebhooks] Starting active Sudo synchronization...");
+  try {
+    const { sudoClient } = require("./sudoService");
+    const client = sudoClient();
+    
+    // Query last 50 transactions across the platform from Sudo
+    const response = await client.get("/cards/transactions", { params: { limit: 50 } });
+    const sudoTransactions = response.data?.data || [];
+    logger.info(`[PollMissingWebhooks] Fetched ${sudoTransactions.length} transactions from Sudo API.`);
+
+    const { processTransactionInternal } = require("./transactionService");
+
+    for (const tx of sudoTransactions) {
+      const txId = tx._id || tx.id;
+      if (!txId) continue;
+
+      // Check if this transaction exists in our db
+      const txDoc = await db.collection("transactions").doc(txId).get();
+      if (!txDoc.exists) {
+        logger.warn(`[PollMissingWebhooks] Found missing transaction: ${txId}. Re-processing now.`);
+        
+        const cardId = tx.card?._id || tx.card;
+        const amount = tx.amount;
+        const merchantName = tx.merchant?.name || "Unknown Merchant";
+        
+        const options = {
+          merchantCountry: tx.merchant?.country || "US",
+          transactionCurrency: tx.currency || "USD",
+          sudoTransactionId: txId,
+          dryRun: false
+        };
+
+        try {
+          const result = await processTransactionInternal(cardId, amount, merchantName, options);
+          logger.info(`[PollMissingWebhooks] Automatically processed transaction ${txId}. Approved: ${result.approved}`);
+        } catch (err) {
+          logger.error(`[PollMissingWebhooks] Error processing transaction ${txId}:`, err);
+        }
+      }
+    }
+  } catch (err) {
+    logger.error("[PollMissingWebhooks] Reconciliation poll failed:", err);
+  }
+  logger.info("[PollMissingWebhooks] Done.");
 });
 
 // ── 5. System Stats Aggregation ──────────────────────────────────────────────

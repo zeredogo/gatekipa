@@ -380,7 +380,7 @@ async function recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventI
   }
 }
 
-exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512MiB", maxInstances: 10 }, async (req, res) => {
+exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512MiB", maxInstances: 10, minInstances: 1 }, async (req, res) => {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
