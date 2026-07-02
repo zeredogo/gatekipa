@@ -305,31 +305,17 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
       evaluations.push({ rule: "Global Night Lockdown", result: "PASS" });
     }
 
-    // FIX #6: Geo-fence — check real transaction channel/country instead of
-    // fake "[intl]" string. Bridgecard webhooks include a `channel` field.
-    // Cross-border transactions typically come via "WEB" or "POS" from non-NG merchants.
-    // We gate on the card's currency and the merchant country code if present.
+    // Geo-fence — blocks all international (non-NG) transactions when active,
+    // regardless of card type or currency, unless explicitly toggled off by the user.
     if (isSentinel && userData.geoFence === true) {
-      const isUSDCard = card.currency === "USD" || card.sudo_currency === "USD";
       const merchantStr = (merchantName || "").toLowerCase();
-      
-      let isInternational = false;
-      if (isUSDCard) {
-        // For USD cards, we expect USD transactions. Block non-US and non-NG countries.
-        isInternational = (options.merchantCountry && options.merchantCountry !== "US" && options.merchantCountry !== "NG");
-      } else {
-        // For NGN cards, only allow local NG / NGN transactions.
-        isInternational = merchantStr.includes("[intl]") || 
-                          merchantStr.includes("international") ||
-                          (options.merchantCountry && options.merchantCountry !== "NG") ||
-                          (options.transactionCurrency && options.transactionCurrency !== "NGN");
-      }
+      const isInternational = (options.merchantCountry && options.merchantCountry !== "NG") ||
+                           merchantStr.includes("[intl]") || 
+                           merchantStr.includes("international");
       
       if (isInternational) {
         isGlobalBlocked = true;
-        globalReason = isUSDCard 
-          ? "Geo-fence active: only US and Nigerian transactions allowed for USD card"
-          : "Geo-fence active: only Nigerian transactions allowed";
+        globalReason = "Geo-fence active: international transactions are blocked";
         evaluations.push({ rule: "Global Geo-Fence", result: "FAIL" });
         if (!options.dryRun) return { approved: false, reason: globalReason };
       } else {

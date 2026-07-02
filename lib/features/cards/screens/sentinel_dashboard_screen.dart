@@ -235,7 +235,7 @@ class _SentinelDashboardScreenState extends ConsumerState<SentinelDashboardScree
                   const SizedBox(height: 16),
                   _buildToggleCard(
                     title: 'Geo-Fencing',
-                    subtitle: 'Block all non-NGN international transactions.',
+                    subtitle: 'Block all international transactions.',
                     value: user.geoFence,
                     icon: Icons.public_off_rounded,
                     isLoading: _togglingGeoFence,
