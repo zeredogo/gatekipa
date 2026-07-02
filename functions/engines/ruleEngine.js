@@ -51,6 +51,7 @@ function userHasSentinelAccess(userData) {
 /**
  * Returns the sum of all 'charge' entries for a card in the last N days.
  * Used by: monthly_cap
+ * Optimized: Uses .select("amount") to reduce document payload transfer overhead
  */
 async function getLedgerSumForDays(cardId, days) {
   const since = new Date();
@@ -60,6 +61,7 @@ async function getLedgerSumForDays(cardId, days) {
     .where("card_id", "==", cardId)
     .where("type", "==", "charge")
     .where("created_at", ">=", since)
+    .select("amount")
     .get();
 
   return snap.docs.reduce((sum, doc) => sum + (doc.data().amount || 0), 0);
@@ -68,6 +70,7 @@ async function getLedgerSumForDays(cardId, days) {
 /**
  * Returns the sum of all 'charge' entries in the current calendar month (WAT).
  * Used by: monthly_cap (month boundary version)
+ * Optimized: Uses .select("amount") to minimize data transfer size
  */
 async function getLedgerMonthlySum(cardId) {
   const now = new Date();
@@ -77,6 +80,7 @@ async function getLedgerMonthlySum(cardId) {
     .where("card_id", "==", cardId)
     .where("type", "==", "charge")
     .where("created_at", ">=", monthStart)
+    .select("amount")
     .get();
 
   return snap.docs.reduce((sum, doc) => sum + (doc.data().amount || 0), 0);
@@ -85,26 +89,30 @@ async function getLedgerMonthlySum(cardId) {
 /**
  * Returns the total count of all 'charge' entries for a card.
  * Used by: max_charges, block_after_first
+ * Optimized: Uses server-side count() aggregation to avoid downloading any documents
  */
 async function getLedgerChargeCount(cardId) {
   const snap = await db.collection("card_ledger")
     .where("card_id", "==", cardId)
     .where("type", "==", "charge")
+    .count()
     .get();
 
-  return snap.size;
+  return snap.data().count;
 }
 
 /**
  * Returns the amount of the very first 'charge' entry for a card.
  * Used by: block_if_amount_changes
  * Returns null if no charges exist yet.
+ * Optimized: Uses .select("amount") to minimize data transfer size
  */
 async function getLedgerFirstChargeAmount(cardId) {
   const snap = await db.collection("card_ledger")
     .where("card_id", "==", cardId)
     .where("type", "==", "charge")
     .orderBy("created_at", "asc")
+    .select("amount")
     .limit(1)
     .get();
 

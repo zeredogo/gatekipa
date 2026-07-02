@@ -89,6 +89,42 @@ exports.integritySweep = onSchedule("every 12 hours", async () => {
             drift,
           });
         }
+
+        // d. Provider balance drift check (Sudo Africa balance cross-reference)
+        const userSnap = await db.collection("users").doc(uid).get();
+        const userData = userSnap.data() || {};
+        const sudoAccountId = userData.sudo_account_id;
+        
+        if (sudoAccountId) {
+          try {
+            const { sudoClient } = require("./sudoService");
+            const client = sudoClient();
+            const sudoRes = await client.get(`/accounts/${sudoAccountId}/balance`);
+            const providerBalanceKobo = sudoRes.data?.data?.availableBalance || sudoRes.data?.data?.balance || 0;
+            const providerBalance = providerBalanceKobo / 100;
+            
+            // Compare provider balance with local cached balance
+            const balanceDiff = Math.abs(cachedBalance - providerBalance);
+            if (balanceDiff > 1.0) { // drift threshold of ₦1.00
+              const driftMsg = `PROVIDER DRIFT: UID ${uid} has local cached balance of ₦${cachedBalance} but Sudo provider account balance is ₦${providerBalance} (diff=₦${balanceDiff.toFixed(2)})`;
+              logger.warn(`[IntegritySweep] ${driftMsg}`);
+              
+              await db.collection("health_logs").add({
+                timestamp: FieldValue.serverTimestamp(),
+                level: "WARNING",
+                source: "integritySweep",
+                check: "provider_balance_drift",
+                message: driftMsg,
+                uid,
+                cached_balance: cachedBalance,
+                provider_balance: providerBalance,
+                diff: balanceDiff,
+              });
+            }
+          } catch (sudoErr) {
+            logger.error(`[IntegritySweep] Failed to query Sudo balance for UID ${uid}:`, sudoErr.message);
+          }
+        }
       } catch (e) {
         logger.warn(`[IntegritySweep] Skipped UID ${uid}: ${e.message}`);
       }
@@ -177,6 +213,39 @@ exports.integritySweep = onSchedule("every 12 hours", async () => {
       message: `${unknownSnap.size} UNKNOWN transactions exist. Manual review required.`,
       count: unknownSnap.size,
     });
+  }
+
+  // ── 4. Webhook & Idempotency Pruning (Retention Cleanup) ───────────────────
+  try {
+    const pruneThreshold = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days
+    
+    // Prune webhook_events
+    const oldEventsSnap = await db.collection("webhook_events")
+      .where("received_at", "<", pruneThreshold)
+      .limit(100)
+      .get();
+    
+    if (!oldEventsSnap.empty) {
+      const batch = db.batch();
+      oldEventsSnap.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      logger.info(`[IntegritySweep] Pruned ${oldEventsSnap.size} stale webhook events.`);
+    }
+
+    // Prune idempotency_keys
+    const oldIdempotencySnap = await db.collection("idempotency_keys")
+      .where("created_at", "<", pruneThreshold)
+      .limit(100)
+      .get();
+    
+    if (!oldIdempotencySnap.empty) {
+      const batch = db.batch();
+      oldIdempotencySnap.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      logger.info(`[IntegritySweep] Pruned ${oldIdempotencySnap.size} stale idempotency keys.`);
+    }
+  } catch (pruneErr) {
+    logger.error("[IntegritySweep] Error pruning stale data:", pruneErr);
   }
 
   logger.info(
