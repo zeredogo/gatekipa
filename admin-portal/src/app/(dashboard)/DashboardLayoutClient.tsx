@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -8,7 +8,6 @@ import {
   CreditCard, 
   Activity, 
   Search,
-  Bell,
   Menu,
   Wallet,
   ShieldCheck,
@@ -18,7 +17,9 @@ import {
   Cpu,
   Webhook,
   LogOut,
-  Flag
+  Flag,
+  Sun,
+  Moon
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { removeSession } from "@/app/actions/auth";
@@ -32,6 +33,23 @@ export default function DashboardLayoutClient({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+    const initialTheme = savedTheme || "dark";
+    setTheme(initialTheme);
+    document.documentElement.setAttribute("data-theme", initialTheme);
+    document.documentElement.classList.toggle("dark", initialTheme === "dark");
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
 
   const handleLogout = async () => {
     await removeSession();
@@ -149,15 +167,22 @@ export default function DashboardLayoutClient({
           </div>
           
           <div className="flex items-center gap-4">
-            <button className="relative p-2 rounded-full hover:bg-white/5 text-gray-400 hover:text-white transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-white/5 hover:bg-forest-500/10 text-gray-400 hover:text-forest-500 transition-colors border border-white/10 dark:border-white/10 cursor-pointer flex items-center justify-center"
+              title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+            >
+              {theme === "light" ? (
+                <Moon className="w-5 h-5" />
+              ) : (
+                <Sun className="w-5 h-5" />
+              )}
             </button>
           </div>
         </header>
 
         {/* Dynamic Page Content */}
-        <div className="flex-1 overflow-auto relative z-0">
+        <div className="flex-1 overflow-auto relative">
           {/* Ambient Background Glows */}
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-forest-500/10 rounded-full blur-[120px] pointer-events-none"></div>
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-forest-600/5 rounded-full blur-[120px] pointer-events-none"></div>
