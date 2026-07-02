@@ -33,6 +33,10 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
   const [notifBody, setNotifBody] = useState("");
   const [sendingNotif, setSendingNotif] = useState(false);
 
+  // KYC Filter State
+  const [kycFilter, setKycFilter] = useState<"all" | "verified" | "pending_review" | "pending">("all");
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
   // Broadcast Modal State
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [broadcastTitle, setBroadcastTitle] = useState("");
@@ -47,11 +51,44 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
   
   const [isPending, startTransition] = useTransition();
 
-  const filteredUsers = initialUsers.filter(u => 
-    u.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = initialUsers.filter(u => {
+    const matchesSearch = 
+      u.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.id?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesKyc = 
+      kycFilter === "all" ||
+      (kycFilter === "verified" && u.isVerified) ||
+      (kycFilter === "pending_review" && u.kycStatus === "pending_review") ||
+      (kycFilter === "pending" && !u.isVerified && u.kycStatus !== "pending_review");
+
+    return matchesSearch && matchesKyc;
+  });
+
+  const handleExportUsers = () => {
+    const headers = ["User ID", "Name", "Email", "Phone", "KYC Status", "Plan Tier", "Joined Date"];
+    const rows = filteredUsers.map(u => [
+      u.id,
+      u.displayName,
+      u.email,
+      u.phoneNumber || "",
+      u.kycStatus || "pending",
+      u.planTier,
+      u.createdAt
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(e => e.map(val => `"${val.replace(/"/g, '""')}"`).join(","))].join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `gatekipa_users_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleApproveKyc = (userId: string) => {
     startTransition(async () => {
@@ -145,11 +182,44 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
           <h1 className="text-3xl font-bold text-white tracking-tight">Users & KYC</h1>
           <p className="text-gray-400 mt-1">Manage platform users, verify identities, and review account statuses.</p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl transition-colors border border-white/10 cursor-pointer">
-            <Filter className="w-4 h-4" />
-            Filter
-          </button>
+        <div className="flex gap-3 relative">
+          <div className="relative">
+            <button 
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl transition-colors border border-white/10 cursor-pointer"
+            >
+              <Filter className="w-4 h-4" />
+              Filter: {kycFilter === "all" ? "All" : kycFilter === "verified" ? "Verified" : kycFilter === "pending_review" ? "Pending Review" : "Pending"}
+            </button>
+            {showFilterDropdown && (
+              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-white/10 shadow-lg z-50 p-1.5 space-y-1">
+                <button 
+                  onClick={() => { setKycFilter("all"); setShowFilterDropdown(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "all" ? "bg-forest-500 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                >
+                  All Users
+                </button>
+                <button 
+                  onClick={() => { setKycFilter("verified"); setShowFilterDropdown(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "verified" ? "bg-forest-500 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                >
+                  Verified KYC
+                </button>
+                <button 
+                  onClick={() => { setKycFilter("pending_review"); setShowFilterDropdown(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending_review" ? "bg-forest-500 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                >
+                  Pending Review KYC
+                </button>
+                <button 
+                  onClick={() => { setKycFilter("pending"); setShowFilterDropdown(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending" ? "bg-forest-500 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                >
+                  Pending KYC
+                </button>
+              </div>
+            )}
+          </div>
           <button 
             onClick={() => setShowBroadcastModal(true)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
@@ -157,7 +227,10 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
             <Send className="w-4 h-4" />
             Send Broadcast
           </button>
-          <button className="flex items-center gap-2 bg-forest-500 hover:bg-forest-600 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer">
+          <button 
+            onClick={handleExportUsers}
+            className="flex items-center gap-2 bg-forest-500 hover:bg-forest-600 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
+          >
             <Users className="w-4 h-4" />
             Export Users
           </button>
