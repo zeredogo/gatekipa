@@ -16,6 +16,8 @@
   /* Theme overrides to adapt hardcoded white/gray layout colors dynamically */
   --color-white: var(--text-white-override);
   --color-white-literal: #ffffff;
+  --color-gray-200: var(--text-gray-200-override);
+  --color-gray-300: var(--text-gray-300-override);
   --color-gray-400: var(--text-gray-400-override);
   --color-gray-500: var(--text-gray-500-override);
   --color-gray-900: var(--text-gray-900-override);
@@ -28,19 +30,21 @@
 }
 
 :root {
-  --background: #f3f5f4;
+  --background: #e2e6e4; /* Sage gray background, less bright, more comfortable */
   --foreground: #111827;
-  --glass-bg: rgba(0, 54, 41, 0.03);
-  --glass-border: rgba(0, 54, 41, 0.08);
-  --scrollbar-thumb: rgba(0, 0, 0, 0.1);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.65); /* Frosted white cards to pop over sage gray background */
+  --glass-border: rgba(0, 54, 41, 0.1);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
   
   --text-white-override: #111827;
-  --text-gray-400-override: #4b5563;
-  --text-gray-500-override: #6b7280;
+  --text-gray-200-override: #374151; /* Dark gray for visible content in light mode */
+  --text-gray-300-override: #2d3748; /* Dark gray for text in light mode */
+  --text-gray-400-override: #4a5568; /* Solid gray for labels */
+  --text-gray-500-override: #5a6578; /* Muted but clearly visible labels */
   --text-gray-900-override: #111827;
 
-  --theme-stat-forest: #1b4d3e;
+  --theme-stat-forest: #164e3f;
   --theme-stat-green: #15803d;
   --theme-stat-emerald: #047857;
   --theme-stat-amber: #b45309;
@@ -55,6 +59,8 @@
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
   
   --text-white-override: #ffffff;
+  --text-gray-200-override: #e5e7eb;
+  --text-gray-300-override: #d1d5db;
   --text-gray-400-override: #9ca3af;
   --text-gray-500-override: #6b7280;
   --text-gray-900-override: #f9fafb;

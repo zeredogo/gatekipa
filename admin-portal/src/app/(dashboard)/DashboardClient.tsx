@@ -74,10 +74,10 @@ export default function DashboardClient({ totalUsers, activeCards, isHealthy, to
         <div className="lg:col-span-2 glass-panel rounded-2xl p-6 min-h-[400px]">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-xl font-bold text-white">Platform Activity</h2>
-            <select className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-forest-500/50">
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
-              <option>This Year</option>
+            <select className="bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-forest-500/50">
+              <option className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-300">Last 7 Days</option>
+              <option className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-300">Last 30 Days</option>
+              <option className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-300">This Year</option>
             </select>
           </div>
           <div className="w-full h-64 flex items-center justify-center border border-dashed border-white/10 rounded-xl">
