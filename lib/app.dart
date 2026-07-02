@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:gatekipa/core/theme/app_theme.dart';
+import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/providers/system_state_provider.dart';
 import 'package:gatekipa/core/constants/routes.dart';
 import 'package:gatekipa/features/auth/providers/auth_provider.dart';
 import 'package:gatekipa/features/auth/screens/splash_screen.dart';
@@ -266,6 +268,26 @@ class GatekipaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final systemState = ref.watch(systemStateProvider).valueOrNull ?? SystemState.normal;
+    final localBuildNumberAsync = ref.watch(localBuildNumberProvider);
+
+    bool shouldForceUpdate = false;
+    if (systemState.minBuildNumber != null && localBuildNumberAsync.hasValue) {
+      final localBuild = localBuildNumberAsync.value!;
+      if (localBuild < systemState.minBuildNumber!) {
+        shouldForceUpdate = true;
+      }
+    }
+
+    if (shouldForceUpdate) {
+      return MaterialApp(
+        title: 'Gatekipa',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: const ForceUpdateScreen(),
+      );
+    }
+
     return InactivityWrapper(
       child: OfflineWrapper(
         child: MaterialApp.router(
@@ -284,6 +306,82 @@ class GatekipaApp extends ConsumerWidget {
               child: child ?? const SizedBox(),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class ForceUpdateScreen extends StatelessWidget {
+  const ForceUpdateScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.system_update_rounded,
+                  color: AppColors.primary,
+                  size: 80,
+                ),
+              ),
+              const SizedBox(height: 40),
+              Text(
+                'Update Required',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppColors.onSurface,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'To continue using Gatekipa, please update your app to the latest version. We have introduced critical security upgrades to keep your virtual cards safer.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Upgrader().sendUserToAppStore();
+                  },
+                  child: const Text(
+                    'Update App Now',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

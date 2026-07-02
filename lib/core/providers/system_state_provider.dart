@@ -11,6 +11,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 enum SystemMode {
   /// Fully operational. All features available.
@@ -41,12 +42,14 @@ class SystemState {
   final String? reason;
   final String? activatedBy;
   final DateTime? updatedAt;
+  final int? minBuildNumber;
 
   const SystemState({
     required this.mode,
     this.reason,
     this.activatedBy,
     this.updatedAt,
+    this.minBuildNumber,
   });
 
   // ── Convenience getters ─────────────────────────────────────────────────────
@@ -97,6 +100,16 @@ final systemStateProvider = StreamProvider.autoDispose<SystemState>((ref) {
       updatedAt: data['updated_at'] is Timestamp
           ? (data['updated_at'] as Timestamp).toDate()
           : null,
+      minBuildNumber: data['min_build_number'] as int?,
     );
   });
+});
+
+final localBuildNumberProvider = FutureProvider<int>((ref) async {
+  try {
+    final packageInfo = await PackageInfo.fromPlatform();
+    return int.tryParse(packageInfo.buildNumber) ?? 0;
+  } catch (_) {
+    return 0;
+  }
 });
