@@ -5,7 +5,7 @@ import {
   Users, Search, Filter, X, Check, Ban, Send, 
   Smartphone, MapPin, CreditCard, Calendar, ShieldCheck, ShieldAlert, Loader2 
 } from "lucide-react";
-import { approveKyc, toggleUserBlockStatus, sendInAppNotification } from "@/app/actions/adminActions";
+import { approveKyc, toggleUserBlockStatus, sendInAppNotification, dispatchAdminBroadcast } from "@/app/actions/adminActions";
 
 interface UserData {
   id: string;
@@ -32,6 +32,18 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
   const [notifTitle, setNotifTitle] = useState("");
   const [notifBody, setNotifBody] = useState("");
   const [sendingNotif, setSendingNotif] = useState(false);
+
+  // Broadcast Modal State
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastBody, setBroadcastBody] = useState("");
+  const [broadcastChannels, setBroadcastChannels] = useState({
+    push: true,
+    inApp: true,
+    email: false,
+    whatsapp: false,
+  });
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
   
   const [isPending, startTransition] = useTransition();
 
@@ -98,6 +110,34 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
     }
   };
 
+  const handleSendBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle || !broadcastBody) return;
+    
+    // Warn if no channels are selected
+    if (!broadcastChannels.push && !broadcastChannels.inApp && !broadcastChannels.email && !broadcastChannels.whatsapp) {
+      alert("Please select at least one channel for the broadcast.");
+      return;
+    }
+
+    setSendingBroadcast(true);
+    try {
+      const res = await dispatchAdminBroadcast(broadcastChannels, broadcastTitle, broadcastBody);
+      if (res.success) {
+        alert(`Broadcast sent successfully!\n- Notifications dispatched: ${res.notifCount}\n- Emails sent: ${res.emailCount}`);
+        setBroadcastTitle("");
+        setBroadcastBody("");
+        setShowBroadcastModal(false);
+      } else {
+        alert(res.error || "Failed to dispatch broadcast.");
+      }
+    } catch (err: any) {
+      alert("Error sending broadcast: " + err.message);
+    } finally {
+      setSendingBroadcast(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -109,6 +149,13 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
           <button className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl transition-colors border border-white/10 cursor-pointer">
             <Filter className="w-4 h-4" />
             Filter
+          </button>
+          <button 
+            onClick={() => setShowBroadcastModal(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
+          >
+            <Send className="w-4 h-4" />
+            Send Broadcast
           </button>
           <button className="flex items-center gap-2 bg-forest-500 hover:bg-forest-600 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer">
             <Users className="w-4 h-4" />
@@ -391,6 +438,146 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
               </div>
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broadcast Message Modal */}
+      {showBroadcastModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="glass-panel w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Send className="w-5 h-5 text-indigo-400" />
+                  System-Wide Broadcast
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">Send a broadcast message to all users on selected channels.</p>
+              </div>
+              <button 
+                onClick={() => setShowBroadcastModal(false)}
+                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <form onSubmit={handleSendBroadcast} className="p-6 space-y-6">
+              {/* Channel Selector */}
+              <div className="space-y-3">
+                <span className="text-sm font-medium text-white block">Channels</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={broadcastChannels.inApp}
+                      onChange={(e) => setBroadcastChannels({ ...broadcastChannels, inApp: e.target.checked })}
+                      className="accent-indigo-500 w-4 h-4"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-white block">In-App Inbox</span>
+                      <span className="text-[10px] text-gray-500">Render in notifications center</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={broadcastChannels.push}
+                      onChange={(e) => setBroadcastChannels({ ...broadcastChannels, push: e.target.checked })}
+                      className="accent-indigo-500 w-4 h-4"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-white block">FCM Push</span>
+                      <span className="text-[10px] text-gray-500">Deliver push notification</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={broadcastChannels.email}
+                      onChange={(e) => setBroadcastChannels({ ...broadcastChannels, email: e.target.checked })}
+                      className="accent-indigo-500 w-4 h-4"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-white block">Email Address</span>
+                      <span className="text-[10px] text-gray-500">Send transactional email</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={broadcastChannels.whatsapp}
+                      onChange={(e) => setBroadcastChannels({ ...broadcastChannels, whatsapp: e.target.checked })}
+                      className="accent-indigo-500 w-4 h-4"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-white block">WhatsApp</span>
+                      <span className="text-[10px] text-gray-500">Tabi.Africa template message</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Title & Message inputs */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white block">Message Title</label>
+                  <input 
+                    type="text"
+                    required
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                    placeholder="Broadcast Subject (e.g. System Maintenance Update)"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-white block">Message Content</label>
+                  <textarea 
+                    required
+                    rows={5}
+                    value={broadcastBody}
+                    onChange={(e) => setBroadcastBody(e.target.value)}
+                    placeholder="Compose your broadcast message here..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                <button 
+                  type="button"
+                  onClick={() => setShowBroadcastModal(false)}
+                  className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={sendingBroadcast || !broadcastTitle || !broadcastBody}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/10 disabled:opacity-50 cursor-pointer"
+                >
+                  {sendingBroadcast ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Broadcasting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Dispatch Broadcast
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

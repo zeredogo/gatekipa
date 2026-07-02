@@ -304,3 +304,86 @@ export async function runReconciliationSweep() {
     return { success: false, error: (error as Error).message };
   }
 }
+
+// --- UNIFIED BROADCAST DISPATCHER --- //
+export async function dispatchAdminBroadcast(
+  channels: { push: boolean; inApp: boolean; email: boolean; whatsapp: boolean },
+  title: string,
+  message: string
+) {
+  try {
+    await verifyAdminSession();
+    
+    // Fetch all user docs
+    const usersSnap = await db.collection("users").get();
+    const userIds = usersSnap.docs.map(doc => doc.id);
+    
+    let emailSuccessCount = 0;
+    let notifSuccessCount = 0;
+
+    // 1. Send system/push/whatsapp notifications via existing helper
+    if (channels.push || channels.inApp || channels.whatsapp) {
+      const res = await sendBroadcastNotification(userIds, title, message, {
+        push: channels.push,
+        inApp: channels.inApp,
+        whatsapp: channels.whatsapp
+      });
+      if (res.success) {
+        notifSuccessCount = res.count || 0;
+      } else {
+        throw new Error(res.error || "Failed to dispatch notifications.");
+      }
+    }
+
+    // 2. Send emails using direct Resend API call if enabled
+    if (channels.email) {
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        throw new Error("RESEND_API_KEY is not configured in the environment.");
+      }
+
+      const emails = usersSnap.docs.map(doc => doc.data().email).filter(Boolean);
+      for (const email of emails) {
+        try {
+          const res = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "Gatekipa <hello@gatekipa.com>",
+              to: email,
+              subject: title,
+              html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #333; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+                  <div style="text-align: center; margin-bottom: 20px;">
+                    <span style="font-size: 24px; font-weight: bold; color: #1e3a8a;">Gatekipa</span>
+                  </div>
+                  <h2 style="color: #111827; font-size: 20px; border-bottom: 1px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">${title}</h2>
+                  <p style="color: #374151; font-size: 15px; white-space: pre-wrap;">${message}</p>
+                  <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;"/>
+                  <p style="font-size: 12px; color: #9ca3af; text-align: center; margin-bottom: 0;">This is a system broadcast from the Gatekipa Admin Team.</p>
+                </div>
+              `,
+            }),
+          });
+          if (res.ok) {
+            emailSuccessCount++;
+          }
+        } catch (err) {
+          console.error(`Failed to send email to ${email}:`, err);
+        }
+      }
+    }
+
+    return { 
+      success: true, 
+      notifCount: notifSuccessCount, 
+      emailCount: emailSuccessCount 
+    };
+  } catch (e: any) {
+    console.error("Broadcast dispatch failed:", e);
+    return { success: false, error: e.message };
+  }
+}
