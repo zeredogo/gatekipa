@@ -186,34 +186,34 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
           <div className="relative">
             <button 
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl transition-colors border border-white/10 cursor-pointer"
+              className="flex items-center gap-2 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-900 dark:text-white px-4 py-2 rounded-xl transition-colors border border-gray-200 dark:border-white/10 cursor-pointer"
             >
               <Filter className="w-4 h-4" />
               Filter: {kycFilter === "all" ? "All" : kycFilter === "verified" ? "Verified" : kycFilter === "pending_review" ? "Pending Review" : "Pending"}
             </button>
             {showFilterDropdown && (
-              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-white/10 shadow-lg z-50 p-1.5 space-y-1">
+              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-white/10 shadow-lg z-50 p-1.5 space-y-1">
                 <button 
                   onClick={() => { setKycFilter("all"); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "all" ? "bg-forest-500 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "all" ? "bg-forest-500 text-white-literal" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"}`}
                 >
                   All Users
                 </button>
                 <button 
                   onClick={() => { setKycFilter("verified"); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "verified" ? "bg-forest-500 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "verified" ? "bg-forest-500 text-white-literal" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"}`}
                 >
                   Verified KYC
                 </button>
                 <button 
                   onClick={() => { setKycFilter("pending_review"); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending_review" ? "bg-forest-500 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending_review" ? "bg-forest-500 text-white-literal" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"}`}
                 >
                   Pending Review KYC
                 </button>
                 <button 
                   onClick={() => { setKycFilter("pending"); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending" ? "bg-forest-500 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending" ? "bg-forest-500 text-white-literal" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"}`}
                 >
                   Pending KYC
                 </button>
@@ -237,8 +237,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
         </div>
       </div>
 
-      <div className="glass-panel rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-white/5 bg-white/5">
+      <div className="bg-white dark:bg-[#090b0a] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-xs">
+        <div className="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5">
           <div className="relative max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
@@ -246,7 +246,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, email, or UID..." 
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-white/10 transition-all"
+              className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-gray-50 dark:focus:bg-white/10 transition-all"
             />
           </div>
         </div>
@@ -254,52 +254,52 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">User</th>
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">KYC Status</th>
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Plan Tier</th>
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Joined</th>
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
+                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">KYC Status</th>
+                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Plan Tier</th>
+                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
+                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-gray-500">No users found.</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={user.id} className="hover:bg-gray-50/80 dark:hover:bg-white/5 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-forest-600 to-forest-400 flex items-center justify-center font-bold text-white uppercase">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-forest-600 to-forest-400 flex items-center justify-center font-bold text-white-literal uppercase">
                           {user.displayName.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-white">{user.displayName}</p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{user.displayName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
                       {user.isVerified ? (
-                        <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium">Verified</span>
+                        <span className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 rounded-full text-xs font-medium">Verified</span>
                       ) : user.kycStatus === "pending_review" ? (
-                        <span className="px-2 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium">Pending Review</span>
+                        <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-full text-xs font-medium">Pending Review</span>
                       ) : (
-                        <span className="px-2 py-1 bg-white/5 text-gray-400 border border-white/10 rounded-full text-xs font-medium">Pending</span>
+                        <span className="px-2.5 py-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 rounded-full text-xs font-medium">Pending</span>
                       )}
                     </td>
                     <td className="p-4">
-                      <span className="text-sm text-gray-300 capitalize">{user.planTier}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{user.planTier}</span>
                     </td>
                     <td className="p-4">
-                      <span className="text-sm text-gray-400">{user.createdAt}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{user.createdAt}</span>
                     </td>
                     <td className="p-4">
                       <button 
                         onClick={() => setSelectedUser(user)}
-                        className="text-forest-400 hover:text-forest-300 text-sm font-medium cursor-pointer"
+                        className="text-forest-600 hover:text-forest-700 dark:text-forest-400 dark:hover:text-forest-300 text-sm font-medium cursor-pointer"
                       >
                         View Details
                       </button>
@@ -315,22 +315,22 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
       {/* Slide-out details drawer */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex justify-end">
-          <div className="w-full max-w-2xl bg-[#0d100e] h-full shadow-2xl border-l border-white/10 flex flex-col relative animate-in slide-in-from-right duration-250 overflow-hidden">
+          <div className="w-full max-w-2xl bg-white dark:bg-[#0d100e] h-full shadow-2xl border-l border-gray-200 dark:border-white/10 flex flex-col relative animate-in slide-in-from-right duration-250 overflow-hidden">
             
             {/* Sticky Header Bar */}
-            <div className="flex justify-between items-center p-6 border-b border-white/10 bg-[#080a09] shrink-0 z-10">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#080a09] shrink-0 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-forest-600 to-forest-400 flex items-center justify-center font-bold text-white text-lg uppercase shadow-lg shadow-forest-500/10">
+                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-forest-600 to-forest-400 flex items-center justify-center font-bold text-white-literal text-lg uppercase shadow-lg shadow-forest-500/10">
                   {selectedUser.displayName.charAt(0)}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white leading-tight">{selectedUser.displayName}</h2>
-                  <p className="text-xs text-gray-400">{selectedUser.email}</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{selectedUser.displayName}</h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{selectedUser.email}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setSelectedUser(null)}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold border border-white/10"
+                className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold border border-gray-200 dark:border-white/10"
               >
                 <X className="w-4 h-4" />
                 Close
@@ -341,13 +341,13 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               
               {/* UID Info Summary */}
-              <div className="flex items-center justify-between text-xs text-gray-500 font-mono bg-white/5 px-4 py-2.5 rounded-xl border border-white/5">
+              <div className="flex items-center justify-between text-xs text-gray-500 font-mono bg-gray-50 dark:bg-white/5 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/5">
                 <span>User Identifier (UID)</span>
                 <span>{selectedUser.id}</span>
               </div>
 
               {/* Account Profile Fields */}
-              <div className="grid grid-cols-2 gap-4 bg-white/5 p-5 rounded-2xl border border-white/10">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-white/5 p-5 rounded-2xl border border-gray-200 dark:border-white/10">
                 <div className="flex items-start gap-3">
                   <Smartphone className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
                   <div>
@@ -383,8 +383,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
 
               {/* KYC Information Section */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">KYC & Identity Verification</h3>
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10 space-y-4">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">KYC & Identity Verification</h3>
+                <div className="bg-gray-50 dark:bg-white/5 p-5 rounded-2xl border border-gray-200 dark:border-white/10 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs text-gray-400 block">ID Document Number (BVN/NIN)</span>
@@ -405,8 +405,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                   <div className="grid grid-cols-2 gap-4">
                     {selectedUser.selfieUrl ? (
                       <div className="space-y-2">
-                        <span className="text-xs text-gray-400 block font-medium">Liveness Selfie</span>
-                        <div className="relative aspect-square rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">Liveness Selfie</span>
+                        <div className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-black/40 flex items-center justify-center">
                           <img 
                             src={selectedUser.selfieUrl} 
                             alt="KYC Liveness Selfie" 
@@ -415,15 +415,15 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 rounded-xl bg-black/20 text-center text-xs text-gray-500 border border-dashed border-white/10 flex items-center justify-center aspect-square">
+                      <div className="p-4 rounded-xl bg-gray-100 dark:bg-black/20 text-center text-xs text-gray-500 border border-dashed border-gray-200 dark:border-white/10 flex items-center justify-center aspect-square">
                         No selfie captured yet.
                       </div>
                     )}
 
                     {selectedUser.documentUrl ? (
                       <div className="space-y-2">
-                        <span className="text-xs text-gray-400 block font-medium">Government ID Document</span>
-                        <div className="relative aspect-square rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center font-mono">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">Government ID Document</span>
+                        <div className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-black/40 flex items-center justify-center font-mono">
                           <img 
                             src={selectedUser.documentUrl} 
                             alt="Government ID" 
@@ -432,7 +432,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 rounded-xl bg-black/20 text-center text-xs text-gray-500 border border-dashed border-white/10 flex items-center justify-center aspect-square">
+                      <div className="p-4 rounded-xl bg-gray-100 dark:bg-black/20 text-center text-xs text-gray-500 border border-dashed border-gray-200 dark:border-white/10 flex items-center justify-center aspect-square">
                         No government ID uploaded.
                       </div>
                     )}
@@ -453,8 +453,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
 
               {/* Administrative Actions */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Administrative Operations</h3>
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10 space-y-5">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Administrative Operations</h3>
+                <div className="bg-gray-50 dark:bg-white/5 p-5 rounded-2xl border border-gray-200 dark:border-white/10 space-y-5">
                   
                   {/* Account Status / Blocking */}
                   <div className="flex items-center justify-between">
@@ -476,7 +476,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                     </button>
                   </div>
 
-                  <hr className="border-white/5" />
+                  <hr className="border-gray-200 dark:border-white/5" />
 
                   {/* Send Direct System / Push Notification */}
                   <form onSubmit={handleSendNotification} className="space-y-3">
@@ -487,7 +487,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       value={notifTitle}
                       onChange={(e) => setNotifTitle(e.target.value)}
                       placeholder="Notification Title (e.g. Account Ready!)"
-                      className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-forest-500/50"
+                      className="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-forest-500/50"
                     />
                     <textarea 
                       required
@@ -495,7 +495,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       value={notifBody}
                       onChange={(e) => setNotifBody(e.target.value)}
                       placeholder="Compose notification message body..."
-                      className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-forest-500/50 resize-none"
+                      className="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-forest-500/50 resize-none"
                     />
                     <button 
                       type="submit"
@@ -518,9 +518,9 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
       {/* Broadcast Message Modal */}
       {showBroadcastModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="glass-panel w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-[#0d100e] w-full max-w-lg rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
+            <div className="p-6 border-b border-gray-200 dark:border-white/5 flex items-center justify-between bg-gray-50 dark:bg-white/5">
               <div>
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
                   <Send className="w-5 h-5 text-forest-400" />
@@ -530,7 +530,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
               </div>
               <button 
                 onClick={() => setShowBroadcastModal(false)}
-                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -542,7 +542,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
               <div className="space-y-3">
                 <span className="text-sm font-medium text-white block">Channels</span>
                 <div className="grid grid-cols-2 gap-4">
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                     <input 
                       type="checkbox" 
                       checked={broadcastChannels.inApp}
@@ -550,12 +550,12 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       className="accent-forest-500 w-4 h-4"
                     />
                     <div>
-                      <span className="text-xs font-semibold text-white block">In-App Inbox</span>
-                      <span className="text-[10px] text-gray-500">Render in notifications center</span>
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white block">In-App Inbox</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Render in notifications center</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                     <input 
                       type="checkbox" 
                       checked={broadcastChannels.push}
@@ -563,12 +563,12 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       className="accent-forest-500 w-4 h-4"
                     />
                     <div>
-                      <span className="text-xs font-semibold text-white block">FCM Push</span>
-                      <span className="text-[10px] text-gray-500">Deliver push notification</span>
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white block">FCM Push</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Deliver push notification</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                     <input 
                       type="checkbox" 
                       checked={broadcastChannels.email}
@@ -576,12 +576,12 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       className="accent-forest-500 w-4 h-4"
                     />
                     <div>
-                      <span className="text-xs font-semibold text-white block">Email Address</span>
-                      <span className="text-[10px] text-gray-500">Send transactional email</span>
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white block">Email Address</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Send transactional email</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                     <input 
                       type="checkbox" 
                       checked={broadcastChannels.whatsapp}
@@ -589,8 +589,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       className="accent-forest-500 w-4 h-4"
                     />
                     <div>
-                      <span className="text-xs font-semibold text-white block">WhatsApp</span>
-                      <span className="text-[10px] text-gray-500">Tabi.Africa template message</span>
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white block">WhatsApp</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Tabi.Africa template message</span>
                     </div>
                   </label>
                 </div>
@@ -599,36 +599,36 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
               {/* Title & Message inputs */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-white block">Message Title</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block">Message Title</label>
                   <input 
                     type="text"
                     required
                     value={broadcastTitle}
                     onChange={(e) => setBroadcastTitle(e.target.value)}
                     placeholder="Broadcast Subject (e.g. System Maintenance Update)"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-white/10 transition-all"
+                    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-gray-50 dark:focus:bg-white/10 transition-all"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-white block">Message Content</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white block">Message Content</label>
                   <textarea 
                     required
                     rows={5}
                     value={broadcastBody}
                     onChange={(e) => setBroadcastBody(e.target.value)}
                     placeholder="Compose your broadcast message here..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-white/10 transition-all resize-none"
+                    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-gray-50 dark:focus:bg-white/10 transition-all resize-none"
                   />
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-white/5">
                 <button 
                   type="button"
                   onClick={() => setShowBroadcastModal(false)}
-                  className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
