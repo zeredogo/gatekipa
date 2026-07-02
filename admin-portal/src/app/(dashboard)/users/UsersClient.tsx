@@ -222,14 +222,14 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
           </div>
           <button 
             onClick={() => setShowBroadcastModal(true)}
-            className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
+            className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white-literal px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
           >
             <Send className="w-4 h-4" />
             Send Broadcast
           </button>
           <button 
             onClick={handleExportUsers}
-            className="flex items-center gap-2 bg-forest-500 hover:bg-forest-600 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
+            className="flex items-center gap-2 bg-forest-500 hover:bg-forest-600 text-white-literal px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
           >
             <Users className="w-4 h-4" />
             Export Users
@@ -442,7 +442,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                     <button 
                       onClick={() => handleApproveKyc(selectedUser.id)}
                       disabled={isPending}
-                      className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-emerald-500/10 disabled:opacity-50 cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white-literal font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-emerald-500/10 disabled:opacity-50 cursor-pointer"
                     >
                       {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                       Approve Manual KYC
@@ -500,7 +500,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                     <button 
                       type="submit"
                       disabled={sendingNotif || !notifTitle || !notifBody}
-                      className="flex items-center gap-2 bg-forest-500 hover:bg-forest-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md shadow-forest-500/10 disabled:opacity-50 cursor-pointer ml-auto"
+                      className="flex items-center gap-2 bg-forest-500 hover:bg-forest-600 text-white-literal text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md shadow-forest-500/10 disabled:opacity-50 cursor-pointer ml-auto"
                     >
                       {sendingNotif ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                       Dispatch Notification
@@ -635,7 +635,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                 <button 
                   type="submit"
                   disabled={sendingBroadcast || !broadcastTitle || !broadcastBody}
-                  className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-all shadow-md shadow-forest-600/10 disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white-literal text-sm font-semibold px-5 py-2 rounded-xl transition-all shadow-md shadow-forest-600/10 disabled:opacity-50 cursor-pointer"
                 >
                   {sendingBroadcast ? (
                     <>

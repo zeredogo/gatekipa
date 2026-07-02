@@ -12,6 +12,13 @@
   --color-forest-600: #003629;
   --color-forest-700: #00210c;
   --color-forest-800: #001206;
+  
+  /* Theme overrides to adapt hardcoded white/gray layout colors dynamically */
+  --color-white: var(--text-white-override);
+  --color-white-literal: #ffffff;
+  --color-gray-400: var(--text-gray-400-override);
+  --color-gray-500: var(--text-gray-500-override);
+  --color-gray-900: var(--text-gray-900-override);
 }
 
 :root {
@@ -21,6 +28,11 @@
   --glass-border: rgba(0, 54, 41, 0.08);
   --scrollbar-thumb: rgba(0, 0, 0, 0.1);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+  
+  --text-white-override: #111827;
+  --text-gray-400-override: #4b5563;
+  --text-gray-500-override: #6b7280;
+  --text-gray-900-override: #111827;
 }
 
 .dark, [data-theme="dark"] {
@@ -30,6 +42,11 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --scrollbar-thumb: rgba(255, 255, 255, 0.1);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+  
+  --text-white-override: #ffffff;
+  --text-gray-400-override: #9ca3af;
+  --text-gray-500-override: #6b7280;
+  --text-gray-900-override: #f9fafb;
 }
 
 body {
