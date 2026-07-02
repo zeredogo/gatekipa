@@ -64,39 +64,39 @@ exports.deleteUserAccount = onCall(
       .where("owner_user_id", "==", uid)
       .get();
 
-    for (const accDoc of accountsSnap.docs) {
+    const accountPromises = accountsSnap.docs.map(async (accDoc) => {
       const accountId = accDoc.id;
+      amlSnapshot.accounts.push({ id: accDoc.id, ...accDoc.data() });
+      refsToDelete.push(accDoc.ref);
 
-      // 3a. Rules for each card
-      const cardsSnap = await db
-        .collection("cards")
-        .where("account_id", "==", accountId)
-        .get();
+      // Fetch cards and team members in parallel
+      const [cardsSnap, tmSnap] = await Promise.all([
+        db.collection("cards").where("account_id", "==", accountId).get(),
+        db.collection("team_members").where("account_id", "==", accountId).get()
+      ]);
 
-      for (const cardDoc of cardsSnap.docs) {
-        amlSnapshot.cards.push({ id: cardDoc.id, ...cardDoc.data() });
-        const rulesSnap = await db
-          .collection("rules")
-          .where("card_id", "==", cardDoc.id)
-          .get();
-        rulesSnap.docs.forEach((ruleDoc) => refsToDelete.push(ruleDoc.ref));
-        refsToDelete.push(cardDoc.ref);
-      }
-
-      // 3b. Team members
-      const tmSnap = await db
-        .collection("team_members")
-        .where("account_id", "==", accountId)
-        .get();
+      // Push team members
       tmSnap.docs.forEach((tmDoc) => {
          amlSnapshot.team_members.push({ id: tmDoc.id, ...tmDoc.data() });
          refsToDelete.push(tmDoc.ref);
       });
 
-      // 3c. Account doc itself
-      amlSnapshot.accounts.push({ id: accDoc.id, ...accDoc.data() });
-      refsToDelete.push(accDoc.ref);
-    }
+      // Fetch rules for all cards in parallel
+      const cardPromises = cardsSnap.docs.map(async (cardDoc) => {
+        amlSnapshot.cards.push({ id: cardDoc.id, ...cardDoc.data() });
+        refsToDelete.push(cardDoc.ref);
+
+        const rulesSnap = await db
+          .collection("rules")
+          .where("card_id", "==", cardDoc.id)
+          .get();
+        rulesSnap.docs.forEach((ruleDoc) => refsToDelete.push(ruleDoc.ref));
+      });
+
+      await Promise.all(cardPromises);
+    });
+
+    await Promise.all(accountPromises);
 
     // 4. User doc
     refsToDelete.push(db.collection("users").doc(uid));

@@ -28,7 +28,6 @@ exports.detectSubscriptions = onCall({ region: "us-central1" }, async (request) 
   const merchantPattern = /(?:from|receipt from|paid to|charged by)\s+([A-Za-z0-9\s]+)/i;
 
   const detected = [];
-  const batch = db.batch();
   const subscriptionsRef = db.collection('users').doc(uid).collection('detected_subscriptions');
 
   for (const msg of messages) {
@@ -73,18 +72,24 @@ exports.detectSubscriptions = onCall({ region: "us-central1" }, async (request) 
     };
 
     detected.push(subDoc);
-    const newDocRef = subscriptionsRef.doc();
-    batch.set(newDocRef, subDoc);
   }
 
-  // Commit to firestore
+  // Commit to firestore in chunks of 400 to respect Firestore batch limit of 500
   if (detected.length > 0) {
     try {
+      for (let i = 0; i < detected.length; i += 400) {
+        const chunk = detected.slice(i, i + 400);
+        const batch = db.batch();
+        chunk.forEach(subDoc => {
+          const newDocRef = subscriptionsRef.doc();
+          batch.set(newDocRef, subDoc);
+        });
         await batch.commit();
-        console.info(`[DetectSubscriptions] Successfully committed ${detected.length} subscriptions to Firestore for uid: ${uid}`);
+      }
+      console.info(`[DetectSubscriptions] Successfully committed ${detected.length} subscriptions to Firestore for uid: ${uid}`);
     } catch (e) {
-        console.error("[DetectSubscriptions] Firestore batch commit failed:", e);
-        throw new HttpsError("internal", "Failed to save detected subscriptions");
+      console.error("[DetectSubscriptions] Firestore batch commit failed:", e);
+      throw new HttpsError("internal", "Failed to save detected subscriptions");
     }
   }
 

@@ -57,7 +57,10 @@ exports.searchEntities = onCall({ region: "us-central1" }, async (request) => {
   const matchingCards = [];
   for (let i = 0; i < allValidAccountIds.length; i += 10) {
     const chunk = allValidAccountIds.slice(i, i + 10);
-    const cardSnap = await db.collection("cards").where("account_id", "in", chunk).get();
+    const cardSnap = await db.collection("cards")
+      .where("account_id", "in", chunk)
+      .limit(100)
+      .get();
     cardSnap.docs.forEach(doc => {
       const data = { id: doc.id, ...doc.data() };
       if (data.name && data.name.toLowerCase().includes(q)) {

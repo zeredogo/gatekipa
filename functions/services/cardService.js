@@ -335,6 +335,8 @@ exports.freezeAllCards = onCall({ region: "us-central1" }, async (request) => {
 
     if (!cardsSnap.empty) {
       const batch = db.batch();
+      const sudoPromises = [];
+
       for (const doc of cardsSnap.docs) {
         batch.update(doc.ref, { 
           local_status: "frozen",
@@ -343,13 +345,15 @@ exports.freezeAllCards = onCall({ region: "us-central1" }, async (request) => {
           ...(doc.data().sudo_card_id && { sudo_status: "frozen" }),
         });
 
-        if (doc.data().sudo_card_id) {
-          try {
-            await internalFreezeSudoCard(doc.data().sudo_card_id, true);
-          } catch (e) {
-            logger.error(`[FreezeAllCards] Failed to freeze card ${doc.id} at Sudo`, e);
-            failedFreezes.push(doc.id);
-          }
+        const sudoCardId = doc.data().sudo_card_id;
+        if (sudoCardId) {
+          sudoPromises.push(
+            internalFreezeSudoCard(sudoCardId, true)
+              .catch(e => {
+                logger.error(`[FreezeAllCards] Failed to freeze card ${doc.id} at Sudo`, e);
+                failedFreezes.push(doc.id);
+              })
+          );
         }
         
         batch.set(db.collection("card_freeze_logs").doc(), {
@@ -361,6 +365,12 @@ exports.freezeAllCards = onCall({ region: "us-central1" }, async (request) => {
           context: "freezeAllCards"
         });
       }
+
+      // Execute Sudo API calls concurrently
+      if (sudoPromises.length > 0) {
+        await Promise.all(sudoPromises);
+      }
+
       await batch.commit();
       totalBlocked += cardsSnap.size;
     }
