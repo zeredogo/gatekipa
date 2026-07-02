@@ -19,6 +19,12 @@
   --color-gray-400: var(--text-gray-400-override);
   --color-gray-500: var(--text-gray-500-override);
   --color-gray-900: var(--text-gray-900-override);
+
+  /* Dynamic theme colors for stats */
+  --color-stat-forest: var(--theme-stat-forest);
+  --color-stat-green: var(--theme-stat-green);
+  --color-stat-emerald: var(--theme-stat-emerald);
+  --color-stat-amber: var(--theme-stat-amber);
 }
 
 :root {
@@ -33,6 +39,11 @@
   --text-gray-400-override: #4b5563;
   --text-gray-500-override: #6b7280;
   --text-gray-900-override: #111827;
+
+  --theme-stat-forest: #1b4d3e;
+  --theme-stat-green: #15803d;
+  --theme-stat-emerald: #047857;
+  --theme-stat-amber: #b45309;
 }
 
 .dark, [data-theme="dark"] {
@@ -47,6 +58,11 @@
   --text-gray-400-override: #9ca3af;
   --text-gray-500-override: #6b7280;
   --text-gray-900-override: #f9fafb;
+
+  --theme-stat-forest: #61c680;
+  --theme-stat-green: #4ade80;
+  --theme-stat-emerald: #34d399;
+  --theme-stat-amber: #fbbf24;
 }
 
 body {

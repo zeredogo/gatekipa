@@ -186,34 +186,34 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
           <div className="relative">
             <button 
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className="flex items-center gap-2 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-900 dark:text-white px-4 py-2 rounded-xl transition-colors border border-gray-200 dark:border-white/10 cursor-pointer"
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl transition-colors border border-white/10 cursor-pointer"
             >
               <Filter className="w-4 h-4" />
               Filter: {kycFilter === "all" ? "All" : kycFilter === "verified" ? "Verified" : kycFilter === "pending_review" ? "Pending Review" : "Pending"}
             </button>
             {showFilterDropdown && (
-              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-white/10 shadow-lg z-50 p-1.5 space-y-1">
+              <div className="absolute right-0 mt-2 w-48 rounded-xl bg-neutral-900 border border-white/10 shadow-lg z-50 p-1.5 space-y-1">
                 <button 
                   onClick={() => { setKycFilter("all"); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "all" ? "bg-forest-500 text-white-literal" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "all" ? "bg-forest-500 text-white-literal" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
                 >
                   All Users
                 </button>
                 <button 
                   onClick={() => { setKycFilter("verified"); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "verified" ? "bg-forest-500 text-white-literal" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "verified" ? "bg-forest-500 text-white-literal" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
                 >
                   Verified KYC
                 </button>
                 <button 
                   onClick={() => { setKycFilter("pending_review"); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending_review" ? "bg-forest-500 text-white-literal" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending_review" ? "bg-forest-500 text-white-literal" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
                 >
                   Pending Review KYC
                 </button>
                 <button 
                   onClick={() => { setKycFilter("pending"); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending" ? "bg-forest-500 text-white-literal" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"}`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${kycFilter === "pending" ? "bg-forest-500 text-white-literal" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
                 >
                   Pending KYC
                 </button>
@@ -237,8 +237,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#090b0a] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-xs">
-        <div className="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5">
+      <div className="glass-panel rounded-2xl overflow-hidden">
+        <div className="p-4 border-b border-white/5 bg-white/5">
           <div className="relative max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
@@ -246,7 +246,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, email, or UID..." 
-              className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-gray-50 dark:focus:bg-white/10 transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-white/10 transition-all"
             />
           </div>
         </div>
@@ -254,52 +254,52 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
-                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">KYC Status</th>
-                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Plan Tier</th>
-                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
-                <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-white/10 bg-white/5">
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">User</th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">KYC Status</th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Plan Tier</th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Joined</th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+            <tbody className="divide-y divide-white/5">
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-gray-500">No users found.</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50/80 dark:hover:bg-white/5 transition-colors">
+                  <tr key={user.id} className="hover:bg-white/5 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-linear-to-br from-forest-600 to-forest-400 flex items-center justify-center font-bold text-white-literal uppercase">
                           {user.displayName.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{user.displayName}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                          <p className="text-sm font-medium text-white">{user.displayName}</p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
                       {user.isVerified ? (
-                        <span className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 rounded-full text-xs font-medium">Verified</span>
+                        <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium">Verified</span>
                       ) : user.kycStatus === "pending_review" ? (
-                        <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-full text-xs font-medium">Pending Review</span>
+                        <span className="px-2 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium">Pending Review</span>
                       ) : (
-                        <span className="px-2.5 py-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 rounded-full text-xs font-medium">Pending</span>
+                        <span className="px-2 py-1 bg-white/5 text-gray-400 border border-white/10 rounded-full text-xs font-medium">Pending</span>
                       )}
                     </td>
                     <td className="p-4">
-                      <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{user.planTier}</span>
+                      <span className="text-sm text-gray-300 capitalize">{user.planTier}</span>
                     </td>
                     <td className="p-4">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{user.createdAt}</span>
+                      <span className="text-sm text-gray-400">{user.createdAt}</span>
                     </td>
                     <td className="p-4">
                       <button 
                         onClick={() => setSelectedUser(user)}
-                        className="text-forest-600 hover:text-forest-700 dark:text-forest-400 dark:hover:text-forest-300 text-sm font-medium cursor-pointer"
+                        className="text-forest-400 hover:text-forest-300 text-sm font-medium cursor-pointer"
                       >
                         View Details
                       </button>

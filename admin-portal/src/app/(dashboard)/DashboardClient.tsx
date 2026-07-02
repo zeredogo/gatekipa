@@ -20,10 +20,10 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ totalUsers, activeCards, isHealthy, totalTransactions }: DashboardClientProps) {
   const stats = [
-    { label: "Total Users", value: totalUsers.toLocaleString(), change: "Live", icon: Users, color: "text-forest-400" },
-    { label: "Active/Frozen Cards", value: activeCards.toLocaleString(), change: "Live", icon: CreditCard, color: "text-green-400" },
-    { label: "System Status", value: isHealthy ? "Healthy" : "Lockdown", change: isHealthy ? "99.9%" : "Degraded", icon: isHealthy ? Activity : ServerCrash, color: isHealthy ? "text-emerald-400" : "text-rose-400" },
-    { label: "Total Transactions", value: totalTransactions.toLocaleString(), change: "Live", icon: ShieldCheck, color: "text-amber-400" },
+    { label: "Total Users", value: totalUsers.toLocaleString(), change: "Live", icon: Users, color: "text-stat-forest" },
+    { label: "Active/Frozen Cards", value: activeCards.toLocaleString(), change: "Live", icon: CreditCard, color: "text-stat-green" },
+    { label: "System Status", value: isHealthy ? "Healthy" : "Lockdown", change: isHealthy ? "99.9%" : "Degraded", icon: isHealthy ? Activity : ServerCrash, color: isHealthy ? "text-stat-emerald" : "text-rose-400" },
+    { label: "Total Transactions", value: totalTransactions.toLocaleString(), change: "Live", icon: ShieldCheck, color: "text-stat-amber" },
   ];
 
   const recentAlerts = [
