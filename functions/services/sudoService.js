@@ -461,7 +461,12 @@ exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512M
 
       // 2. RULE EVALUATION (PRE-TRANSACTION)
       const { evaluateTransaction } = require("../engines/ruleEngine");
-      const ruleResult = await evaluateTransaction(sudoCardId, amountKobo / 100, merchant);
+      const options = {
+        merchantCountry: eventObject.merchant?.country,
+        transactionCurrency: eventObject.currency,
+        channel: eventObject.channel
+      };
+      const ruleResult = await evaluateTransaction(sudoCardId, amountKobo / 100, merchant, options);
       if (!ruleResult.approved) {
         logger.warn(`[Sudo JIT] Rule violation for card ${sudoCardId}: ${ruleResult.reason}`);
         // Record the decline and notify the user asynchronously
