@@ -195,33 +195,43 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
       {/* Slide-out details drawer */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex justify-end">
-          <div className="w-full max-w-2xl bg-[#0f172a] h-full shadow-2xl p-8 overflow-y-auto border-l border-white/10 flex flex-col relative animate-in slide-in-from-right duration-250">
-            <button 
-              onClick={() => setSelectedUser(null)}
-              className="absolute top-6 right-6 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Profile Overview */}
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-forest-500 to-indigo-500 flex items-center justify-center font-bold text-white text-2xl uppercase shadow-lg shadow-forest-500/10">
-                {selectedUser.displayName.charAt(0)}
+          <div className="w-full max-w-2xl bg-[#0f172a] h-full shadow-2xl border-l border-white/10 flex flex-col relative animate-in slide-in-from-right duration-250 overflow-hidden">
+            
+            {/* Sticky Header Bar */}
+            <div className="flex justify-between items-center p-6 border-b border-white/10 bg-[#0c1322] shrink-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-forest-500 to-indigo-500 flex items-center justify-center font-bold text-white text-lg uppercase shadow-lg shadow-forest-500/10">
+                  {selectedUser.displayName.charAt(0)}
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white leading-tight">{selectedUser.displayName}</h2>
+                  <p className="text-xs text-gray-400">{selectedUser.email}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white">{selectedUser.displayName}</h2>
-                <p className="text-sm text-gray-400">{selectedUser.email}</p>
-                <p className="text-xs text-gray-500 font-mono mt-1">UID: {selectedUser.id}</p>
-              </div>
+              <button 
+                onClick={() => setSelectedUser(null)}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold border border-white/10"
+              >
+                <X className="w-4 h-4" />
+                Close
+              </button>
             </div>
 
-            <div className="space-y-8 flex-1">
+            {/* Scrollable Content Container */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              
+              {/* UID Info Summary */}
+              <div className="flex items-center justify-between text-xs text-gray-500 font-mono bg-white/5 px-4 py-2.5 rounded-xl border border-white/5">
+                <span>User Identifier (UID)</span>
+                <span>{selectedUser.id}</span>
+              </div>
+
               {/* Account Profile Fields */}
               <div className="grid grid-cols-2 gap-4 bg-white/5 p-5 rounded-2xl border border-white/10">
                 <div className="flex items-start gap-3">
                   <Smartphone className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-xs text-gray-400 block">Phone Number</span>
+                    <span className="text-xs text-gray-400 block font-medium">Phone Number</span>
                     <span className="text-sm font-medium text-white">{selectedUser.phoneNumber || "—"}</span>
                   </div>
                 </div>
@@ -229,7 +239,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                 <div className="flex items-start gap-3">
                   <CreditCard className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-xs text-gray-400 block">Plan Tier</span>
+                    <span className="text-xs text-gray-400 block font-medium">Plan Tier</span>
                     <span className="text-sm font-medium text-white capitalize">{selectedUser.planTier}</span>
                   </div>
                 </div>
@@ -237,7 +247,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                 <div className="flex items-start gap-3 col-span-2">
                   <MapPin className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-xs text-gray-400 block">Residential Address</span>
+                    <span className="text-xs text-gray-400 block font-medium">Residential Address</span>
                     <span className="text-sm font-medium text-white leading-relaxed">{selectedUser.address || "—"}</span>
                   </div>
                 </div>
@@ -245,7 +255,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                 <div className="flex items-start gap-3 col-span-2">
                   <Calendar className="w-5 h-5 text-gray-500 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-xs text-gray-400 block">Member Since</span>
+                    <span className="text-xs text-gray-400 block font-medium">Member Since</span>
                     <span className="text-sm font-medium text-white">{selectedUser.createdAt}</span>
                   </div>
                 </div>
