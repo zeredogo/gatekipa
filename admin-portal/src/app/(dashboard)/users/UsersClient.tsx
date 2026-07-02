@@ -222,7 +222,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
           </div>
           <button 
             onClick={() => setShowBroadcastModal(true)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
+            className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white px-4 py-2 rounded-xl transition-colors font-medium cursor-pointer"
           >
             <Send className="w-4 h-4" />
             Send Broadcast
@@ -272,7 +272,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                   <tr key={user.id} className="hover:bg-white/5 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-forest-500 to-indigo-500 flex items-center justify-center font-bold text-white uppercase">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-forest-600 to-forest-400 flex items-center justify-center font-bold text-white uppercase">
                           {user.displayName.charAt(0)}
                         </div>
                         <div>
@@ -315,12 +315,12 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
       {/* Slide-out details drawer */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex justify-end">
-          <div className="w-full max-w-2xl bg-[#0f172a] h-full shadow-2xl border-l border-white/10 flex flex-col relative animate-in slide-in-from-right duration-250 overflow-hidden">
+          <div className="w-full max-w-2xl bg-[#0d100e] h-full shadow-2xl border-l border-white/10 flex flex-col relative animate-in slide-in-from-right duration-250 overflow-hidden">
             
             {/* Sticky Header Bar */}
-            <div className="flex justify-between items-center p-6 border-b border-white/10 bg-[#0c1322] shrink-0 z-10">
+            <div className="flex justify-between items-center p-6 border-b border-white/10 bg-[#080a09] shrink-0 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-forest-500 to-indigo-500 flex items-center justify-center font-bold text-white text-lg uppercase shadow-lg shadow-forest-500/10">
+                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-forest-600 to-forest-400 flex items-center justify-center font-bold text-white text-lg uppercase shadow-lg shadow-forest-500/10">
                   {selectedUser.displayName.charAt(0)}
                 </div>
                 <div>
@@ -523,7 +523,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
             <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
               <div>
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Send className="w-5 h-5 text-indigo-400" />
+                  <Send className="w-5 h-5 text-forest-400" />
                   System-Wide Broadcast
                 </h3>
                 <p className="text-xs text-gray-400 mt-1">Send a broadcast message to all users on selected channels.</p>
@@ -547,7 +547,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       type="checkbox" 
                       checked={broadcastChannels.inApp}
                       onChange={(e) => setBroadcastChannels({ ...broadcastChannels, inApp: e.target.checked })}
-                      className="accent-indigo-500 w-4 h-4"
+                      className="accent-forest-500 w-4 h-4"
                     />
                     <div>
                       <span className="text-xs font-semibold text-white block">In-App Inbox</span>
@@ -560,7 +560,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       type="checkbox" 
                       checked={broadcastChannels.push}
                       onChange={(e) => setBroadcastChannels({ ...broadcastChannels, push: e.target.checked })}
-                      className="accent-indigo-500 w-4 h-4"
+                      className="accent-forest-500 w-4 h-4"
                     />
                     <div>
                       <span className="text-xs font-semibold text-white block">FCM Push</span>
@@ -573,7 +573,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       type="checkbox" 
                       checked={broadcastChannels.email}
                       onChange={(e) => setBroadcastChannels({ ...broadcastChannels, email: e.target.checked })}
-                      className="accent-indigo-500 w-4 h-4"
+                      className="accent-forest-500 w-4 h-4"
                     />
                     <div>
                       <span className="text-xs font-semibold text-white block">Email Address</span>
@@ -586,7 +586,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                       type="checkbox" 
                       checked={broadcastChannels.whatsapp}
                       onChange={(e) => setBroadcastChannels({ ...broadcastChannels, whatsapp: e.target.checked })}
-                      className="accent-indigo-500 w-4 h-4"
+                      className="accent-forest-500 w-4 h-4"
                     />
                     <div>
                       <span className="text-xs font-semibold text-white block">WhatsApp</span>
@@ -606,7 +606,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                     value={broadcastTitle}
                     onChange={(e) => setBroadcastTitle(e.target.value)}
                     placeholder="Broadcast Subject (e.g. System Maintenance Update)"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-white/10 transition-all"
                   />
                 </div>
 
@@ -618,7 +618,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                     value={broadcastBody}
                     onChange={(e) => setBroadcastBody(e.target.value)}
                     placeholder="Compose your broadcast message here..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all resize-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-forest-500/50 focus:bg-white/10 transition-all resize-none"
                   />
                 </div>
               </div>
@@ -635,7 +635,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserData[]
                 <button 
                   type="submit"
                   disabled={sendingBroadcast || !broadcastTitle || !broadcastBody}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/10 disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-all shadow-md shadow-forest-600/10 disabled:opacity-50 cursor-pointer"
                 >
                   {sendingBroadcast ? (
                     <>

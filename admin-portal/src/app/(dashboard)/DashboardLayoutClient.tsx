@@ -64,15 +64,15 @@ export default function DashboardLayoutClient({
         <div className="p-6 flex items-center justify-between shrink-0">
           {sidebarOpen ? (
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-forest-500 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden bg-forest-600 border border-white/10 flex items-center justify-center shrink-0">
+                <img src="/logo.png" alt="Gatekipa Logo" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-lg tracking-wide text-white">Gatekipa</span>
             </Link>
           ) : (
             <Link href="/" className="w-full flex justify-center">
-              <div className="w-8 h-8 rounded-lg bg-forest-500 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden bg-forest-600 border border-white/10 flex items-center justify-center">
+                <img src="/logo.png" alt="Gatekipa Logo" className="w-full h-full object-cover" />
               </div>
             </Link>
           )}
@@ -101,6 +101,23 @@ export default function DashboardLayoutClient({
             );
           })}
         </nav>
+
+        {/* Profile info above Logout button */}
+        <div className="px-3 py-2 border-t border-white/5 shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/5">
+            <div className="w-8 h-8 rounded-full bg-linear-to-tr from-forest-600 to-forest-400 border border-white/10 flex items-center justify-center font-bold text-white uppercase text-xs shrink-0">
+              {adminEmail.charAt(0)}
+            </div>
+            {sidebarOpen && (
+              <div className="text-left overflow-hidden">
+                <p className="text-xs font-semibold text-white truncate" title={adminEmail}>
+                  {adminEmail}
+                </p>
+                <p className="text-[10px] text-gray-400 font-medium">Super Administrator</p>
+              </div>
+            )}
+          </div>
+        </div>
 
         <div className="p-4 border-t border-white/5 shrink-0">
           <button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-rose-500/10 hover:text-rose-400 transition-all duration-200 group">
@@ -136,14 +153,6 @@ export default function DashboardLayoutClient({
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
             </button>
-            <div className="h-8 w-px bg-white/10 mx-2"></div>
-            <div className="flex items-center gap-3 cursor-pointer hover:bg-white/5 py-1 px-2 rounded-lg transition-colors">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-semibold text-white">{adminEmail}</p>
-                <p className="text-xs text-gray-400">Super Administrator</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-linear-to-tr from-forest-500 to-purple-500 border-2 border-white/10 flex items-center justify-center font-bold text-white uppercase">{adminEmail.charAt(0)}</div>
-            </div>
           </div>
         </header>
 
@@ -151,7 +160,7 @@ export default function DashboardLayoutClient({
         <div className="flex-1 overflow-auto relative z-0">
           {/* Ambient Background Glows */}
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-forest-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-forest-600/5 rounded-full blur-[120px] pointer-events-none"></div>
 
           <div className="p-8 relative z-10 max-w-7xl mx-auto min-h-full">
             {children}
