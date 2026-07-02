@@ -76,97 +76,69 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                     return;
                   }
 
-                  // Directly run Face/Selfie OTP bypass verification (SMS OTP option retired)
-                  const method = 'face';
-
+                  // Direct Face/Selfie OTP bypass verification (SMS OTP retired)
                   final walletNotifier = ref.read(walletNotifierProvider.notifier);
-                  String? capturedOtp;
                   String? capturedIdentityId;
 
                   try {
-                    if (method == 'face') {
-                      // Show screen flash/ring-light helper overlay
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (context) => const Scaffold(
-                          backgroundColor: Colors.white,
-                          body: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(color: Colors.blue),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Preparing camera helper...',
-                                  style: TextStyle(color: Colors.black54, fontSize: 16, fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
+                    // Show screen flash/ring-light helper overlay
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Scaffold(
+                        backgroundColor: Colors.white,
+                        body: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(color: Colors.blue),
+                              SizedBox(height: 16),
+                              Text(
+                                'Preparing camera helper...',
+                                style: TextStyle(color: Colors.black54, fontSize: 16, fontWeight: FontWeight.w500),
+                              ),
+                            ],
                           ),
                         ),
+                      ),
+                    );
+
+                    // Wait for screen white lighting to stabilize
+                    await Future.delayed(const Duration(milliseconds: 400));
+                    if (!context.mounted) return;
+
+                    final navigator = Navigator.of(context);
+
+                    // 2. Capture face image
+                    final picker = ImagePicker();
+                    XFile? picked;
+                    try {
+                      picked = await picker.pickImage(
+                        source: ImageSource.camera, 
+                        imageQuality: 80, 
+                        preferredCameraDevice: CameraDevice.front,
                       );
+                    } finally {
+                      // Dismiss screen flash overlay
+                      navigator.pop();
+                    }
 
-                      // Wait for screen white lighting to stabilize
-                      await Future.delayed(const Duration(milliseconds: 400));
+                    if (picked == null) {
                       if (!context.mounted) return;
+                      GkToast.show(context, message: 'Selfie capture cancelled.', type: ToastType.warning);
+                      return;
+                    }
 
-                      final navigator = Navigator.of(context);
+                    if (!context.mounted) return;
+                    GkToast.show(context, message: 'Processing face verification...', type: ToastType.info);
 
-                      // 2a. Capture face image
-                      final picker = ImagePicker();
-                      XFile? picked;
-                      try {
-                        picked = await picker.pickImage(
-                          source: ImageSource.camera, 
-                          imageQuality: 80, 
-                          preferredCameraDevice: CameraDevice.front,
-                        );
-                      } finally {
-                        // Dismiss screen flash overlay
-                        navigator.pop();
-                      }
+                    final bytes = await picked.readAsBytes();
+                    final base64Str = 'data:image/jpeg;base64,${base64Encode(bytes)}';
 
-                      if (picked == null) {
-                        if (!context.mounted) return;
-                        GkToast.show(context, message: 'Selfie capture cancelled.', type: ToastType.warning);
-                        return;
-                      }
-
-                      if (!context.mounted) return;
-                      GkToast.show(context, message: 'Processing face verification...', type: ToastType.info);
-
-                      final bytes = await picked.readAsBytes();
-                      final base64Str = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-
-                      // 3a. Initiate face verification
-                      capturedIdentityId = await walletNotifier.initiateVaultVerification(faceImageBase64: base64Str);
-                      if (capturedIdentityId == null) {
-                        throw Exception("Facial recognition match failed. Please check camera lighting.");
-                      }
-                    } else {
-                      // 2b. Initiate OTP verification
-                      capturedIdentityId = await walletNotifier.initiateVaultVerification();
-                      if (capturedIdentityId == null) {
-                        throw Exception("Failed to initiate SMS verification. Check your network.");
-                      }
-
-                      if (!context.mounted) return;
-
-                      // 3b. Prompt for OTP dialog
-                      final phone = user?.phoneNumber ?? 'your registered number';
-                      final otp = await showDialog<String>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (context) => OtpDialog(phone: phone),
-                      );
-
-                      if (otp == null || otp.isEmpty) {
-                        if (!context.mounted) return;
-                        GkToast.show(context, message: 'Verification cancelled.', type: ToastType.warning);
-                        return;
-                      }
-                      capturedOtp = otp;
+                    // 3. Initiate face verification
+                    capturedIdentityId = await walletNotifier.initiateVaultVerification(faceImageBase64: base64Str);
+                    if (capturedIdentityId == null) {
+                      throw Exception("Facial recognition match failed. Please check camera lighting.");
                     }
                   } catch (e) {
                     if (!context.mounted) return;
@@ -181,7 +153,7 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   }
 
                   // 4. Generate the vault account
-                  final success = await walletNotifier.generateVaultAccount(uid, otp: capturedOtp, identityId: capturedIdentityId);
+                  final success = await walletNotifier.generateVaultAccount(uid, identityId: capturedIdentityId);
 
                   if (!context.mounted) return;
                   if (success) {
