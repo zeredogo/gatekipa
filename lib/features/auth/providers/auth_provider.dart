@@ -166,6 +166,16 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<bool> checkMigrationStatus(String email) async {
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('checkMigrationStatus');
+      final res = await callable.call({'email': email});
+      return res.data['requiresMigration'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> signUpWithEmail(String email, String password,
       {String? firstName, String? lastName, String? phone, String? address,
        String? city, String? addrState, String? postalCode, String? houseNumber}) async {

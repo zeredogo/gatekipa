@@ -177,20 +177,157 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      
+      if (_isLogin) {
+        bool isMigrationRequired = false;
+        try {
+          isMigrationRequired = await ref.read(authNotifierProvider.notifier).checkMigrationStatus(email);
+        } catch (_) {}
+
+        if (isMigrationRequired) {
+          _showMigrationDialog(email);
+          return;
+        }
+      }
+
       String msg = 'Something went wrong. Please try again.';
       if (e is String) {
         msg = e;
       } else if (e is FirebaseAuthException) {
         msg = e.message ?? msg;
       }
-      GkToast.show(
-        context,
-        message: msg,
-        type: ToastType.error,
-      );
+      if (mounted) {
+        GkToast.show(
+          context,
+          message: msg,
+          type: ToastType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showMigrationDialog(String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            bool isResending = false;
+            
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(color: AppColors.outline, width: 1),
+              ),
+              title: Row(
+                children: [
+                  const Icon(
+                    Icons.lock_reset_rounded,
+                    color: AppColors.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Security Upgrade',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppColors.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🔐 Security Upgrade in Progress',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppColors.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'We have updated Gatekipa\'s security systems to keep your cards safer. We sent a password reset link to your email to verify your identity and finalize your upgrade.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(
+                      color: AppColors.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  onPressed: isResending
+                      ? null
+                      : () async {
+                          setDialogState(() => isResending = true);
+                          try {
+                            await ref.read(authNotifierProvider.notifier).resetPassword(email);
+                            if (context.mounted) {
+                              GkToast.show(
+                                context,
+                                message: 'Reset link resent successfully!',
+                                type: ToastType.success,
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              GkToast.show(
+                                context,
+                                message: e.toString(),
+                                type: ToastType.error,
+                              );
+                            }
+                          } finally {
+                            if (context.mounted) {
+                              setDialogState(() => isResending = false);
+                            }
+                          }
+                        },
+                  child: isResending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Resend Reset Link',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildTextField({

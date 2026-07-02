@@ -14,7 +14,7 @@ setGlobalOptions({
   secrets: ["SUDO_API_KEY", "RESEND_API_KEY", "SAFEHAVEN_CLIENT_ID", "SAFEHAVEN_PRIVATE_KEY", "SUDO_WEBHOOK_SECRET", "SAFEHAVEN_WEBHOOK_SECRET"] 
 });
 
-const { onUserCreated, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset } = require("./services/authService");
+const { onUserCreated, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset, checkMigrationStatus } = require("./services/authService");
 const { createAccount, inviteTeamMember, renameAccount, deleteAccount, switchActiveAccount, removeTeamMember } = require("./services/accountService");
 const { createVirtualCard, toggleCardStatus, freezeAllCards, renameCard, adminGlobalFreeze, sendCardNotification } = require("./services/cardService");
 const { createRule, deleteRule, adminSimulateRuleEngine } = require("./services/ruleService");
@@ -40,6 +40,7 @@ exports.onUserCreated = onUserCreated;
 exports.purchasePlanFromVault = purchasePlanFromVault;
 exports.resendVerificationEmail = resendVerificationEmail;
 exports.requestPasswordReset = requestPasswordReset;
+exports.checkMigrationStatus = checkMigrationStatus;
 exports.setTransactionPin = setTransactionPin;
 
 // 2. Account Management

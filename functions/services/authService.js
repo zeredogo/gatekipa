@@ -290,3 +290,32 @@ exports.purchasePlanFromVault = onCall(
     return { success: true, newTier: plan, cardsIncluded: cardsToAllocate };
   }
 );
+
+// ── Check Migration Status ─────────────────────────────────────────────────
+
+exports.checkMigrationStatus = onCall(
+  { region: "us-central1", enforceAppCheck: false },
+  async (request) => {
+    const email = request.data?.email;
+    if (!email) {
+      throw new HttpsError("invalid-argument", "Email address is required.");
+    }
+
+    try {
+      const snap = await db.collection("users")
+        .where("email", "==", email.toLowerCase().trim())
+        .limit(1)
+        .get();
+
+      if (!snap.empty) {
+        const userData = snap.docs[0].data();
+        return { requiresMigration: userData.requiresMigration === true };
+      }
+      return { requiresMigration: false };
+    } catch (e) {
+      logger.error("[checkMigrationStatus] Failed to query user document:", e);
+      throw new HttpsError("internal", "Failed to check migration status.");
+    }
+  }
+);
+
