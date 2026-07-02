@@ -16,7 +16,7 @@ interface Dispute {
   description: string;
   status: "open" | "resolved" | "rejected";
   provider_reference?: string;
-  created_at: { toDate: () => Date };
+  created_at: any;
 }
 
 export default function DisputesPage() {
@@ -33,6 +33,28 @@ export default function DisputesPage() {
       });
       setDisputes(data);
       setLoading(false);
+    }, (error) => {
+      console.warn("Disputes ordered query failed, falling back to unordered client-side sorting", error);
+      // Fallback query (does not require composite indexes)
+      const qFallback = query(collection(db, "disputes"));
+      const unsubFallback = onSnapshot(qFallback, (snapFallback) => {
+        const data: Dispute[] = [];
+        snapFallback.forEach((doc) => {
+          data.push({ id: doc.id, ...doc.data() } as Dispute);
+        });
+        // Sort in memory to preserve order descending by date
+        data.sort((a, b) => {
+          const tA = a.created_at ? (a.created_at.toDate ? a.created_at.toDate().getTime() : new Date(a.created_at).getTime()) : 0;
+          const tB = b.created_at ? (b.created_at.toDate ? b.created_at.toDate().getTime() : new Date(b.created_at).getTime()) : 0;
+          return tB - tA;
+        });
+        setDisputes(data);
+        setLoading(false);
+      }, (errFallback) => {
+        console.error("Disputes fallback query failed", errFallback);
+        setLoading(false);
+      });
+      return () => unsubFallback();
     });
     return () => unsub();
   }, []);
@@ -68,7 +90,7 @@ export default function DisputesPage() {
             onClick={() => setFilter(f as "all" | "open" | "resolved" | "rejected")}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
               filter === f
-                ? "bg-forest-500 text-white"
+                ? "bg-forest-500 text-white-literal"
                 : "bg-surface-800 text-gray-400 hover:text-white hover:bg-surface-700"
             }`}
           >
@@ -104,7 +126,9 @@ export default function DisputesPage() {
                       }`}>
                         {d.status.toUpperCase()}
                       </span>
-                      <span className="text-gray-400 text-sm">{new Date(d.created_at?.toDate()).toLocaleString()}</span>
+                      <span className="text-gray-400 text-sm">
+                        {d.created_at ? (d.created_at.toDate ? d.created_at.toDate() : new Date(d.created_at)).toLocaleString() : "Unknown"}
+                      </span>
                     </div>
                     <h3 className="text-xl font-bold text-white">{d.merchant}</h3>
                     <p className="text-gray-300 font-medium">{d.reason}</p>
