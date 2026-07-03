@@ -75,11 +75,9 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
       appBar: AppBar(
         title: Text(
           'BVN / NIN',
-          style: GoogleFonts.manrope(
-            fontSize: 18,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
-          ),
+            color: AppColors.onSurface,),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -107,29 +105,23 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'Link your BVN',
-                    style: GoogleFonts.manrope(
-                      fontSize: 24,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.onSurface,
-                    ),
+                      color: AppColors.onSurface,),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     'To access premium features, virtual cards, and increased limits, please provide your 11-digit Bank Verification Number.',
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                       color: AppColors.onSurfaceVariant,
-                      height: 1.5,
-                    ),
+                      height: 1.5,),
                   ),
                   const SizedBox(height: 36),
                   Text(
                     'BVN',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.onSurfaceVariant,
-                    ),
+                      color: AppColors.onSurfaceVariant,),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -183,11 +175,9 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
                         Expanded(
                           child: Text(
                             'Your BVN is securely encrypted and only used to verify your identity. Dial *565*0# on your registered mobile number to check.',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                               color: Colors.blue.shade700,
-                              height: 1.4,
-                            ),
+                              height: 1.4,),
                           ),
                         ),
                       ],
@@ -254,21 +244,17 @@ class _BvnVerificationScreenState extends ConsumerState<BvnVerificationScreen> {
           const SizedBox(height: 32),
           Text(
             'BVN Successfully Linked',
-            style: GoogleFonts.manrope(
-              fontSize: 24,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: AppColors.onSurface,
-            ),
+              color: AppColors.onSurface,),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           Text(
             'Your BVN and identity have been securely verified and linked to your Gatekipa vault.',
-            style: GoogleFonts.inter(
-              fontSize: 15,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
               color: AppColors.onSurfaceVariant,
-              height: 1.5,
-            ),
+              height: 1.5,),
             textAlign: TextAlign.center,
           ),
         ],

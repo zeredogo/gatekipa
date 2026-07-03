@@ -1,7 +1,7 @@
 import os
 import re
 
-LIB_DIR = '/Users/mac/Gatekeeper/lib'
+LIB_DIR = '/Users/mac/Gatekipa/lib'
 
 def fix_file(filepath):
     with open(filepath, 'r') as f:

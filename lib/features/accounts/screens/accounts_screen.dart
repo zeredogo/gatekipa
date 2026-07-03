@@ -29,18 +29,14 @@ class AccountsScreen extends ConsumerWidget {
           children: [
             Text(
               'Accounts',
-              style: GoogleFonts.manrope(
-                fontWeight: FontWeight.w800,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800,
                 fontSize: 22,
-                color: AppColors.onSurface,
-              ),
+                color: AppColors.onSurface,),
             ),
             Text(
               'Your client profiles',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.onSurfaceVariant,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
+                color: AppColors.onSurfaceVariant,),
             ),
           ],
         ),
@@ -65,14 +61,12 @@ class AccountsScreen extends ConsumerWidget {
                         const SizedBox(height: 16),
                         Text(
                           'No accounts yet',
-                          style: GoogleFonts.manrope(
-                            fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant,),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Tap + Create Client Profile below to get started',
-                          style: GoogleFonts.inter(color: AppColors.outline, fontSize: 14),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.outline, fontSize: 14),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -156,10 +150,10 @@ class AccountsScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         icon: const Icon(Icons.delete_forever_rounded, color: AppColors.error, size: 36),
-        title: Text('Delete Account', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+        title: Text('Delete Account', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         content: Text(
           'This will permanently delete "${account.name}" and all associated cards. This cannot be undone.',
-          style: GoogleFonts.inter(),
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -177,10 +171,10 @@ class AccountsScreen extends ConsumerWidget {
                     builder: (ctx2) => AlertDialog(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 36),
-                      title: Text('Active Cards Found', style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+                      title: Text('Active Cards Found', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                       content: Text(
                         'This account has active virtual cards. Deleting will also block and remove all cards. Continue?',
-                        style: GoogleFonts.inter(),
+                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       actions: [
                         TextButton(onPressed: () => Navigator.pop(ctx2, false), child: const Text('Cancel')),
@@ -255,11 +249,9 @@ class _AccountTile extends ConsumerWidget {
               alignment: Alignment.center,
               child: Text(
                 account.name.isNotEmpty ? account.name[0].toUpperCase() : 'A',
-                style: GoogleFonts.manrope(
-                  fontSize: 18,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
+                  color: AppColors.primary,),
               ),
             ),
             const SizedBox(width: 14),
@@ -270,11 +262,9 @@ class _AccountTile extends ConsumerWidget {
                 children: [
                   Text(
                     account.name,
-                    style: GoogleFonts.manrope(
-                      fontWeight: FontWeight.w700,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700,
                       fontSize: 16,
-                      color: AppColors.onSurface,
-                    ),
+                      color: AppColors.onSurface,),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -282,7 +272,7 @@ class _AccountTile extends ConsumerWidget {
                   cardCountAsync.when(
                     data: (count) => Text(
                       '$count card${count == 1 ? '' : 's'}',
-                      style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: AppColors.onSurfaceVariant),
                     ),
                     loading: () => const SizedBox.shrink(),
                     error: (_, __) => const SizedBox.shrink(),
@@ -305,7 +295,7 @@ class _AccountTile extends ConsumerWidget {
                   child: Row(children: [
                     const Icon(Icons.edit_outlined, size: 18, color: AppColors.onSurface),
                     const SizedBox(width: 10),
-                    Text('Rename', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                    Text('Rename', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
                   ]),
                 ),
                 PopupMenuItem(
@@ -313,7 +303,7 @@ class _AccountTile extends ConsumerWidget {
                   child: Row(children: [
                     const Icon(Icons.group_outlined, size: 18, color: AppColors.onSurface),
                     const SizedBox(width: 10),
-                    Text('Manage Team', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                    Text('Manage Team', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
                   ]),
                 ),
                 PopupMenuItem(
@@ -322,7 +312,7 @@ class _AccountTile extends ConsumerWidget {
                     const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
                     const SizedBox(width: 10),
                     Text('Delete Account',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: AppColors.error)),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, color: AppColors.error)),
                   ]),
                 ),
               ],
@@ -423,7 +413,7 @@ class _CreateAccountSheetState extends ConsumerState<_CreateAccountSheet> {
                 ),
               ),
               Text('Create Account',
-                  style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
               const SizedBox(height: 20),
               TextField(
                 controller: _nameCtrl,
@@ -459,10 +449,8 @@ class _CreateAccountSheetState extends ConsumerState<_CreateAccountSheet> {
                           ),
                           alignment: Alignment.center,
                           child: Text(t == 'personal' ? 'Individual' : 'Business',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w600,
-                                color: selected ? AppColors.primary : AppColors.onSurface,
-                              )),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600,
+                                color: selected ? AppColors.primary : AppColors.onSurface,)),
                         ),
                       ),
                     ),
@@ -558,7 +546,7 @@ class _RenameAccountSheetState extends ConsumerState<_RenameAccountSheet> {
               ),
             ),
             Text('Rename Account',
-                style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
             const SizedBox(height: 20),
             TextField(
               controller: _ctrl,

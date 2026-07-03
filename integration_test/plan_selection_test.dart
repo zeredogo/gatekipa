@@ -12,19 +12,22 @@ import 'package:gatekipa/app.dart';
 import 'package:gatekipa/features/auth/screens/splash_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:gatekipa/core/theme/app_theme.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  AppTheme.isTesting = true;
 
   group('Gatekipa E2E Plan Selection Test', () {
     testWidgets('Sign Up and Select a Subscription Plan', (tester) async {
-      
-
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('bypass_biometrics_for_test', true);
 
       try {
         if (Firebase.apps.isEmpty) {
             await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
         }
+        await FirebaseAuth.instance.signOut();
       } catch (e) {
         debugPrint("Error clearing state: $e");
       }
@@ -93,6 +96,13 @@ void main() {
 
       if (isLoggedOut) {
         debugPrint("🔐 App is on Login Screen. Attempting to log in...");
+
+        final emailOption = find.textContaining('Continue with Email instead');
+        if (tester.any(emailOption)) {
+            debugPrint("📧 Switching to Email Login screen...");
+            await tester.tap(emailOption.first);
+            await tester.pumpAndSettle(const Duration(seconds: 2));
+        }
         
         final textFields = find.byType(TextField);
         final textFormFields = find.byType(TextFormField);
@@ -193,6 +203,9 @@ void main() {
           fail("Could not find Add Card button.");
       }
       await tester.pump(const Duration(seconds: 2));
+
+      // Wait for CardCreationScreen to appear and settle
+      await tester.pumpAndSettle(const Duration(seconds: 2));
 
       // NEW LOGIC: We are now on CardCreationScreen!
       debugPrint("📝 Filling Card Creation form to trigger Plan Selection...");
@@ -312,7 +325,29 @@ void main() {
           } else {
               final createAccountSheet = find.text('Create Account');
               expect(createAccountSheet, findsWidgets, reason: 'Create Account sheet should appear');
-              debugPrint("✅ Create Account sheet appeared.");
+              debugPrint("✅ Create Account sheet appeared. Creating client profile...");
+              
+              final accountNameField = find.byWidgetPredicate((widget) => widget is TextField && widget.decoration?.labelText == 'Account Name');
+              if (tester.any(accountNameField)) {
+                  await tester.enterText(accountNameField.first, 'Personal Account');
+                  await tester.pump(const Duration(milliseconds: 500));
+                  
+                  final createBtn = find.ancestor(
+                      of: find.text('Create Account'),
+                      matching: find.byType(FilledButton),
+                  );
+                  if (tester.any(createBtn)) {
+                      await tester.tap(createBtn.first);
+                      await tester.pump(const Duration(seconds: 4));
+                  } else {
+                      final textBtn = find.text('Create Account');
+                      if (textBtn.evaluate().length > 1) {
+                          await tester.tap(textBtn.last);
+                          await tester.pump(const Duration(seconds: 4));
+                      }
+                  }
+                  debugPrint("✅ Submitted Create Account sheet.");
+              }
           }
       }
     });

@@ -1,10 +1,10 @@
 // lib/features/auth/screens/onboarding_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gatekipa/core/theme/app_theme.dart';
 import 'package:gatekipa/core/constants/routes.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 import 'package:gatekipa/core/widgets/gk_button.dart';
@@ -243,13 +243,20 @@ class _OnboardingPageWidget extends StatelessWidget {
                         children: [
                           Text(
                             '**** **** **** 4092',
-                            style: GoogleFonts.spaceMono(
-                              // Monospace for numbers
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2,
-                            ),
+                            style: AppTheme.isTesting
+                                ? const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 2,
+                                    fontFamily: 'Courier',
+                                  )
+                                : GoogleFonts.spaceMono(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 2,
+                                  ),
                           ),
                           const SizedBox(height: 20),
                           Row(
@@ -264,10 +271,17 @@ class _OnboardingPageWidget extends StatelessWidget {
                                           color: Colors.white54,
                                           fontWeight: FontWeight.w600)),
                                   Text('12/28',
-                                      style: GoogleFonts.spaceMono(
-                                          fontSize: 14,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600)),
+                                      style: AppTheme.isTesting
+                                          ? const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontFamily: 'Courier',
+                                            )
+                                          : GoogleFonts.spaceMono(
+                                              fontSize: 14,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600)),
                                   const SizedBox(height: AppSpacing.xxs),
                                   Text('GATEKIPA USER',
                                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14,

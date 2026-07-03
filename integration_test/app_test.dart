@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gatekipa/main.dart' as app;
+import 'package:gatekipa/core/theme/app_theme.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  AppTheme.isTesting = true;
 
   group('Gatekipa E2E UI Integration Test', () {
     testWidgets('Full User Journey: Authentication, Dashboard, and Menus', (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('bypass_biometrics_for_test', true);
       app.main();
       
       // Wait for app to render and settle
@@ -17,6 +22,13 @@ void main() {
 
       if (isLoggedOut) {
         debugPrint("🔐 App is on Login Screen. Attempting to log in...");
+
+        final emailOption = find.textContaining('Continue with Email instead');
+        if (tester.any(emailOption)) {
+            debugPrint("📧 Switching to Email Login screen...");
+            await tester.tap(emailOption.first);
+            await tester.pumpAndSettle(const Duration(seconds: 2));
+        }
         
         final textFields = find.byType(TextField);
         final textFormFields = find.byType(TextFormField);

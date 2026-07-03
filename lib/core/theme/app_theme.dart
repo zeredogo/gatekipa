@@ -1,9 +1,43 @@
 // lib/core/theme/app_theme.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 
 class AppTheme {
+  static bool isTesting = false;
+
+  static TextStyle _font({
+    required double fontSize,
+    required FontWeight fontWeight,
+    double? letterSpacing,
+    Color? color,
+    bool isInter = false,
+  }) {
+    if (isTesting) {
+      return TextStyle(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        letterSpacing: letterSpacing,
+        color: color,
+        fontFamily: 'Arial',
+      );
+    }
+    return isInter
+        ? GoogleFonts.inter(
+            fontSize: fontSize,
+            fontWeight: fontWeight,
+            letterSpacing: letterSpacing,
+            color: color,
+          )
+        : GoogleFonts.manrope(
+            fontSize: fontSize,
+            fontWeight: fontWeight,
+            letterSpacing: letterSpacing,
+            color: color,
+          );
+  }
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -44,7 +78,7 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: _font(
           fontSize: 22,
           fontWeight: FontWeight.w800,
           color: AppColors.primary,
@@ -86,7 +120,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(100),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          textStyle: GoogleFonts.manrope(
+          textStyle: _font(
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -116,7 +150,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(100),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          textStyle: GoogleFonts.manrope(
+          textStyle: _font(
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -133,88 +167,96 @@ class AppTheme {
 
   static TextTheme _buildTextTheme() {
     return TextTheme(
-      displayLarge: GoogleFonts.manrope(
+      displayLarge: _font(
         fontSize: 57,
         fontWeight: FontWeight.w800,
         letterSpacing: -1.5,
         color: AppColors.onSurface,
       ),
-      displayMedium: GoogleFonts.manrope(
+      displayMedium: _font(
         fontSize: 45,
         fontWeight: FontWeight.w800,
         letterSpacing: -0.5,
         color: AppColors.onSurface,
       ),
-      displaySmall: GoogleFonts.manrope(
+      displaySmall: _font(
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: AppColors.onSurface,
       ),
-      headlineLarge: GoogleFonts.manrope(
+      headlineLarge: _font(
         fontSize: 32,
         fontWeight: FontWeight.w800,
         letterSpacing: -0.5,
         color: AppColors.onSurface,
       ),
-      headlineMedium: GoogleFonts.manrope(
+      headlineMedium: _font(
         fontSize: 28,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.3,
         color: AppColors.onSurface,
       ),
-      headlineSmall: GoogleFonts.manrope(
+      headlineSmall: _font(
         fontSize: 24,
         fontWeight: FontWeight.w700,
         color: AppColors.onSurface,
       ),
-      titleLarge: GoogleFonts.manrope(
+      titleLarge: _font(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.2,
         color: AppColors.onSurface,
       ),
-      titleMedium: GoogleFonts.inter(
+      titleMedium: _font(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: AppColors.onSurface,
+        isInter: true,
       ),
-      titleSmall: GoogleFonts.inter(
+      titleSmall: _font(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: AppColors.onSurface,
+        isInter: true,
       ),
-      bodyLarge: GoogleFonts.inter(
+      bodyLarge: _font(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         color: AppColors.onSurface,
+        isInter: true,
       ),
-      bodyMedium: GoogleFonts.inter(
+      bodyMedium: _font(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: AppColors.onSurface,
+        isInter: true,
       ),
-      bodySmall: GoogleFonts.inter(
+      bodySmall: _font(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: AppColors.onSurfaceVariant,
+        isInter: true,
       ),
-      labelLarge: GoogleFonts.inter(
+      labelLarge: _font(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.1,
         color: AppColors.onSurface,
+        isInter: true,
       ),
-      labelMedium: GoogleFonts.inter(
+      labelMedium: _font(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.5,
         color: AppColors.onSurface,
+        isInter: true,
       ),
-      labelSmall: GoogleFonts.inter(
+      labelSmall: _font(
         fontSize: 10,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.5,
         color: AppColors.onSurfaceVariant,
+        isInter: true,
       ),
     );
   }

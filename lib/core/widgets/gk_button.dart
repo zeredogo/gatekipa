@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
 import 'package:gatekipa/core/theme/app_spacing.dart';
+import 'package:gatekipa/core/theme/app_theme.dart';
 
 enum GkButtonVariant { primary, secondary, ghost, danger }
 
@@ -104,12 +105,20 @@ class _GkButtonState extends State<GkButton>
                   ],
                   Text(
                     widget.label,
-                    style: GoogleFonts.manrope(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: fg,
-                      letterSpacing: -0.2,
-                    ),
+                    style: AppTheme.isTesting
+                        ? TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: fg,
+                            letterSpacing: -0.2,
+                            fontFamily: 'Arial',
+                          )
+                        : GoogleFonts.manrope(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: fg,
+                            letterSpacing: -0.2,
+                          ),
                   ),
                 ],
               ],

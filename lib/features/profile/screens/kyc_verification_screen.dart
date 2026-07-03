@@ -248,11 +248,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
       appBar: AppBar(
         title: Text(
           'Identity Verification',
-          style: GoogleFonts.manrope(
-            fontSize: 18,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
-          ),
+            color: AppColors.onSurface,),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -318,11 +316,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                 const SizedBox(height: 24),
                 Text(
                   isVerified ? 'Verification Complete' : 'Verification Pending',
-                  style: GoogleFonts.manrope(
-                    fontSize: 24,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.onSurface,
-                  ),
+                    color: AppColors.onSurface,),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
@@ -330,11 +326,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                   isVerified
                       ? 'Your identity has been fully verified. You have full access to all Gatekipa vault features.'
                       : 'Please verify your identity to unlock all features, including virtual cards.',
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                     color: AppColors.onSurfaceVariant,
-                    height: 1.5,
-                  ),
+                    height: 1.5,),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -353,11 +347,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           // ── Country Dropdown ──
                           Text(
                             'Country',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.onSurfaceVariant,
-                            ),
+                              color: AppColors.onSurfaceVariant,),
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
@@ -379,11 +371,9 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           // ── State / Province Dropdown ──
                           Text(
                             'State / Province',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.onSurfaceVariant,
-                            ),
+                              color: AppColors.onSurfaceVariant,),
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
@@ -407,20 +397,16 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           if (_selectedCountry == 'Nigeria') ...[
                             Text(
                               'Identification Number',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.onSurfaceVariant,
-                              ),
+                                color: AppColors.onSurfaceVariant,),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Please provide your BVN or NIN.',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                                 color: AppColors.outline,
-                                height: 1.4,
-                              ),
+                                height: 1.4,),
                             ),
                             const SizedBox(height: 8),
                             TextFormField(
@@ -445,20 +431,16 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                             // ── Document Proof Upload ──
                             Text(
                               'Document Proof',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.onSurfaceVariant,
-                              ),
+                                color: AppColors.onSurfaceVariant,),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Upload a clear photo of your National ID, Passport, etc.',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                                 color: AppColors.outline,
-                                height: 1.4,
-                              ),
+                                height: 1.4,),
                             ),
                             const SizedBox(height: 8),
                             _DocumentUploadCard(
@@ -476,20 +458,16 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
                           // ── Liveness Check (Selfie) ──
                           Text(
                             'Liveness Check',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.onSurfaceVariant,
-                            ),
+                              color: AppColors.onSurfaceVariant,),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Take a clear selfie with your front camera. Ensure your face is well-lit and visible.',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
                               color: AppColors.outline,
-                              height: 1.4,
-                            ),
+                              height: 1.4,),
                           ),
                           const SizedBox(height: 8),
                           _DocumentUploadCard(
@@ -628,19 +606,15 @@ class _DocumentUploadCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: isCompleted ? AppColors.primary : AppColors.onSurface,
-                      ),
+                        color: isCompleted ? AppColors.primary : AppColors.onSurface,),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.outline,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12,
+                        color: AppColors.outline,),
                     ),
                   ],
                 ),

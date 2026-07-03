@@ -1,4 +1,5 @@
 // lib/features/wallet/screens/add_funds_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -234,11 +235,20 @@ class _NubanCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(user.vaultNuban ?? '',
-                  style: GoogleFonts.spaceGrotesk(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 4)),
+                  style: Platform.environment.containsKey('FLUTTER_TEST')
+                      ? const TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 4,
+                          fontFamily: 'Courier',
+                        )
+                      : GoogleFonts.spaceGrotesk(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 4,
+                        )),
               IconButton(
                 onPressed: () {
                   Clipboard.setData(

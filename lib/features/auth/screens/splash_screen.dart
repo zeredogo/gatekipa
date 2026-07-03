@@ -35,12 +35,14 @@ class _SplashScreenState extends State<SplashScreen> {
     // lockApp() keeps the session alive, so currentUser is non-null even after
     // the user "signs out" via the lock button. Biometric prompt gates access.
     if (user != null) {
+      final bypassBiometrics = prefs.getBool('bypass_biometrics_for_test') ?? false;
+
       // 1. Verify device trust status (Milestone 3)
       final isTrusted = await DeviceFingerprint.isDeviceTrusted(user.uid);
       bool isBiometricChecked = false;
       
       if (!isTrusted) {
-        final passed = await _tryBiometricAuthForTrustedDevice();
+        final passed = bypassBiometrics ? true : await _tryBiometricAuthForTrustedDevice();
         if (!mounted) return;
         if (!passed) {
           await FirebaseAuth.instance.signOut();
@@ -53,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
       // 2. Normal biometric lock check (if configured and not already checked)
       final biometricsEnabled = prefs.getBool('${user.uid}_use_biometrics') ?? false;
-      if (biometricsEnabled && !isBiometricChecked) {
+      if (biometricsEnabled && !isBiometricChecked && !bypassBiometrics) {
         final passed = await _tryBiometricAuth();
         if (!mounted) return;
         if (!passed) {

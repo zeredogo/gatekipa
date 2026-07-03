@@ -40,6 +40,7 @@ async function createUser(email, planTier) {
     lastName: 'Test',
     planTier: planTier,
     kycStatus: 'verified',
+    requiresMigration: false,
     sentinel_trial_expiry_date: pastDate, // expired trial
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
