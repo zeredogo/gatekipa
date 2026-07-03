@@ -348,6 +348,55 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
     }
   }
 
+  // 5.5. Sentinel Intelligent Risk Scoring Engine (AI-Assisted Adaptive Prevention)
+  let riskResult = null;
+  if (isSentinel) {
+    try {
+      const { detectVpnOrProxy } = require("../utils/ipDetection");
+      const { calculateRiskScore, fetchLedgerStats } = require("./riskEngine");
+      
+      const ipAddress = options.ipAddress || userData?.last_active_ip || "";
+      const ipReputation = await detectVpnOrProxy(ipAddress);
+      
+      const merchantCountry = options.merchantCountry || ipReputation.country || "NG";
+      const aggregates = await fetchLedgerStats(cardId);
+      
+      const txnData = {
+        amount,
+        merchantName,
+        merchantCountry,
+        environment: {
+          isVpn: ipReputation.isVpn,
+          isTor: ipReputation.isTor,
+          isProxy: ipReputation.isProxy
+        }
+      };
+      
+      riskResult = calculateRiskScore(card, userData, txnData, aggregates);
+      
+      evaluations.push({
+        rule: "Sentinel Risk Engine",
+        result: `SCORE: ${riskResult.score}% (Reasons: ${riskResult.reasons.join(", ") || 'None'})`,
+      });
+
+      // If risk score is 85% or higher, JIT block transaction
+      if (riskResult.score >= 85) {
+        isGlobalBlocked = true;
+        globalReason = `Sentinel Risk Engine blocked transaction: High risk score (${riskResult.score}%). Reasons: ${riskResult.reasons.join(", ")}`;
+        if (!options.dryRun) {
+          return { 
+            approved: false, 
+            reason: globalReason, 
+            riskScore: riskResult.score, 
+            riskReasons: riskResult.reasons 
+          };
+        }
+      }
+    } catch (riskErr) {
+      logger.error("[RiskEngine] Sentinel risk evaluation failed (non-blocking):", riskErr);
+    }
+  }
+
   // 6. Pre-fetch all ledger aggregates for card-level rules
   //    (batched before the rule loop to avoid N round-trips)
   const [monthlySum, chargeCount, firstChargeAmount] = await Promise.all([
@@ -387,7 +436,12 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
 
     if (!result.passed) {
       if (!options.dryRun) {
-        return { approved: false, reason: result.reason };
+        return { 
+          approved: false, 
+          reason: result.reason,
+          riskScore: riskResult?.score,
+          riskReasons: riskResult?.reasons
+        };
       } else {
         isGlobalBlocked = true;
         globalReason = globalReason || result.reason;
@@ -400,10 +454,16 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
       decision: isGlobalBlocked ? "BLOCKED" : "APPROVED",
       reason: globalReason || "All rules passed.",
       evaluations,
+      riskScore: riskResult?.score,
+      riskReasons: riskResult?.reasons
     };
   }
 
-  return { approved: true };
+  return { 
+    approved: true,
+    riskScore: riskResult?.score,
+    riskReasons: riskResult?.reasons
+  };
 }
 
 module.exports = {

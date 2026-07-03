@@ -302,7 +302,7 @@ const { FieldValue } = require("firebase-admin/firestore");
  * @param {string} eventId - Sudo event ID
  * @param {boolean} [breachAlertActive=false] - If true, send aggressive FCM alert
  */
-async function recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventId, breachAlertActive = false) {
+async function recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventId, breachAlertActive = false, riskScore = null, riskReasons = []) {
   logger.warn(`[Sudo JIT] Recording decline for card ${sudoCardId}: ${reason}`);
 
   try {
@@ -333,13 +333,19 @@ async function recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventI
       source: "sudo_jit_auth",
       sudo_event_id: eventId,
       created_at: FieldValue.serverTimestamp(),
+      risk_score: riskScore,
+      risk_reasons: riskReasons
     });
 
     // 3. In-app notification + FCM
     let title = `Transaction Declined at ${merchant}`;
     let body = reason || "Your Gatekipa card transaction was declined.";
     
-    if (breachAlertActive) {
+    if (riskScore >= 85) {
+      breachAlertActive = true;
+      title = `🚨 SENTINEL ALERT: High Risk Blocked!`;
+      body = `A transaction of ₦${(amountKobo / 100).toLocaleString()} at ${merchant} was blocked by Sentinel Risk Engine (Risk Score: ${riskScore}%). Reasons: ${riskReasons.join(", ")}`;
+    } else if (breachAlertActive) {
       title = `🚨 SENTINEL ALERT: Transaction Blocked!`;
       body = `A transaction of ₦${(amountKobo / 100).toLocaleString()} at ${merchant} was blocked by your Guard Rules: ${reason}`;
     }
@@ -470,7 +476,16 @@ exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512M
       if (!ruleResult.approved) {
         logger.warn(`[Sudo JIT] Rule violation for card ${sudoCardId}: ${ruleResult.reason}`);
         // Record the decline and notify the user asynchronously
-        recordJitDecline(sudoCardId, amountKobo, merchant, ruleResult.reason, eventId, ruleResult.breachAlertActive);
+        recordJitDecline(
+          sudoCardId, 
+          amountKobo, 
+          merchant, 
+          ruleResult.reason, 
+          eventId, 
+          ruleResult.breachAlertActive,
+          ruleResult.riskScore,
+          ruleResult.riskReasons
+        );
         return res.status(200).json({ statusCode: 200, data: { responseCode: "51", message: ruleResult.reason } });
       }
 
