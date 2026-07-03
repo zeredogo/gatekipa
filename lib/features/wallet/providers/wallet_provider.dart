@@ -130,7 +130,7 @@ class WalletNotifier extends StateNotifier<AsyncValue<void>> {
       return result.data['identityId'] as String?;
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
-      return null;
+      rethrow;
     }
   }
 

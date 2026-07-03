@@ -190,7 +190,7 @@ async function performGeminiFaceMatch(documentUrl, selfieBase64) {
         {
           parts: [
             {
-              text: "You are a secure compliance and identity verification assistant. Analyze the two provided images. Image 1 is an official government ID card or slip (like a NIN card, NIN slip, BVN document, voter's card, driver's license, or international passport). Image 2 is a live captured selfie of the user. Perform two checks: 1) Verify that Image 1 is a valid, authentic-looking Nigerian government-issued ID document containing a clear passport photo. 2) Compare the face on the ID document (Image 1) with the face in the live selfie (Image 2) and verify if they belong to the exact same person. Respond ONLY with a valid JSON object matching this schema: {\"match\": boolean, \"confidence\": number (0.0 to 1.0), \"reason\": string}. If Image 1 is not a valid ID document, or if the faces do not match, set \"match\" to false. IMPORTANT: Be highly lenient and accommodating of lighting differences, camera noise, minor angle variations, and low resolution. Focus strictly on core skeletal facial structure (nose, eyes, mouth shape, jawline) rather than image illumination or quality."
+              text: "You are a secure compliance and identity verification assistant. Analyze the two provided images. Image 1 is either an official government ID card or slip (like a NIN card, NIN slip, BVN document, voter's card, driver's license, or international passport) or a previously verified registered selfie photo of the user. Image 2 is a new live captured selfie of the user. Perform two checks: 1) If Image 1 is an ID document, verify that it is a valid, authentic-looking government-issued ID document containing a clear passport photo. If Image 1 is a selfie, verify it is a valid face photo. 2) Compare the face on the reference photo (Image 1) with the face in the live selfie (Image 2) and verify if they belong to the exact same person. Respond ONLY with a valid JSON object matching this schema: {\"match\": boolean, \"confidence\": number (0.0 to 1.0), \"reason\": string}. If reference image is not valid, or if the faces do not match, set \"match\" to false. IMPORTANT: Be highly lenient and accommodating of lighting differences, camera noise, minor angle variations, and low resolution. Focus strictly on core skeletal facial structure (nose, eyes, mouth shape, jawline) rather than image illumination or quality."
             },
             {
               inlineData: {
@@ -301,7 +301,7 @@ async function initiateSafeHavenVerification(uid, userData, faceImageBase64 = nu
       const errorStatus = qoreErr.response?.status;
       logger.warn(`[QoreID] Primary Face Match Failed/Error. Status: ${errorStatus}. Body:`, JSON.stringify(errorBody));
 
-      const documentUrl = userData.kycMeta?.documentUrl;
+      const documentUrl = userData.kycMeta?.documentUrl || userData.kycMeta?.selfie || userData.kycMeta?.photo;
       const geminiKey = process.env.GEMINI_API_KEY;
 
       if (geminiKey && documentUrl) {
