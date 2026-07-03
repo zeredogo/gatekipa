@@ -627,6 +627,29 @@ async function _postProcess(type, txnId, userId, amount, metadata) {
       }
     }
 
+    // Auto-classify merchant to business category via AI (Milestone 3)
+    if (merchantName) {
+      try {
+        const { classifyMerchantAI } = require("../utils/gemini");
+        const category = await classifyMerchantAI(merchantName);
+        
+        await db.collection("transactions").doc(txnId).update({
+          category: category
+        });
+
+        if (process.env.DATABASE_URL) {
+          const { query } = require("../utils/db");
+          // Merge category inside the PostgreSQL transaction record metadata JSONB column
+          await query(
+            `UPDATE transactions SET metadata = metadata || $1 WHERE id = $2`,
+            [JSON.stringify({ ai_category: category }), txnId]
+          );
+        }
+      } catch (classErr) {
+        logger.error("[MerchantClassifier] Failed to classify merchant via AI:", classErr);
+      }
+    }
+
     if (ownerUid) {
       const ownerSnap = await db.collection("users").doc(ownerUid).get();
       const fcmToken = ownerSnap.data()?.fcm_token;

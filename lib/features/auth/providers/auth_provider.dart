@@ -9,6 +9,7 @@ import 'package:gatekipa/features/accounts/providers/account_provider.dart';
 import 'package:gatekipa/features/search/providers/search_provider.dart';
 
 import 'package:gatekipa/core/constants/app_constants.dart';
+import 'package:gatekipa/core/utils/device_fingerprint.dart';
 
 // ── Firebase instances ──────────────────────────────────────────────────────────
 final firebaseAuthProvider = Provider((ref) => FirebaseAuth.instance);
@@ -263,6 +264,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
     } else {
       await doc.update({'lastLoginAt': FieldValue.serverTimestamp()});
     }
+    
+    // Register device fingerprint (Milestone 3)
+    await DeviceFingerprint.registerDevice(user.uid);
   }
 
   Future<void> updateProfile({

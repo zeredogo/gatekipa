@@ -67,3 +67,43 @@ exports.getUserAnalytics = onCall({ region: "us-central1" }, async (request) => 
     throw new HttpsError("internal", "Failed to compute user analytics.");
   }
 });
+
+const { generateSpendingInsightsAI } = require("../utils/gemini");
+
+/**
+ * getUserSpendingInsights — retrieves Gemini-powered AI spending analysis and anomaly alerts.
+ */
+exports.getUserSpendingInsights = onCall({ region: "us-central1" }, async (request) => {
+  requireAuth(request.auth);
+  const uid = request.auth.uid;
+
+  try {
+    // 1. Fetch recent transactions
+    const txSnap = await db.collection("transactions")
+      .where("user_id", "==", uid)
+      .orderBy("created_at", "desc")
+      .limit(15)
+      .get();
+      
+    const transactions = txSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      created_at: doc.data().created_at?.toDate ? doc.data().created_at.toDate().toISOString() : new Date().toISOString()
+    }));
+
+    // 2. Fetch detected subscriptions
+    const subSnap = await db.collection("users").doc(uid).collection("detected_subscriptions").get();
+    const subscriptions = subSnap.docs.map(doc => doc.data());
+
+    // 3. Generate insights via Gemini
+    const insights = await generateSpendingInsightsAI(transactions, subscriptions);
+
+    return {
+      success: true,
+      insights
+    };
+  } catch (error) {
+    console.error("[AnalyticsService] Error generating AI insights:", error);
+    throw new HttpsError("internal", "Failed to generate AI insights.");
+  }
+});

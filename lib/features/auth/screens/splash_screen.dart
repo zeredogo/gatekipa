@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gatekipa/core/constants/routes.dart';
 import 'package:gatekipa/core/theme/app_colors.dart';
+import 'package:gatekipa/core/utils/device_fingerprint.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -34,8 +35,25 @@ class _SplashScreenState extends State<SplashScreen> {
     // lockApp() keeps the session alive, so currentUser is non-null even after
     // the user "signs out" via the lock button. Biometric prompt gates access.
     if (user != null) {
+      // 1. Verify device trust status (Milestone 3)
+      final isTrusted = await DeviceFingerprint.isDeviceTrusted(user.uid);
+      bool isBiometricChecked = false;
+      
+      if (!isTrusted) {
+        final passed = await _tryBiometricAuthForTrustedDevice();
+        if (!mounted) return;
+        if (!passed) {
+          await FirebaseAuth.instance.signOut();
+          if (mounted) context.go(Routes.emailAuth);
+          return;
+        }
+        await DeviceFingerprint.registerDevice(user.uid);
+        isBiometricChecked = true;
+      }
+
+      // 2. Normal biometric lock check (if configured and not already checked)
       final biometricsEnabled = prefs.getBool('${user.uid}_use_biometrics') ?? false;
-      if (biometricsEnabled) {
+      if (biometricsEnabled && !isBiometricChecked) {
         final passed = await _tryBiometricAuth();
         if (!mounted) return;
         if (!passed) {
@@ -63,8 +81,6 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-
-
   /// Triggers the device biometric/PIN prompt.
   /// Returns true if the user passes, false otherwise.
   Future<bool> _tryBiometricAuth() async {
@@ -84,6 +100,26 @@ class _SplashScreenState extends State<SplashScreen> {
     } catch (_) {
       // Any error (e.g. no enrolled biometrics) → let user through
       return true;
+    }
+  }
+
+  /// Prompts for strict biometric only to trust a new/unknown device fingerprint.
+  Future<bool> _tryBiometricAuthForTrustedDevice() async {
+    final auth = LocalAuthentication();
+    try {
+      final canCheck = await auth.canCheckBiometrics;
+      final isSupported = await auth.isDeviceSupported();
+      if (!canCheck && !isSupported) return true; // No hardware - skip gate
+
+      return await auth.authenticate(
+        localizedReason: 'New Device Detected: Verify your identity to trust this device',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true, // enforce biometrics only for registration
+        ),
+      );
+    } catch (_) {
+      return false;
     }
   }
 

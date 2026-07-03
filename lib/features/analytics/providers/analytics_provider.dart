@@ -8,6 +8,45 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
+class SpendingInsightsModel {
+  final String summary;
+  final List<String> anomalies;
+  final List<String> suggestions;
+
+  const SpendingInsightsModel({
+    required this.summary,
+    required this.anomalies,
+    required this.suggestions,
+  });
+
+  factory SpendingInsightsModel.fromJson(Map<String, dynamic> json) {
+    return SpendingInsightsModel(
+      summary: json['summary'] ?? '',
+      anomalies: List<String>.from(json['anomalies'] ?? []),
+      suggestions: List<String>.from(json['suggestions'] ?? []),
+    );
+  }
+}
+
+final aiSpendingInsightsProvider = FutureProvider.autoDispose<SpendingInsightsModel>((ref) async {
+  try {
+    final callable = FirebaseFunctions.instance.httpsCallable('getUserSpendingInsights');
+    final res = await callable.call();
+    final data = res.data as Map;
+    if (data['success'] == true && data['insights'] != null) {
+      final insightsMap = (data['insights'] as Map).cast<String, dynamic>();
+      return SpendingInsightsModel.fromJson(insightsMap);
+    }
+  } catch (e) {
+    debugPrint('Error loading AI spending insights: $e');
+  }
+  return const SpendingInsightsModel(
+    summary: "Your spending is currently stable. No anomalies detected.",
+    anomalies: [],
+    suggestions: ["Set up a Disposable Card for trial sign-ups to avoid hidden charges."],
+  );
+});
+
 class TrialData {
   final String name;
   final double savedAmount;

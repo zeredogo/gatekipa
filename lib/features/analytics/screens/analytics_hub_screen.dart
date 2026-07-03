@@ -230,6 +230,8 @@ class _AnalyticsContent extends ConsumerWidget {
                           const SizedBox(height: 40),
                           _ProjectionCard(projectedAmount: fmtSavings),
                           const SizedBox(height: 40),
+                          const _AISpendingInsightsCard(),
+                          const SizedBox(height: 40),
                           Text(
                             'Portfolio Diagnostics',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w800),
@@ -726,6 +728,165 @@ class _FeatureCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AISpendingInsightsCard extends ConsumerWidget {
+  const _AISpendingInsightsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final insightsAsync = ref.watch(aiSpendingInsightsProvider);
+
+    return insightsAsync.when(
+      loading: () => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.psychology_rounded, color: AppColors.primary),
+                SizedBox(width: 10),
+                Text('Consulting Sentinel AI Spending Coach...', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+              ],
+            ),
+            SizedBox(height: 12),
+            LinearProgressIndicator(color: AppColors.primary, backgroundColor: AppColors.outlineVariant),
+          ],
+        ),
+      ),
+      error: (e, __) => const SizedBox.shrink(),
+      data: (insights) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary.withValues(alpha: 0.08),
+                AppColors.secondary.withValues(alpha: 0.04),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.psychology_rounded, color: AppColors.primary, size: 24),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Sentinel AI Spending Coach',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Text(
+                      'ACTIVE',
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                insights.summary,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 13,
+                  color: AppColors.onSurface,
+                  height: 1.5,
+                ),
+              ),
+              if (insights.anomalies.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  '⚠️ Detected Anomalies',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: AppColors.error,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ...insights.anomalies.map((a) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 14),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          a,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 12,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+              if (insights.suggestions.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  '💡 AI Recommendations',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ...insights.suggestions.map((s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.lightbulb_outline_rounded, color: AppColors.primary, size: 14),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          s,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 12,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

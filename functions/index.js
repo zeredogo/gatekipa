@@ -11,7 +11,7 @@ setGlobalOptions({
   memory: "256MiB", 
   cpu: 0.16, 
   enforceAppCheck: false,
-  secrets: ["SUDO_API_KEY", "RESEND_API_KEY", "SAFEHAVEN_CLIENT_ID", "SAFEHAVEN_PRIVATE_KEY", "SUDO_WEBHOOK_SECRET", "SAFEHAVEN_WEBHOOK_SECRET", "DATABASE_URL"] 
+  secrets: ["SUDO_API_KEY", "RESEND_API_KEY", "SAFEHAVEN_CLIENT_ID", "SAFEHAVEN_PRIVATE_KEY", "SUDO_WEBHOOK_SECRET", "SAFEHAVEN_WEBHOOK_SECRET", "DATABASE_URL", "GEMINI_API_KEY"] 
 });
 
 const { onUserCreated, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset, checkMigrationStatus } = require("./services/authService");
@@ -32,7 +32,7 @@ const { scanSubscriptionPatterns, sendRenewalReminders } = require("./services/s
 const { expirationCron } = require("./services/expirationCron");
 const { ghostCardSweeper } = require("./services/ghostCardSweeper");
 const { adminSetSystemMode, adminGetSystemMode, adminInitializeDatabase } = require("./services/systemService");
-const { getUserAnalytics } = require("./services/analyticsService");
+const { getUserAnalytics, getUserSpendingInsights } = require("./services/analyticsService");
 
 
 // 1. Auth / User Lifecycle
@@ -112,6 +112,7 @@ exports.validateIdentity = validateIdentity;
 
 
 exports.getUserAnalytics = getUserAnalytics;
+exports.getUserSpendingInsights = getUserSpendingInsights;
 
 // 11. Sudo — Real Virtual Card Issuing
 const { sudoWebhook, migratePendingSudoCards, migrateUSDBridgecardsToSudo, createSudoCard, revealCardDetails, fundSudoCard } = require("./services/sudoService");

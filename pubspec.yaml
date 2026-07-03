@@ -42,6 +42,7 @@ dependencies:
 
   # Local Auth (Biometric Kill Switch)
   local_auth: ^2.3.0
+  device_info_plus: ^10.1.2
 
   # Utilities
   intl: ^0.19.0
