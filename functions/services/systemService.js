@@ -73,3 +73,21 @@ exports.adminGetSystemMode = onCall({ region: "us-central1", enforceAppCheck: fa
 
   return { ...snap.data(), updated_at: snap.data().updated_at?.toDate()?.toISOString() };
 });
+
+const { initializeSchema } = require("../utils/db");
+
+/**
+ * adminInitializeDatabase — runs SQL database migrations (schema setup) in production.
+ * Admin-only.
+ */
+exports.adminInitializeDatabase = onCall({ region: "us-central1", enforceAppCheck: false }, async (request) => {
+  requireAdmin(request.auth);
+  
+  logger.info(`[DatabaseInit] Database schema initialization triggered by ${request.auth.uid}`);
+  const success = await initializeSchema();
+  if (!success) {
+    throw new HttpsError("internal", "Database schema initialization failed. Check server logs.");
+  }
+  
+  return { success: true, message: "Database schema and indexes initialized successfully." };
+});

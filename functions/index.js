@@ -11,7 +11,7 @@ setGlobalOptions({
   memory: "256MiB", 
   cpu: 0.16, 
   enforceAppCheck: false,
-  secrets: ["SUDO_API_KEY", "RESEND_API_KEY", "SAFEHAVEN_CLIENT_ID", "SAFEHAVEN_PRIVATE_KEY", "SUDO_WEBHOOK_SECRET", "SAFEHAVEN_WEBHOOK_SECRET"] 
+  secrets: ["SUDO_API_KEY", "RESEND_API_KEY", "SAFEHAVEN_CLIENT_ID", "SAFEHAVEN_PRIVATE_KEY", "SUDO_WEBHOOK_SECRET", "SAFEHAVEN_WEBHOOK_SECRET", "DATABASE_URL"] 
 });
 
 const { onUserCreated, purchasePlanFromVault, resendVerificationEmail, requestPasswordReset, checkMigrationStatus } = require("./services/authService");
@@ -31,7 +31,7 @@ const { reconciliationDispatcher, processReconciliationBatch } = require("./serv
 const { scanSubscriptionPatterns, sendRenewalReminders } = require("./services/subscriptionCron");
 const { expirationCron } = require("./services/expirationCron");
 const { ghostCardSweeper } = require("./services/ghostCardSweeper");
-const { adminSetSystemMode, adminGetSystemMode } = require("./services/systemService");
+const { adminSetSystemMode, adminGetSystemMode, adminInitializeDatabase } = require("./services/systemService");
 const { getUserAnalytics } = require("./services/analyticsService");
 
 
@@ -93,6 +93,7 @@ exports.expirationCron            = expirationCron;
 // 9. System Mode Management (Admin Only)
 exports.adminSetSystemMode = adminSetSystemMode;
 exports.adminGetSystemMode = adminGetSystemMode;
+exports.adminInitializeDatabase = adminInitializeDatabase;
 
 // 8. Wallet Operations
 exports.createVaultAccount = createVaultAccount;
