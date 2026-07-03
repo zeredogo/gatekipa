@@ -60,17 +60,18 @@ export default async function WebhooksPage() {
     };
   });
 
-  // ── 2. JIT Authorization stats (last 200 wallet_ledger entries) ───────────
+  // ── 2. JIT Authorization stats (last 200 wallet_ledger entries - filtered in-memory) ───
   const jitSnap = await db.collection("wallet_ledger")
-    .where("source", "==", "sudo_jit_auth")
     .orderBy("created_at", "desc")
-    .limit(200)
+    .limit(1000)
     .get();
+
+  const jitDocs = jitSnap.docs.filter(doc => doc.data().source === "sudo_jit_auth").slice(0, 200);
 
   let jitApproved = 0, jitReserved = 0;
   let jitTotalKobo = 0;
 
-  jitSnap.docs.forEach(doc => {
+  jitDocs.forEach(doc => {
     const d = doc.data();
     jitTotalKobo += d.amount_kobo ?? 0;
     if (d.status === "reserved") jitReserved++;
@@ -78,19 +79,22 @@ export default async function WebhooksPage() {
     else jitApproved++;
   });
 
-  // ── 3. Recent JIT declines ─────────────────────────────────────────────────
+  // ── 3. Recent JIT declines (filtered in-memory) ────────────────────────────
   const declinesSnap = await db.collection("transactions")
-    .where("status", "==", "DECLINED")
-    .where("source", "==", "sudo_jit_auth")
     .orderBy("created_at", "desc")
-    .limit(20)
+    .limit(1000)
     .get();
 
-  const declines = declinesSnap.docs.map(doc => {
+  const declineDocs = declinesSnap.docs.filter(doc => {
+    const d = doc.data();
+    return d.status === "DECLINED" && d.source === "sudo_jit_auth";
+  }).slice(0, 20);
+
+  const declines = declineDocs.map(doc => {
     const d = doc.data();
     return {
       id:       doc.id,
-      merchant: d.merchant_name ?? "Unknown",
+      merchant: d.merchant_name ?? d.metadata?.merchantName ?? "Unknown",
       reason:   d.decline_reason ?? "Unknown",
       amount:   d.amount ?? 0,
       time:     formatTs(d.created_at),
