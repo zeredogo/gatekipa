@@ -97,10 +97,15 @@ exports.verifyKyc = onCall({ region: "us-central1", secrets: [SAFEHAVEN_CLIENT_I
 
       const { initiateSafeHavenVerification, generateSafeHavenDva } = require("./safehavenService");
       
-      let selfieBase64 = data.selfieBase64;
-      if (!selfieBase64) {
-        throw new HttpsError("invalid-argument", "Selfie data missing. Cannot auto-provision sub-account.");
+      // Download the selfie image from Firebase Storage and convert to base64
+      if (!data.selfieUrl) {
+        throw new HttpsError("invalid-argument", "Selfie URL is missing. Cannot auto-provision sub-account.");
       }
+
+      console.log(`[verifyKyc] Fetching selfie from ${data.selfieUrl} for base64 conversion...`);
+      const axios = require("axios");
+      const response = await axios.get(data.selfieUrl, { responseType: 'arraybuffer' });
+      const selfieBase64 = `data:image/jpeg;base64,${Buffer.from(response.data, 'binary').toString('base64')}`;
 
       console.log(`[verifyKyc] Automatically generating Vault account for UID ${uid}...`);
       const verificationResult = await initiateSafeHavenVerification(uid, mergedUserData, selfieBase64);

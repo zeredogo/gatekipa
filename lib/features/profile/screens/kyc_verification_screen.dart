@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -171,12 +170,6 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
         return;
       }
 
-      String? selfieBase64;
-      if (_selectedCountry == 'Nigeria') {
-        final bytes = await _selfieFile!.readAsBytes();
-        selfieBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-      }
-
       // Call verification function — 120s timeout handles slow African connections
       // without producing false "failed" errors that encourage unnecessary retries.
       final callable = FirebaseFunctions.instance
@@ -187,7 +180,6 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
         'country': _selectedCountry,
         'state': _selectedState,
         'idNumber': _idNumberController.text.trim(),
-        if (selfieBase64 != null) 'selfieBase64': selfieBase64,
       });
 
       if (!mounted) return;
