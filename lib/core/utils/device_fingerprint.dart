@@ -52,6 +52,17 @@ class DeviceFingerprint {
     final name = await getDeviceName();
     final uuid = await getDeviceUuid();
     
+    bool isPhysical = true;
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await _deviceInfo.androidInfo;
+        isPhysical = androidInfo.isPhysicalDevice;
+      } else if (Platform.isIOS) {
+        final iosInfo = await _deviceInfo.iosInfo;
+        isPhysical = iosInfo.isPhysicalDevice;
+      }
+    } catch (_) {}
+    
     return {
       'fingerprint': fingerprint,
       'name': name,
@@ -61,6 +72,8 @@ class DeviceFingerprint {
       'last_active': FieldValue.serverTimestamp(),
       'registered_at': FieldValue.serverTimestamp(),
       'is_trusted': true,
+      'is_physical_device': isPhysical,
+      'is_emulator': !isPhysical,
     };
   }
 
