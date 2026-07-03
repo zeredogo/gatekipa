@@ -4,6 +4,9 @@ const { requireAuth } = require("../utils/validators");
 const { FieldValue } = require("firebase-admin/firestore");
 const { defineSecret } = require("firebase-functions/params");
 
+const SAFEHAVEN_CLIENT_ID = defineSecret("SAFEHAVEN_CLIENT_ID");
+const SAFEHAVEN_PRIVATE_KEY = defineSecret("SAFEHAVEN_PRIVATE_KEY");
+
 /**
  * verifyBvn — registers a BVN number for the user without redundant API verification.
  * 
@@ -46,7 +49,7 @@ exports.verifyBvn = onCall({ region: "us-central1" }, async (request) => {
  * 
  * We no longer use QoreID here as Bridgecard validates the Nigerian ID numbers natively.
  */
-exports.verifyKyc = onCall({ region: "us-central1" }, async (request) => {
+exports.verifyKyc = onCall({ region: "us-central1", secrets: [SAFEHAVEN_CLIENT_ID, SAFEHAVEN_PRIVATE_KEY] }, async (request) => {
   requireAuth(request.auth);
   const uid = request.auth.uid;
   const data = request.data;
@@ -80,14 +83,48 @@ exports.verifyKyc = onCall({ region: "us-central1" }, async (request) => {
     { merge: true }
   );
 
+  // Automatically generate SafeHaven dedicated virtual account (Vault NUBAN) for Nigerian users
+  if (data.country === 'Nigeria') {
+    try {
+      const userDoc = await db.collection("users").doc(uid).get();
+      const userData = userDoc.data() || {};
+      
+      const mergedUserData = {
+        ...userData,
+        bvn: data.idNumber,
+        kycMeta: verificationMeta
+      };
+
+      const { initiateSafeHavenVerification, generateSafeHavenDva } = require("./safehavenService");
+      
+      let selfieBase64 = data.selfieBase64;
+      if (!selfieBase64) {
+        throw new HttpsError("invalid-argument", "Selfie data missing. Cannot auto-provision sub-account.");
+      }
+
+      console.log(`[verifyKyc] Automatically generating Vault account for UID ${uid}...`);
+      const verificationResult = await initiateSafeHavenVerification(uid, mergedUserData, selfieBase64);
+      if (verificationResult.success && verificationResult.identityId) {
+        await generateSafeHavenDva(uid, mergedUserData, verificationResult.identityId, null, true);
+      }
+    } catch (safeHavenError) {
+      console.error(`[verifyKyc] SafeHaven subaccount generation failed: ${safeHavenError.message}`);
+      // Return success: true but with a warning, so the user's KYC is still verified,
+      // and they can fallback to generating the NUBAN from the funds tab.
+      return { 
+        success: true, 
+        message: "KYC verified successfully, but Vault NUBAN auto-generation failed. You can generate it in the wallet tab.",
+        error: safeHavenError.message
+      };
+    }
+  }
+
   return { 
     success: true, 
-    message: "KYC details saved successfully." 
+    message: "KYC verified and Vault generated successfully." 
   };
 });
 
-const SAFEHAVEN_CLIENT_ID = defineSecret("SAFEHAVEN_CLIENT_ID");
-const SAFEHAVEN_PRIVATE_KEY = defineSecret("SAFEHAVEN_PRIVATE_KEY");
 const SUDO_API_KEY = defineSecret("SUDO_API_KEY");
 
 /**
