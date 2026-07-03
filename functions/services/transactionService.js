@@ -27,6 +27,7 @@ const { disableCard } = require("./cardService");
 const { sendNotification } = require("./notificationService");
 const { getMessaging } = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
+const { pgInsertTransaction, pgUpdateTransactionStatus, pgInsertWalletLedger, pgInsertCardLedger } = require("./postgresLedgerService");
 
 // ── Internal orchestrator (called by other services too) ──────────────────────
 
@@ -95,6 +96,7 @@ async function processTransactionInternal({
 
   // ── 3. Create PENDING transaction ──────────────────────────────────────────
   const txnRef = db.collection("transactions").doc();
+  const pgTracker = {};
 
   // ── 4. ATOMIC core: idempotency guard + financial mutation in ONE transaction ─
   //    This prevents the TOCTOU race where both webhook and client-side
@@ -116,11 +118,11 @@ async function processTransactionInternal({
       // Firestore transactions require ALL reads to be executed before ANY writes.
       // Therefore, we must call the type-specific handlers BEFORE we write to idempotencyRef and txnRef.
       if (type === "wallet_to_card") {
-        await _processWalletToCard(firestoreTxn, txnRef.id, userId, amount, metadata);
+        await _processWalletToCard(firestoreTxn, txnRef.id, userId, amount, metadata, pgTracker);
       } else if (type === "wallet_funding") {
-        await _processWalletFunding(firestoreTxn, txnRef.id, userId, amount, metadata);
+        await _processWalletFunding(firestoreTxn, txnRef.id, userId, amount, metadata, pgTracker);
       } else if (type === "card_charge") {
-        await _processCardCharge(firestoreTxn, txnRef.id, userId, amount, metadata);
+        await _processCardCharge(firestoreTxn, txnRef.id, userId, amount, metadata, pgTracker);
       } else {
         throw new Error(`UNKNOWN_TYPE: Unrecognized transaction type '${type}'.`);
       }
@@ -159,6 +161,32 @@ async function processTransactionInternal({
     await db.collection("idempotency_keys").doc(idempotencyKey).update({
       status: "SUCCESS",
     });
+
+    // Write to PostgreSQL (Dual Write Strategy)
+    if (process.env.DATABASE_URL) {
+      try {
+        await pgInsertTransaction({
+          id: txnRef.id,
+          user_id: userId,
+          type,
+          amount_kobo: Math.round(amount * 100),
+          status: "SUCCESS",
+          metadata
+        });
+
+        if (pgTracker.walletLedger) {
+          await pgInsertWalletLedger(pgTracker.walletLedger);
+        }
+        if (pgTracker.feeWalletLedger) {
+          await pgInsertWalletLedger(pgTracker.feeWalletLedger);
+        }
+        if (pgTracker.cardLedger) {
+          await pgInsertCardLedger(pgTracker.cardLedger);
+        }
+      } catch (pgErr) {
+        logger.error("[Postgres Ledger] Failed to save transaction or ledger to PostgreSQL:", pgErr);
+      }
+    }
 
     logger.info("[Orchestrator] success", { txnId: txnRef.id, correlationId });
 
@@ -203,6 +231,22 @@ async function processTransactionInternal({
       await db.collection("idempotency_keys").doc(idempotencyKey).delete().catch(() => {});
     }
 
+    // Record failed transaction status in PostgreSQL
+    if (process.env.DATABASE_URL) {
+      try {
+        await pgInsertTransaction({
+          id: txnRef.id,
+          user_id: userId,
+          type,
+          amount_kobo: Math.round(amount * 100),
+          status: finalStatus,
+          metadata: { ...metadata, error_message: message }
+        });
+      } catch (pgErr) {
+        logger.error("[Postgres Ledger] Failed to save failed transaction to PostgreSQL:", pgErr);
+      }
+    }
+
     logger.error("[Orchestrator] failed", { txnId: txnRef.id, error: message, correlationId });
     throw error;
   }
@@ -210,7 +254,7 @@ async function processTransactionInternal({
 
 // ── Type-specific handlers ─────────────────────────────────────────────────────
 
-async function _processWalletToCard(firestoreTxn, txnId, userId, amount, metadata) {
+async function _processWalletToCard(firestoreTxn, txnId, userId, amount, metadata, pgTracker = null) {
   const { cardId, accountId } = metadata;
   if (!cardId || !accountId) throw new Error("wallet_to_card requires cardId and accountId in metadata.");
 
@@ -296,9 +340,29 @@ async function _processWalletToCard(firestoreTxn, txnId, userId, amount, metadat
     allocated_amount: FieldValue.increment(amount),
     balance_limit: FieldValue.increment(amount),
   });
+
+  // g. Populate Postgres Tracker
+  if (pgTracker) {
+    pgTracker.walletLedger = {
+      user_id: userId,
+      type: "debit",
+      amount_kobo: amountKobo,
+      reference: txnId,
+      balance_after_kobo: balanceAfterKobo,
+      source: "wallet_to_card"
+    };
+    pgTracker.cardLedger = {
+      card_id: cardId,
+      account_id: accountId,
+      type: "funding",
+      amount_kobo: amountKobo,
+      merchant_name: "Wallet Transfer",
+      reference: txnId
+    };
+  }
 }
 
-async function _processWalletFunding(firestoreTxn, txnId, userId, amount, metadata) {
+async function _processWalletFunding(firestoreTxn, txnId, userId, amount, metadata, pgTracker = null) {
   const { source = "system" } = metadata;
 
   // Phase 1 (Kobo): Convert to integer kobo — all arithmetic uses integers
@@ -345,9 +409,21 @@ async function _processWalletFunding(firestoreTxn, txnId, userId, amount, metada
     balance_after_kobo: balanceAfterKobo,
     reference: metadata.paystackRef || metadata.gatewayRef || "unknown"
   }));
+
+  // e. Populate Postgres Tracker
+  if (pgTracker) {
+    pgTracker.walletLedger = {
+      user_id: userId,
+      type: "credit",
+      amount_kobo: amountKobo,
+      reference: txnId,
+      balance_after_kobo: balanceAfterKobo,
+      source
+    };
+  }
 }
 
-async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata) {
+async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata, pgTracker = null) {
   const { cardId, accountId, merchantName = "Unknown", bridgecardRef } = metadata;
   if (!cardId) throw new Error("card_charge requires cardId in metadata.");
 
@@ -423,6 +499,19 @@ async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata)
       cached_balance: FieldValue.increment(-flatFeeNGN),
       balance: FieldValue.increment(-flatFeeNGN),
     }, { merge: true });
+
+    // Populate fee wallet ledger in tracker
+    if (pgTracker) {
+      pgTracker.feeWalletLedger = {
+        user_id: userId,
+        type: "debit",
+        amount_kobo: flatFeeKobo,
+        reference: `fee_${bridgecardRef || txnId}`,
+        balance_after_kobo: balanceAfterKobo,
+        source: "card_transaction_fee",
+        metadata: { merchant_name: "Gatekipa Trans. Fee" }
+      };
+    }
   } else {
     // Record debt to prevent overdrafting wallet
     const debtRef = db.collection("negative_balance_ledgers").doc(`debt_fee_${bridgecardRef || txnId}`);
@@ -435,6 +524,18 @@ async function _processCardCharge(firestoreTxn, txnId, userId, amount, metadata)
       created_at: Date.now(),
       status: "unrecovered"
     });
+  }
+
+  // Populate card charge in tracker
+  if (pgTracker) {
+    pgTracker.cardLedger = {
+      card_id: cardId,
+      account_id: accountId || "",
+      type: "charge",
+      amount_kobo: amountKobo,
+      merchant_name: merchantName,
+      reference: bridgecardRef || txnId
+    };
   }
 }
 
