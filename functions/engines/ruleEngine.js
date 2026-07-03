@@ -258,6 +258,15 @@ async function evaluateTransaction(cardId, amount, merchantName, options = { dry
     return { approved: false, reason: `Card is ${cardStatus}` };
   }
 
+  // 2.5. Merchant-Locked card enforcement
+  if (card.card_type === "merchant_locked" && card.locked_merchant) {
+    const cleanIncoming = merchantName.toLowerCase().trim();
+    const cleanLocked = card.locked_merchant.toLowerCase().trim();
+    if (!cleanIncoming.includes(cleanLocked) && !cleanLocked.includes(cleanIncoming)) {
+      return { approved: false, reason: `Merchant lock active: card is locked to ${card.locked_merchant}` };
+    }
+  }
+
   // BUG FIX: Personal cards have account_id === uid with NO accounts/{uid} document.
   // Old code: accountSnap.exists === false → return { approved: false, reason: "Account not found" }
   // This broke adminSimulateRuleEngine for all personal card holders.

@@ -556,12 +556,77 @@ async function _postProcess(type, txnId, userId, amount, metadata) {
       await sendNotification(card.account_id, "Your trial card was automatically disabled after use.");
     }
 
+    // Auto-disable/delete disposable cards after successful charge (Milestone 2)
+    if (card.card_type === "disposable" || card.is_disposable === true) {
+      await disableCard(cardId);
+      await db.collection("cards").doc(cardId).update({
+        local_status: "terminated",
+        status: "terminated",
+        deleted_at: Date.now()
+      });
+      await sendNotification(card.account_id, "Your disposable one-time card has self-destructed successfully.");
+    }
+
+    // Auto-lock merchant locked cards to the first merchant (Milestone 2)
+    if (card.card_type === "merchant_locked" && !card.locked_merchant) {
+      await db.collection("cards").doc(cardId).update({
+        locked_merchant: merchantName || "Unknown Merchant"
+      });
+      await sendNotification(card.account_id, `Your Merchant-Locked card is now locked to: ${merchantName || "Unknown Merchant"}.`);
+    }
+
     // FCM + in-app notification for card charges
     // BUG FIX (Bug B): Personal cards have account_id === uid but no accounts document.
     // Old code: accountSnap.exists === false → ownerUid undefined → notification silently skipped.
     // Fix: fallback to card.account_id as ownerUid when no accounts document exists.
     const accountSnap = await db.collection("accounts").doc(card.account_id).get();
     const ownerUid = accountSnap.exists ? accountSnap.data().owner_user_id : card.account_id;
+
+    // Subscription Intelligence scanner (Milestone 2)
+    if (merchantName && ownerUid) {
+      try {
+        const lowerMerchant = merchantName.toLowerCase();
+        const recurringKeywords = [
+          "netflix", "spotify", "apple", "google", "aws", "amazon web services", 
+          "microsoft", "azure", "zoom", "slack", "github", "canva", "figma", 
+          "chatgpt", "openai", "copilot", "adobe", "midjourney", "youtube", 
+          "premium", "patreon", "sub", "subscription", "recurring", "monthly"
+        ];
+        
+        const isSubscription = recurringKeywords.some(kw => lowerMerchant.includes(kw));
+        if (isSubscription) {
+          const subscriptionsRef = db.collection('users').doc(ownerUid).collection('detected_subscriptions');
+          const existingSubQuery = await subscriptionsRef.where("name", "==", merchantName).limit(1).get();
+          
+          const subDoc = {
+            name: merchantName,
+            amount: Math.round(amount * 100), // in cents/kobo
+            currency: card.currency || "NGN",
+            category: 'Service',
+            cycle: 'monthly',
+            color_hex: '#10b981', // Forest/emerald theme color
+            icon: 'receipt_long_rounded',
+            raw_message: `Detected from card transaction at ${merchantName}`,
+            detectedAt: new Date().toISOString(),
+            last_charged_at: new Date().toISOString()
+          };
+
+          if (existingSubQuery.empty) {
+            await subscriptionsRef.add(subDoc);
+            logger.info(`[SubscriptionScanner] Automatically registered new recurring subscription: ${merchantName}`);
+          } else {
+            await existingSubQuery.docs[0].ref.update({
+              amount: Math.round(amount * 100),
+              last_charged_at: new Date().toISOString()
+            });
+            logger.info(`[SubscriptionScanner] Updated existing subscription charge: ${merchantName}`);
+          }
+        }
+      } catch (scanErr) {
+        logger.error("[SubscriptionScanner] Failed to scan subscription patterns:", scanErr);
+      }
+    }
+
     if (ownerUid) {
       const ownerSnap = await db.collection("users").doc(ownerUid).get();
       const fcmToken = ownerSnap.data()?.fcm_token;

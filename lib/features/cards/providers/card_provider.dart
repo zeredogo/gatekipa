@@ -162,6 +162,7 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
     String category = 'personal',
     double balanceLimit = 50000,
     String currency = 'NGN',
+    String? cardType,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -172,6 +173,7 @@ class CardNotifier extends StateNotifier<AsyncValue<void>> {
         'category': category,
         'balance_limit': balanceLimit,
         'currency': currency,
+        if (cardType != null) 'card_type': cardType,
       });
       state = const AsyncValue.data(null);
       final dataMap = result.data as Map<dynamic, dynamic>;

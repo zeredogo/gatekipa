@@ -597,6 +597,10 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
     
     final resolvedAccountId = _selectedAccountId ?? selectedAcc?.id ?? (accounts.isNotEmpty ? accounts.first.id : user.uid);
 
+    String resolvedCardType = 'standard';
+    if (_cardType == 'one_time') resolvedCardType = 'disposable';
+    if (_cardType == 'merchant_locked') resolvedCardType = 'merchant_locked';
+
     final cardId = await ref.read(cardNotifierProvider.notifier).createCard(
           accountId: resolvedAccountId,
           name: cardName,
@@ -604,6 +608,7 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
           isTrial: _cardType == 'trial',
           balanceLimit: 50000,
           currency: _cardCurrency,
+          cardType: resolvedCardType,
         );
 
     if (cardId != null) {
@@ -918,16 +923,24 @@ class _CardCreationScreenState extends ConsumerState<CardCreationScreen> {
               _CardTypeOption(
                 value: 'subscription',
                 selectedValue: _cardType,
-                title: 'Subscription Card',
-                subtitle: 'For recurring payments',
+                title: 'Subscription (Standard) Card',
+                subtitle: 'For recurring bills & subscriptions',
                 onChanged: (v) => setState(() => _cardType = v!),
               ),
               const SizedBox(height: AppSpacing.xs),
               _CardTypeOption(
                 value: 'one_time',
                 selectedValue: _cardType,
-                title: 'One-Time Card',
-                subtitle: 'Burner card for single use',
+                title: 'One-Time (Disposable) Card',
+                subtitle: 'Burner card that self-destructs after single use',
+                onChanged: (v) => setState(() => _cardType = v!),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _CardTypeOption(
+                value: 'merchant_locked',
+                selectedValue: _cardType,
+                title: 'Merchant-Locked Card',
+                subtitle: 'Binds automatically to first merchant that charges it',
                 onChanged: (v) => setState(() => _cardType = v!),
               ),
               const SizedBox(height: 28),

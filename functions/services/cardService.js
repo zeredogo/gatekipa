@@ -31,7 +31,7 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
   const data = request.data;
   
   requireFields(data, ["account_id", "name"]);
-  const { account_id, name, is_trial = false, category = 'personal', currency = 'NGN' } = data;
+  const { account_id, name, is_trial = false, category = 'personal', currency = 'NGN', card_type = 'standard' } = data;
 
   const userDoc = await db.collection("users").doc(uid).get();
   // 'none' must NOT default to 'free' — a user with no plan should not be
@@ -93,6 +93,8 @@ exports.createVirtualCard = onCall({ region: "us-central1" }, async (request) =>
     is_trial: is_trial,
     category: category,
     currency: currency,
+    card_type, // 'standard' | 'disposable' | 'merchant_locked'
+    locked_merchant: null, // binds to first merchant that charges
     last4,
     masked_number,
     cvv,
