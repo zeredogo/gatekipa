@@ -81,47 +81,13 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                   String? capturedIdentityId;
 
                   try {
-                    // Show screen flash/ring-light helper overlay
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => const Scaffold(
-                        backgroundColor: Colors.white,
-                        body: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(color: Colors.blue),
-                              SizedBox(height: 16),
-                              Text(
-                                'Preparing camera helper...',
-                                style: TextStyle(color: Colors.black54, fontSize: 16, fontWeight: FontWeight.w500),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-
-                    // Wait for screen white lighting to stabilize
-                    await Future.delayed(const Duration(milliseconds: 400));
-                    if (!context.mounted) return;
-
-                    final navigator = Navigator.of(context);
-
-                    // 2. Capture face image
+                    // Capture face image directly to avoid focus/lifecycle issues
                     final picker = ImagePicker();
-                    XFile? picked;
-                    try {
-                      picked = await picker.pickImage(
-                        source: ImageSource.camera, 
-                        imageQuality: 80, 
-                        preferredCameraDevice: CameraDevice.front,
-                      );
-                    } finally {
-                      // Dismiss screen flash overlay
-                      navigator.pop();
-                    }
+                    final picked = await picker.pickImage(
+                      source: ImageSource.camera, 
+                      imageQuality: 80, 
+                      preferredCameraDevice: CameraDevice.front,
+                    );
 
                     if (picked == null) {
                       if (!context.mounted) return;
