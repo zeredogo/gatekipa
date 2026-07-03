@@ -518,12 +518,12 @@ exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512M
           // Final balance check inside transaction
           if (currentBalanceKobo < amountKobo) {
             const reason = "Insufficient wallet balance";
-            recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventId);
+            recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventId, false, ruleResult.riskScore, ruleResult.riskReasons);
             return { approved: false, code: "51", reason };
           }
           if (allocatedAmountKobo < amountKobo) {
             const reason = "Insufficient card limit";
-            recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventId);
+            recordJitDecline(sudoCardId, amountKobo, merchant, reason, eventId, false, ruleResult.riskScore, ruleResult.riskReasons);
             return { approved: false, code: "51", reason };
           }
 
@@ -561,7 +561,9 @@ exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512M
             source: "sudo_jit_auth",
             status: "reserved",
             merchant_name: merchant,
-            created_at: FieldValue.serverTimestamp()
+            created_at: FieldValue.serverTimestamp(),
+            risk_score: ruleResult.riskScore ?? null,
+            risk_reasons: ruleResult.riskReasons ?? []
           });
 
           return { approved: true, code: "00" };
@@ -797,6 +799,20 @@ exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512M
             correlationId: `sudoRefundWebhook:${authEventId}`,
           });
         } else {
+          // Fetch JIT reservation details for risk parameters
+          let riskScore = null;
+          let riskReasons = [];
+          try {
+            const reservationDoc = await db.collection("wallet_ledger").doc(`jit_auth_${authEventId}`).get();
+            if (reservationDoc.exists) {
+              const resData = reservationDoc.data();
+              riskScore = resData.risk_score ?? null;
+              riskReasons = resData.risk_reasons ?? [];
+            }
+          } catch (err) {
+            logger.warn(`[Sudo Webhook] Failed to fetch JIT reservation for risk data: ${err.message}`);
+          }
+
           await processTransactionInternal({
             type: "card_charge",
             userId: ownerUid,
@@ -809,7 +825,9 @@ exports.sudoWebhook = onRequest({ region: "us-central1", cpu: 0.5, memory: "512M
               providerRef: authEventId,
               compositeHash,
               currency: transactionCurrency,
-              source: "sudo"
+              source: "sudo",
+              risk_score: riskScore,
+              risk_reasons: riskReasons
             },
             correlationId: `sudoChargeWebhook:${authEventId}`,
           });

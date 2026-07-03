@@ -146,6 +146,8 @@ async function processTransactionInternal({
         amount,
         idempotency_key: idempotencyKey,
         metadata,
+        risk_score: metadata.risk_score ?? null,
+        risk_reasons: metadata.risk_reasons ?? [],
         created_at: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
       });

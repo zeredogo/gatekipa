@@ -296,6 +296,14 @@ export async function runReconciliationSweep() {
       bridgecard_escrow: sudoEscrow // Keep Firestore key for backward compat with existing dashboard reads
     }, { merge: true });
 
+    await db.collection("reconciliation_sweeps").add({
+      timestamp: new Date().toISOString(),
+      gatekipa_ledger: gatekipaTotal,
+      bridgecard_escrow: sudoEscrow,
+      difference: gatekipaTotal - sudoEscrow,
+      status: gatekipaTotal === sudoEscrow ? "PARITY" : "DESYNC",
+    });
+
 
     revalidatePath("/reconciliation");
     return { success: true, message: "Sweep completed successfully!" };
@@ -387,3 +395,86 @@ export async function dispatchAdminBroadcast(
     return { success: false, error: e.message };
   }
 }
+
+// --- WEBHOOK RETRY ACTION --- //
+export async function retryWebhookPayload(eventId: string) {
+  try {
+    await verifyAdminSession();
+
+    const docRef = db.collection("webhook_events").doc(eventId);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new Error("Webhook event not found");
+    }
+
+    const docData = docSnap.data();
+    if (!docData) throw new Error("Webhook event data is empty");
+
+    const source = docData.source || "unknown";
+
+    // Clean up internal metadata fields before sending original payload
+    const payload = { ...docData };
+    delete payload.source;
+    delete payload.created_at;
+    delete payload.status;
+    delete payload.retry_count;
+    delete payload.last_retry_at;
+    delete payload.retry_error;
+
+    let targetUrl = "";
+    let headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (source === "sudo_webhook") {
+      targetUrl = "https://us-central1-gatekipa-bbd1c.cloudfunctions.net/sudoWebhook";
+      const webhookSecret = process.env.SUDO_WEBHOOK_SECRET || "gatekipa_sudo_webhook_secret_2024!";
+      headers["Authorization"] = `Bearer ${webhookSecret}`;
+    } else if (source === "safehaven_webhook") {
+      targetUrl = "https://us-central1-gatekipa-bbd1c.cloudfunctions.net/safehavenWebhook";
+      const webhookSecret = process.env.SAFEHAVEN_WEBHOOK_SECRET || "gatekipa_safehaven_webhook_secret_2024!";
+      
+      const crypto = await import("crypto");
+      const bodyString = JSON.stringify(payload);
+      const signature = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(Buffer.from(bodyString, "utf-8"))
+        .digest("hex");
+      
+      headers["x-signature"] = signature;
+    } else {
+      throw new Error(`Unsupported webhook source: ${source}`);
+    }
+
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const respText = await response.text();
+
+    const updateData: any = {
+      last_retry_at: new Date().toISOString(),
+      retry_count: admin.firestore.FieldValue.increment(1),
+    };
+
+    if (response.ok) {
+      updateData.status = "Received";
+      updateData.retry_error = null;
+      await docRef.update(updateData);
+      revalidatePath("/webhooks");
+      return { success: true, message: `Webhook retried: ${response.status} ${respText}` };
+    } else {
+      updateData.status = "Failed";
+      updateData.retry_error = `Status ${response.status}: ${respText}`;
+      await docRef.update(updateData);
+      revalidatePath("/webhooks");
+      return { success: false, error: `Webhook returned ${response.status}: ${respText}` };
+    }
+  } catch (error: any) {
+    console.error("Failed to retry webhook payload:", error);
+    return { success: false, error: error.message };
+  }
+}
+

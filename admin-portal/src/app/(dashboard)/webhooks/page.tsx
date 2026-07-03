@@ -4,6 +4,7 @@ import {
   Zap, ShieldCheck, Clock, ArrowDownToLine, RefreshCw
 } from "lucide-react";
 import { db } from "@/lib/firebaseAdmin";
+import WebhookFeedClient from "./WebhookFeedClient";
 
 export const dynamic = "force-dynamic";
 
@@ -48,11 +49,14 @@ export default async function WebhooksPage() {
   const webhooks = webhooksSnap.docs.map(doc => {
     const d = doc.data();
     return {
-      id:     doc.id,
-      event:  d.event_type || d.event || d.type || doc.id,
-      source: d.source || "unknown",
-      time:   formatTs(d.created_at),
-      status: d.status || "Received",
+      id:          doc.id,
+      event:       d.event_type || d.event || d.type || doc.id,
+      source:      d.source || "unknown",
+      time:        formatTs(d.created_at),
+      status:      d.status || "Received",
+      retry_count: d.retry_count || 0,
+      retry_error: d.retry_error || null,
+      last_retry:  d.last_retry_at ? formatTs(d.last_retry_at) : null
     };
   });
 
@@ -251,51 +255,7 @@ export default async function WebhooksPage() {
       </div>
 
       {/* ── Raw Webhook Event Feed ─────────────────────────────────────── */}
-      <div className="glass-panel rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-white/5 flex items-center gap-2">
-          <Webhook className="w-4 h-4 text-gray-400" />
-          <h2 className="text-sm font-semibold text-white">Incoming Webhook Feed</h2>
-          <span className="ml-auto text-xs text-gray-500">Last 50 events · all providers</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Event</th>
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Provider</th>
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Time</th>
-                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {webhooks.length === 0 ? (
-                <tr><td colSpan={4} className="p-8 text-center text-gray-500">No recent webhooks found.</td></tr>
-              ) : webhooks.map(hook => {
-                const { label, color } = sourceLabel(hook.source);
-                return (
-                  <tr key={hook.id} className="hover:bg-white/5 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <ArrowDownToLine className="w-4 h-4 text-gray-500 shrink-0" />
-                        <code className="text-xs text-gray-300 break-all">{hook.event}</code>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`text-sm font-medium ${color}`}>{label}</span>
-                    </td>
-                    <td className="p-4 text-sm text-gray-400 whitespace-nowrap">{hook.time}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs border ${statusBadge(hook.status)}`}>
-                        {hook.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <WebhookFeedClient initialWebhooks={webhooks} />
 
     </div>
   );
