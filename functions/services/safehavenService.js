@@ -370,7 +370,8 @@ async function initiateSafeHavenVerification(uid, userData, faceImageBase64 = nu
       }
     });
 
-    const identityId = res.data.data._id;
+    logger.info("[SafeHaven] Identity initiation response:", JSON.stringify(res.data));
+    const identityId = res.data?.data?._id || res.data?._id || res.data?.data?.id || res.data?.id;
 
     if (faceImageBase64) {
       // Automatically complete KYC verified state for vID flow
