@@ -17,7 +17,7 @@ async function classifyMerchantAI(merchantName) {
   const VALID_CATEGORIES = ['food_groceries', 'utilities', 'transport_travel', 'digital_services', 'entertainment_leisure', 'business_software', 'others'];
 
   try {
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
     const payload = {
       contents: [
         {
@@ -84,7 +84,7 @@ async function generateSpendingInsightsAI(transactions, subscriptions) {
   }
 
   try {
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
     
     // Format input data to keep tokens low
     const formattedTxns = transactions.slice(0, 15).map(t => ({
