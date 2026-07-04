@@ -182,9 +182,9 @@ async function performGeminiFaceMatch(documentUrl, selfieBase64) {
     cleanSelfie = cleanSelfie.split(";base64,").pop();
   }
 
-  logger.info("[AI Match] Sending comparison request to Gemini 1.5 Flash");
+  logger.info("[AI Match] Sending comparison request to Gemini 2.5 Flash");
   try {
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
     const payload = {
       contents: [
         {
