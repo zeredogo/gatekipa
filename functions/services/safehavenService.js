@@ -387,8 +387,8 @@ async function initiateSafeHavenVerification(uid, userData, faceImageBase64 = nu
   } catch (err) {
     const errorBody = err.response?.data;
     const errorStatus = err.response?.status;
-    logger.error(`[SafeHaven] Verification Initiation Failed for ${uid}. Status: ${errorStatus}. Body:`, JSON.stringify(errorBody));
-    throw new HttpsError("internal", errorBody?.message || `Failed to initiate SafeHaven Verification. Status: ${errorStatus}`);
+    logger.error(`[SafeHaven] Verification Initiation Failed for ${uid}. Status: ${errorStatus}. Error: ${err.message}. Stack: ${err.stack}. Body:`, JSON.stringify(errorBody));
+    throw new HttpsError("internal", errorBody?.message || `Failed to initiate SafeHaven Verification. Status: ${errorStatus}. Error: ${err.message}`);
   }
 }
 
