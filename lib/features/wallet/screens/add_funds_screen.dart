@@ -86,7 +86,9 @@ class _AddFundsScreenState extends ConsumerState<AddFundsScreen> {
                     final picker = ImagePicker();
                     final picked = await picker.pickImage(
                       source: ImageSource.camera, 
-                      imageQuality: 80, 
+                      imageQuality: 70, 
+                      maxWidth: 512,
+                      maxHeight: 512,
                       preferredCameraDevice: CameraDevice.front,
                     );
 

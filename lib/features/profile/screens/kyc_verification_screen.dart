@@ -73,7 +73,12 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
 
   Future<void> _pickDocumentProof() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery, 
+      imageQuality: 75,
+      maxWidth: 800,
+      maxHeight: 800,
+    );
     if (picked != null) {
       setState(() => _documentProofFile = File(picked.path));
       if (mounted) {
@@ -84,7 +89,13 @@ class _KycVerificationScreenState extends ConsumerState<KycVerificationScreen> {
 
   Future<void> _takeLivenessCheck() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera, imageQuality: 80, preferredCameraDevice: CameraDevice.front);
+    final picked = await picker.pickImage(
+      source: ImageSource.camera, 
+      imageQuality: 70, 
+      maxWidth: 512,
+      maxHeight: 512,
+      preferredCameraDevice: CameraDevice.front,
+    );
     if (picked != null) {
       setState(() => _selfieFile = File(picked.path));
       if (mounted) {

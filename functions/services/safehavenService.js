@@ -373,6 +373,12 @@ async function initiateSafeHavenVerification(uid, userData, faceImageBase64 = nu
     logger.info("[SafeHaven] Identity initiation response:", JSON.stringify(res.data));
     const identityId = res.data?.data?._id || res.data?._id || res.data?.data?.id || res.data?.id;
 
+    if (!identityId) {
+      const errorMsg = res.data?.message || "Failed to retrieve identity ID from SafeHaven response.";
+      logger.error(`[SafeHaven] Missing Identity ID. Response: ${JSON.stringify(res.data)}`);
+      throw new HttpsError("internal", `SafeHaven verification initiation failed: ${errorMsg}`);
+    }
+
     if (faceImageBase64) {
       // Automatically complete KYC verified state for vID flow
       await db.collection("users").doc(uid).update({
